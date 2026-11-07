@@ -249,6 +249,7 @@ fun SettingsScreen(
     // which caches the codec-list walk for the life of the process.
     val dolbyAtmosSupported = DeviceCodecs.playsDolbyAtmos
     val spatialAudio by AppSettings.spatialAudio.collectAsStateWithLifecycle()
+    val autoPlayRecognizedSong by AppSettings.autoPlayRecognizedSong.collectAsStateWithLifecycle()
     val nerdStats by AppSettings.showNerdStats.collectAsStateWithLifecycle()
     val listenTogetherButton by AppSettings.showListenTogetherButton.collectAsStateWithLifecycle()
     val externalLinks by AppSettings.externalLinks.collectAsStateWithLifecycle()
@@ -998,6 +999,23 @@ fun SettingsScreen(
                         onClick = { AppSettings.setSpatialAudio(!spatialAudio) },
                     )
                 }
+            }
+            val autoPlayRecognizedSongTitle = stringResource(R.string.auto_play_recognized_song)
+            row(autoPlayRecognizedSongTitle, "recognize", "recognition", "autoplay", "song") {
+                SettingsRow(
+                    icon = SfIcons.PlayCircle,
+                    title = autoPlayRecognizedSongTitle,
+                    subtitle = stringResource(R.string.auto_play_recognized_song_subtitle),
+                    trailing = {
+                        IosSwitch(
+                            checked = autoPlayRecognizedSong,
+                            onCheckedChange = AppSettings::setAutoPlayRecognizedSong,
+                        )
+                    },
+                    onClick = {
+                        AppSettings.setAutoPlayRecognizedSong(!autoPlayRecognizedSong)
+                    },
+                )
             }
             // The system panel is not listed here as well. A device with a
             // Dolby or Dirac panel has something BitChord cannot reproduce and
