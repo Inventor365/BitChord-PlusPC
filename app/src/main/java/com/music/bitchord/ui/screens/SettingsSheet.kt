@@ -648,7 +648,8 @@ fun SettingsScreen(
             if (downloadMode == DownloadMode.EXTERNAL) {
                 val externalDownloaderTitle = stringResource(R.string.external_downloader_app)
                 row(externalDownloaderTitle, "seal", "ytdlnis", "downloader", divided = false) {
-                    SettingsSubRow(
+                    SettingsRow(
+                        icon = SfIcons.Download,
                         title = externalDownloaderTitle,
                         value = externalDownloaderApp.displayName(context),
                         onClick = { onOpenChoice(SettingsChoiceKind.EXTERNAL_DOWNLOADER_APP) },
@@ -657,7 +658,8 @@ fun SettingsScreen(
                 if (externalDownloaderApp == ExternalDownloaderApp.OTHER) {
                     val packageTitle = stringResource(R.string.external_downloader_package)
                     row(packageTitle, "package", "custom", divided = false) {
-                        SettingsSubRow(
+                        SettingsRow(
+                            icon = Icons.Rounded.Link,
                             title = packageTitle,
                             subtitle = externalDownloaderPackage.ifBlank { stringResource(R.string.external_downloader_custom_package_subtitle) },
                             onClick = { showCustomDownloaderPackageDialog = true },

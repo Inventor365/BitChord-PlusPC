@@ -127,6 +127,17 @@ object QueueTimeline {
      * 25 upcoming tracks.
      */
     fun buildPartyPlaybackQueue(
+        tappedSong: Song,
+        source: QueueSource,
+        partyUpcomingQueue: List<Song>,
+    ): List<Song> {
+        val upcoming = partyUpcomingQueue
+            .take(MAX_PARTY_UPCOMING_QUEUE)
+            .map { it.asQueueEntry(QueueTier.USER_QUEUE) }
+        return listOf(tappedSong.from(source).asQueueEntry(QueueTier.CONTEXT)) + upcoming
+    }
+
+    fun buildPartyPlaybackQueue(
         songs: List<Song>,
         selectedIndex: Int,
         source: QueueSource,

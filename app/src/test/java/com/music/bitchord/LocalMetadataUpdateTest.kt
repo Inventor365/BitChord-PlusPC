@@ -13,6 +13,7 @@ class LocalMetadataUpdateTest {
             videoId = "local-123",
             title = "Old Title",
             artist = "Old Artist",
+            thumbnailUrl = null,
             albumName = "Old Album",
             localUri = "content://media/external/audio/media/123",
             localPath = "/storage/emulated/0/Music/song.mp3",
@@ -38,6 +39,7 @@ class LocalMetadataUpdateTest {
             videoId = "local-456",
             title = "Sample Song",
             artist = "Sample Artist",
+            thumbnailUrl = null,
             albumName = "Sample Album",
             localUri = "file:///storage/emulated/0/Music/track.flac",
         )

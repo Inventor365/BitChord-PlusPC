@@ -511,7 +511,7 @@
     <string name="download_quality_subtitle">%1$s per track, whatever the connection</string>
     <string name="download_mode">Download mode</string>
     <string name="download_mode_in_app">Download in-app</string>
-    <string name="download_mode_in_app_desc">Save tracks directly to BitChord's offline library</string>
+    <string name="download_mode_in_app_desc">Save tracks directly to BitChord\'s offline library</string>
     <string name="download_mode_external">External downloader</string>
     <string name="download_mode_external_desc">Send tracks and playlists to an external download manager</string>
     <string name="download_mode_footer">Choose whether BitChord manages downloads internally or delegates them to an external app.</string>

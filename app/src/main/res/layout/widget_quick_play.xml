@@ -78,7 +78,7 @@
                     android:layout_width="36dp"
                     android:layout_height="36dp"
                     android:background="@drawable/widget_button_pill_bg"
-                    android:contentDescription="@string/favorite"
+                    android:contentDescription="@string/like"
                     android:padding="8dp"
                     android:src="@drawable/ic_widget_star" />
 

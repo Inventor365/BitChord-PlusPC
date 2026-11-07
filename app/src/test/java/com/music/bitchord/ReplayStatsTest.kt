@@ -55,6 +55,7 @@ class ReplayStatsTest {
                         videoId = "close_to_me",
                         title = "Close To Me",
                         artist = "Ellie Goulding",
+                        thumbnailUrl = null,
                     ),
                     ms = 65_000L,
                     plays = 0,
@@ -70,6 +71,7 @@ class ReplayStatsTest {
             distinctArtists = 0,
             distinctAlbums = 0,
             since = "2026-11",
+            asOf = LocalDate.of(2026, 11, 4),
         )
 
         assertFalse(summary.isEmpty)

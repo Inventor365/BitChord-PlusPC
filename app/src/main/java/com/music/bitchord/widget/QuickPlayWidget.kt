@@ -131,7 +131,7 @@ class QuickPlayWidget : AppWidgetProvider() {
                     }
                 }.getOrNull()
 
-                val fallbackSongs = fetched ?: OfflinePlaylists.all.value.firstOrNull { it.isLiked }?.songs
+                val fallbackSongs = fetched ?: OfflinePlaylists.playlists.value.firstOrNull { it.isLiked }?.songs
                 if (!fallbackSongs.isNullOrEmpty()) {
                     QuickPlayStore.saveSongs(context, fallbackSongs)
                     quickPicks = QuickPlayStore.load(context)

@@ -280,4 +280,9 @@
     <string name="mix_view_one_bar">1 Bar</string>
     <string name="mix_view_seconds">%1$d sec</string>
     <string name="mix_view_bpm">%1$d bpm</string>
+    <string name="autoplay_repeat_description">Repeat is active, AutoPlay paused</string>
+    <string name="hide_lyrics_preview">Hide lyrics</string>
+    <string name="hide_lyrics_preview_subtitle">Hides the lyrics line on the main player screen</string>
+    <string name="search_voice">Search with your voice</string>
+    <string name="automix_overview_unavailable">No Automix transition coming up</string>
 </resources>

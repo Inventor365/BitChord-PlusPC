@@ -2476,7 +2476,7 @@ private fun BitChordApp(
     // it decomposed into — see [Downloads.rememberCollection]. Null for a single
     // track, which is not a release however many of them are asked for one at a
     // time.
-    val startDownload: (List<Song>, DownloadTarget?) -> Unit = { requested, from ->
+    val startDownload: (List<Song>, DownloadTarget?) -> Unit = startDownload@{ requested, from ->
         if (AppSettings.downloadMode.value == DownloadMode.EXTERNAL) {
             val url = if (from != null && from.playlist) {
                 ExternalDownloader.buildMediaUrl(null, from.id)
@@ -5249,6 +5249,7 @@ private fun BitChordApp(
         // One sheet for both, because they are one decision: the list of
         // playlists with a way to make another. `creatingPlaylist` opens it
         // straight onto the form, which is what the Library tile means.
+        Isolated {
         playlistTargets?.let { targets ->
             PlaylistPickerSheet(
                 playlists = playlists,
@@ -5463,6 +5464,7 @@ private fun BitChordApp(
                 },
                 onDismiss = { showSpotifyImportDialog = false },
             )
+        }
         }
 
         // ---- Album / playlist actions ----
@@ -5829,6 +5831,7 @@ private fun BitChordApp(
         // ---- Welcome (once; under the sign-in WebView it can open) ----
         // There from the first frame, so no way in; on the way out it drops
         // like a dismissed sheet onto the app it was standing in front of.
+        Isolated {
         AnimatedVisibility(
             visibleState = onboardingShown,
             enter = EnterTransition.None,
@@ -6215,6 +6218,7 @@ private fun BitChordApp(
                 },
                 onDismiss = { showAccountSelector = false },
             )
+        }
         }
 
         if (showAppLanguage) {

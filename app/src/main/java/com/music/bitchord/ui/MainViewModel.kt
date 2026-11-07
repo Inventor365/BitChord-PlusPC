@@ -1216,42 +1216,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * with a rate limit. The duplicate check is per playlist, so a track
      * already in one of them is skipped there and still added to the rest.
      */
-    /**
-     * Add to Playlist for several picked songs: per playlist, one request with
-     * every song it doesn't hold yet. Playlists in turn, not at once, for the
-     * rate limit [addToPlaylists] explains. [onResult] counts playlists.
-     */
-    fun addSongsToPlaylists(
-        playlists: List<UserPlaylist>,
-        songs: List<Song>,
-        onResult: (added: Int, alreadyThere: Int, failed: Int) -> Unit = { _, _, _ -> },
-    ) {
-        if (!requireSignIn() || playlists.isEmpty() || songs.isEmpty()) return
-        viewModelScope.launch {
-            val outcomes = playlists.map { playlist ->
-                val openSongs = (_detailStack.value.firstOrNull { it.browseId == playlist.browseId }
-                    ?.songs as? UiState.Success)?.data
-                val known = (openSongs ?: YtMusicRepository.allSongs(playlist.browseId).getOrNull())
-                    .orEmpty().mapTo(HashSet()) { it.videoId }
-                val fresh = songs.filter { it.videoId !in known }.distinctBy { it.videoId }
-                if (fresh.isEmpty()) return@map AddOutcome.ALREADY_THERE
-                YtMusicRepository.addToPlaylist(playlist.playlistId, fresh.map { it.videoId }).fold(
-                    onSuccess = { added ->
-                        libraryStale = true
-                        fresh.forEach { appendToOpenPlaylist(playlist.browseId, it, added[it.videoId]) }
-                        AddOutcome.ADDED
-                    },
-                    onFailure = { AddOutcome.FAILED },
-                )
-            }
-            onResult(
-                outcomes.count { it == AddOutcome.ADDED },
-                outcomes.count { it == AddOutcome.ALREADY_THERE },
-                outcomes.count { it == AddOutcome.FAILED },
-            )
-        }
-    }
-
     fun addToPlaylists(
         playlists: List<UserPlaylist>,
         song: Song,

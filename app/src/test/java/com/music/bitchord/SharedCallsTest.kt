@@ -253,7 +253,40 @@ class SharedCallsTest {
         assertTrue("held ${shared.size()}", shared.size() <= 128)
     }
 
-    /**
+    @Test
+    fun `the Oriente search is asked again after the request died with its starter gone`() = runBlocking {
+        val query = "linda louca e mimada oriente"
+        val calls = AtomicInteger()
+        val joined = AtomicInteger()
+        val onTheWire = CompletableDeferred<Unit>()
+        val ceiling = CompletableDeferred<Unit>()
+        val shared = shared<String>(ttlMs = 10 * 60_000, onReuse = { joined.incrementAndGet() })
+
+        val live = async(Dispatchers.Default) {
+            shared.get(query, { "addon search q=\"$query\"" }) {
+                calls.incrementAndGet()
+                onTheWire.complete(Unit)
+                ceiling.await()
+                Result.failure(IllegalStateException("timeout"))
+            }
+        }
+        onTheWire.await()
+        live.cancelAndJoin()
+
+        val secondLook = async(Dispatchers.Default) {
+            shared.get(query, { "addon search q=\"$query\"" }) {
+                calls.incrementAndGet()
+                Result.success("a second request, which would be a duplicate")
+            }
+        }
+        while (joined.get() < 1) yield()
+        ceiling.complete(Unit)
+
+        assertTrue("the joined caller sees the failure", secondLook.await().isFailure)
+        assertEquals("one request on the wire, not two", 1, calls.get())
+
+        withTimeout(5_000) { while (shared.size() != 0) delay(10) }
+
         // A replay, or the next track that asks the same question. A failure is
         // not an answer, so this asks the addon again.
         val answer = shared.get(query, { "addon search q=\"$query\"" }) {

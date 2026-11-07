@@ -281,4 +281,9 @@
     <string name="save_as_playlist">Save as playlist</string>
     <string name="save_queue_as_playlist">Save queue as playlist</string>
     <string name="save_radio_as_playlist">Save radio as playlist</string>
+    <string name="autoplay_repeat_description">Repeat is active, AutoPlay paused</string>
+    <string name="hide_lyrics_preview">Hide lyrics</string>
+    <string name="hide_lyrics_preview_subtitle">Hides the lyrics line on the main player screen</string>
+    <string name="search_voice">Search with your voice</string>
+    <string name="automix_overview_unavailable">No Automix transition coming up</string>
 </resources>
