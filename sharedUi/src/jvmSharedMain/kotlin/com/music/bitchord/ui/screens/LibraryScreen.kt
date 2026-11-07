@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -312,31 +313,36 @@ private fun PlaylistShelf(
     onShowAll: () -> Unit,
     pinnedPlaylists: List<String> = emptyList(),
 ) {
+    val creationCards: @Composable () -> Unit = {
+        Row(horizontalArrangement = Arrangement.spacedBy(LIBRARY_GRID_SPACING)) {
+            NewShelfCard(
+                icon = BitChordIcons.Plus,
+                label = stringResource(Res.string.new_playlist),
+                subtitle = stringResource(Res.string.saved_to_youtube_music),
+                onClick = onNewPlaylist,
+            )
+            if (onImportSpotifyPlaylist != null) {
+                NewShelfCard(
+                    icon = BitChordIcons.Download,
+                    label = stringResource(Res.string.import_spotify),
+                    subtitle = stringResource(Res.string.import_spotify_subtitle),
+                    onClick = onImportSpotifyPlaylist,
+                    logo = Res.drawable.spotify_logo,
+                )
+            }
+        }
+    }
+
+    val hasPlaylists = shelf.items.isNotEmpty()
+
     LibraryGridShelf(
         shelf = shelf,
         onItemClick = onItemClick,
         onItemLongPress = onItemLongPress,
         onShowAll = onShowAll,
         pinnedPlaylists = pinnedPlaylists,
-        leadingCard = {
-            Row(horizontalArrangement = Arrangement.spacedBy(LIBRARY_GRID_SPACING)) {
-                NewShelfCard(
-                    icon = BitChordIcons.Plus,
-                    label = stringResource(Res.string.new_playlist),
-                    subtitle = stringResource(Res.string.saved_to_youtube_music),
-                    onClick = onNewPlaylist,
-                )
-                if (onImportSpotifyPlaylist != null) {
-                    NewShelfCard(
-                        icon = BitChordIcons.Download,
-                        label = stringResource(Res.string.import_spotify),
-                        subtitle = stringResource(Res.string.import_spotify_subtitle),
-                        onClick = onImportSpotifyPlaylist,
-                        logo = Res.drawable.spotify_logo,
-                    )
-                }
-            }
-        },
+        leadingCard = if (!hasPlaylists) creationCards else null,
+        trailingCard = if (hasPlaylists) creationCards else null,
     )
 }
 
@@ -360,22 +366,24 @@ internal fun LibraryGridShelf(
     onItemLongPress: (ShelfItem) -> Unit,
     onShowAll: () -> Unit,
     leadingCard: (@Composable () -> Unit)? = null,
+    trailingCard: (@Composable () -> Unit)? = null,
     pinnedPlaylists: List<String> = emptyList(),
 ) {
-    val leadingCount = if (leadingCard != null) 1 else 0
-    val visibleItems = shelf.items.take((LIBRARY_ROW_MAX_ITEMS - leadingCount).coerceAtLeast(0))
+    val extraCount = (if (leadingCard != null) 1 else 0) + (if (trailingCard != null) 1 else 0)
+    val visibleItems = shelf.items.take((LIBRARY_ROW_MAX_ITEMS - extraCount).coerceAtLeast(0))
     Column(Modifier.padding(bottom = 26.dp)) {
         SectionHeader(
             title = shelf.title,
             subtitle = shelf.subtitle,
-            onShowAll = onShowAll.takeIf { shelf.items.size + leadingCount > LIBRARY_ROW_MAX_ITEMS },
+            onShowAll = onShowAll.takeIf { shelf.items.size + extraCount > LIBRARY_ROW_MAX_ITEMS },
         )
         ShelfRow(
             contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
             horizontalArrangement = Arrangement.spacedBy(LIBRARY_GRID_SPACING),
+            flingBehavior = ScrollableDefaults.flingBehavior(),
         ) {
             leadingCard?.let { card -> item(key = "leading") { card() } }
-            items(visibleItems) { item ->
+            items(visibleItems, key = { it.browseId ?: it.title }) { item ->
                 ShelfCard(
                     item = item,
                     onClick = { onItemClick(item) },
@@ -383,6 +391,7 @@ internal fun LibraryGridShelf(
                     isPinned = item.browseId != null && item.browseId in pinnedPlaylists,
                 )
             }
+            trailingCard?.let { card -> item(key = "trailing") { card() } }
         }
     }
 }

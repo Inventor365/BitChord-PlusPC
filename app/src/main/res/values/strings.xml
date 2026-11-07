@@ -395,6 +395,8 @@
     <string name="player_theme_simple_subtitle">A soft blur of the cover behind the whole player</string>
     <string name="player_theme_legacy_subtitle">Brings back the drifting colour blobs behind the player from v1.5</string>
     <string name="animated_cover_art">Animated cover art</string>
+    <string name="disable_artist_video">Disable artist\'s looping video</string>
+    <string name="disable_artist_video_subtitle">Shows a still photo instead of the looping video on artist pages and Home top picks</string>
     <string name="artist_signatures">Artist signatures</string>
     <string name="artist_signatures_subtitle">Shows a handwritten signature when Apple Music has no title logo</string>
     <string name="artist_signatures_url">Signature API URL</string>
@@ -403,6 +405,8 @@
     <string name="artist_signatures_test_failed">Could not reach the API at that URL</string>
     <string name="synced_lyrics">Synced lyrics</string>
     <string name="synced_lyrics_subtitle">Lights up the words on the player as they’re sung</string>
+    <string name="hide_lyrics_preview">Hide lyrics</string>
+    <string name="hide_lyrics_preview_subtitle">Hides the lyrics line on the main player screen</string>
     <string name="lyrics_sources">Lyrics sources</string>
     <string name="song_cache_limit">Song cache limit</string>
     <string name="clear_song_cache">Clear song cache</string>
@@ -433,6 +437,8 @@
     <string name="full_screen_cover_art_subtitle">Runs the cover to the edges of the player instead of a square sleeve</string>
     <string name="full_screen_detail_cover">Full-screen album/playlist cover</string>
     <string name="full_screen_detail_cover_subtitle">Runs album and playlist covers to the edges of the page instead of a framed sleeve</string>
+    <string name="show_total_duration">Show total duration</string>
+    <string name="show_total_duration_subtitle">Shows the song\'s full length instead of the time remaining</string>
     <string name="animated_cover_art_subtitle">Plays the looping video some releases ship instead of a still sleeve</string>
     <string name="dont_repeat_songs_subtitle">AutoPlay won’t suggest a song already played or suggested this session</string>
     <string name="block_explicit">Block explicit songs</string>
@@ -739,6 +745,8 @@
     <string name="spotify_canvas_setup">Set up Spotify</string>
     <string name="spotify_canvas_setup_description">To use Spotify Canvas, provide your Spotify sp_dc cookie.</string>
     <string name="spotify_canvas_setup_steps">1. Sign in at open.spotify.com in a browser.\n2. Open Developer Tools, then Application and Cookies.\n3. Copy the value of the sp_dc cookie.\n4. Paste it below.</string>
+    <string name="disable_spotify_canvas">Disable Spotify Canvas</string>
+    <string name="disable_spotify_canvas_subtitle">Never use Spotify Canvas. Animated artwork comes only from Apple Music</string>
     <string name="spotify_canvas_auto_hide">Auto-hide player controls</string>
     <string name="spotify_canvas_auto_hide_subtitle">Collapse the half-player after 5 seconds while Spotify Canvas is playing</string>
     <string name="prioritize_spotify_canvas">Prioritize Spotify Canvas</string>

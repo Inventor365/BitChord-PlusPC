@@ -914,6 +914,7 @@ fun NowPlayingScreen(
     val openListenTogetherMembers: () -> Unit = { showListenTogetherMembers = true }
 
     val syncedLyricsEnabled by PlayerSettings.syncedLyrics.collectAsStateWithLifecycle()
+    val hideLyricsPreview by PlayerSettings.hideLyricsPreview.collectAsStateWithLifecycle()
     val lyricsOffsetMs by PlayerSettings.lyricsOffsetMs.collectAsStateWithLifecycle()
     // A lambda, not a value: read by the lyric strip and panel in scopes of
     // their own, so a tick recomposes them and not the player around them.
@@ -2196,7 +2197,7 @@ fun NowPlayingScreen(
                                     onOpenArtist = onOpenArtist,
                                 )
                             },
-                            lyricStrip = if (syncedLyricsEnabled) {
+                            lyricStrip = if (syncedLyricsEnabled && !hideLyricsPreview) {
                                 {
                                     CurrentLyricStrip(
                                         lines = lyricsTranslation.displayedLyrics,
@@ -2334,6 +2335,7 @@ fun NowPlayingScreen(
                             queue = queue,
                             currentIndex = queueIndex,
                             autoplayEnabled = autoplayEnabled,
+                            repeatMode = repeatMode,
                             controlsLocked = controlsLocked,
                             onJumpTo = onJumpTo,
                             onRemove = onRemoveFromQueue,
@@ -3997,6 +3999,7 @@ fun NowPlayingScreen(
                                     queue = queue,
                                     currentIndex = queueIndex,
                                     autoplayEnabled = autoplayEnabled,
+                                    repeatMode = repeatMode,
                                     controlsLocked = controlsLocked,
                                     onJumpTo = onJumpTo,
                                     onRemove = onRemoveFromQueue,
@@ -4076,7 +4079,7 @@ fun NowPlayingScreen(
                             .height(lyricSlotHeight),
                         contentAlignment = Alignment.CenterStart,
                     ) {
-                    if (!lyricsOpen && syncedLyricsEnabled) {
+                    if (!lyricsOpen && syncedLyricsEnabled && !hideLyricsPreview) {
                         CurrentLyricStrip(
                             lines = lyricsTranslation.displayedLyrics,
                             trackKey = song.videoId,

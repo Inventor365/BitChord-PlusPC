@@ -2443,7 +2443,7 @@ internal fun LyricsPanel(
                         PanelVoice(
                             line = subLine,
                             clock = clock,
-                            style = voiceStyle(subStyle, subLine.text, alignEnd, duet),
+                            style = voiceStyle(subStyle, subLine.text, alignEnd, laneLocked = true),
                             isActive = isActive,
                             sung = sung,
                             synced = isSynced,
@@ -2451,7 +2451,7 @@ internal fun LyricsPanel(
                             glowAlpha = 0f,
                             room = 0.dp,
                             alignEnd = alignEnd,
-                            laneLocked = duet,
+                            laneLocked = true,
                             rise = false,
                             // Only the rows actually in front of the reader get the
                             // particle pass. Sixty rows' worth of glyph boxes is a
@@ -2878,6 +2878,15 @@ private fun CurrentLyricLine(
     // own text direction so alignment and sweep geometry match what Compose would
     // produce for that paragraph.  LTR rows keep the chevron on the right; RTL
     // rows put it on the left (mirrored) and right-align the text.
+    val reduceDynamicBlur by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
+    val lyricsBlur by PlayerSettings.lyricsBlur.collectAsStateWithLifecycle()
+    val glowing = !reduceAnimation && !reduceDynamicBlur && lyricsBlur &&
+        renderEffectBlurSupported
+    val glow by animateFloatAsState(
+        targetValue = if (glowing) GLOW_ALPHA else 0f,
+        animationSpec = tween(durationMillis = 420),
+        label = "stripLyricGlow",
+    )
     val stripRtl = isRtl(text)
 
     Row(
@@ -2945,8 +2954,10 @@ private fun CurrentLyricLine(
                     clock = clock,
                     style = voiceStyle(stripStyle, text, alignEnd = false, laneLocked = false),
                     dimAlpha = UNSUNG_ALPHA_STRIP,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    glowAlpha = if (itemIndex == index) glow else 0f,
+                    feather = itemIndex == index,
                     rise = false,
                     modifier = fading,
                 )
@@ -2962,7 +2973,7 @@ private fun CurrentLyricLine(
                         alignEnd = false,
                         laneLocked = false,
                     ),
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }

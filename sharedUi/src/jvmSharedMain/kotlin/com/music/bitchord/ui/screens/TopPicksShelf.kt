@@ -29,6 +29,7 @@ import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -48,9 +49,13 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.foundation.gestures.ScrollableState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.data.canvas.CanvasArtwork
+import com.music.bitchord.data.canvas.CanvasSource
 import com.music.bitchord.ui.AppUi
 import com.music.bitchord.ui.player.CanvasArtworkPlayer
+import com.music.bitchord.ui.player.PlayerPlatform
+import com.music.bitchord.ui.player.PlayerSettings
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -334,7 +339,8 @@ private fun TopPickCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
-                CardMotion(pick.artistMotion(), Modifier.fillMaxSize())
+                val disableArtistVideo by PlayerPlatform.host.settings.disableArtistVideo.collectAsStateWithLifecycle()
+                CardMotion(if (disableArtistVideo) null else pick.artistMotion(), Modifier.fillMaxSize())
                 // The caption sits on the picture's own darkened foot, as on
                 // Apple's photo cards, rather than on a band of flat black.
                 Box(
@@ -515,7 +521,12 @@ private fun CardMotion(
     if (source == null || !LocalArtworkImages.current) return
     // Looked up whether or not the clip may play yet, so the answer is to hand
     // when it may, and the row knows which cards have one to give the slot to.
-    val clip by produceState<CanvasArtwork?>(null, source.key) { value = source.lookup() }
+    val disableSpotifyCanvas by PlayerSettings.disableSpotifyCanvas.collectAsStateWithLifecycle()
+    val resolvedClip by produceState<CanvasArtwork?>(null, source.key, disableSpotifyCanvas) {
+        if (disableSpotifyCanvas && value?.source == CanvasSource.SPOTIFY) value = null
+        value = source.lookup()
+    }
+    val clip = resolvedClip?.takeIf { !disableSpotifyCanvas || it.source != CanvasSource.SPOTIFY }
     val slot = LocalClipSlot.current
     val reportFound by rememberUpdatedState(slot?.onClipFound)
     val found = clip != null

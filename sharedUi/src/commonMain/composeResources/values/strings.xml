@@ -14,6 +14,7 @@
     <string name="autoplay_off">AutoPlay off</string>
     <string name="autoplay_on">AutoPlay on</string>
     <string name="autoplay_queue_description">Similar music, selected to play next</string>
+    <string name="autoplay_repeat_description">Repeat is active, AutoPlay paused</string>
     <string name="bit_depth">%1$d-bit</string>
     <string name="cancel">Cancel</string>
     <string name="cast">Cast</string>
@@ -81,6 +82,8 @@
         <item>Almost found the words</item>
     </string-array>
     <string name="lyrics_not_available">Lyrics not available</string>
+    <string name="hide_lyrics_preview">Hide lyrics</string>
+    <string name="hide_lyrics_preview_subtitle">Hides the lyrics line on the main player screen</string>
     <string name="lyrics_offset">Lyrics offset</string>
     <string name="lyrics_offset_description">Positive values show lyrics later</string>
     <string name="lyrics_offset_reset">Reset</string>

@@ -467,6 +467,9 @@ object AppSettings {
     /** Hides the "Playing from" / "Played by" caption at the top of the main player. */
     val hideSongStatus = MutableStateFlow(false)
 
+    /** Hides the lyrics preview strip on the main and mini player screens. */
+    val hideLyricsPreview = MutableStateFlow(false)
+
     val showQueueHistory = MutableStateFlow(false)
 
     /** Swiping a song row plays it next instead of adding it to the end of the queue. */
@@ -560,6 +563,7 @@ object AppSettings {
      * all. See [CanvasRepository][com.music.bitchord.data.canvas.CanvasRepository].
      */
     val animatedCanvas = MutableStateFlow(true)
+    val disableArtistVideo = MutableStateFlow(false)
 
     /**
      * Whether [animatedCanvas] is allowed to actually stream on a metered
@@ -577,11 +581,20 @@ object AppSettings {
      */
     val canvasOverCellular = MutableStateFlow(false)
 
+    val disableSpotifyCanvas = MutableStateFlow(false)
+
     /** Automatically collapses the lower controls after Spotify Canvas settles. */
     val spotifyCanvasAutoHide = MutableStateFlow(true)
 
     /** Tries Spotify before Apple Music and the other animated-art providers. */
     val prioritizeSpotifyCanvas = MutableStateFlow(false)
+    val effectiveSpotifyCanvasAutoHide = MutableStateFlow(true)
+    val effectivePrioritizeSpotifyCanvas = MutableStateFlow(false)
+
+    private fun updateEffectiveSpotifyCanvasSettings() {
+        effectiveSpotifyCanvasAutoHide.value = spotifyCanvasAutoHide.value && !disableSpotifyCanvas.value
+        effectivePrioritizeSpotifyCanvas.value = prioritizeSpotifyCanvas.value && !disableSpotifyCanvas.value
+    }
 
     /**
      * Secondary artist art: a user-hosted artist-signature API used only when
@@ -611,6 +624,9 @@ object AppSettings {
      * default, the framed sleeve being the page's own look.
      */
     val fullBleedDetailArtwork = MutableStateFlow(false)
+
+    /** Shows the track's total duration at the end of the player scrubber. */
+    val showTotalDuration = MutableStateFlow(false)
 
     /**
      * What the main player stands on below the artwork.
@@ -1052,6 +1068,7 @@ object AppSettings {
         hideVolumeBar.value = prefs.getBoolean(KEY_HIDE_VOLUME_BAR, false)
         hideStatusBarInPlayer.value = prefs.getBoolean(KEY_HIDE_STATUS_BAR_IN_PLAYER, false)
         hideSongStatus.value = prefs.getBoolean(KEY_HIDE_SONG_STATUS, false)
+        hideLyricsPreview.value = prefs.getBoolean(KEY_HIDE_LYRICS_PREVIEW, false)
         showQueueHistory.value = prefs.getBoolean(KEY_SHOW_QUEUE_HISTORY, false)
         swipeToPlayNext.value = prefs.getBoolean(KEY_SWIPE_TO_PLAY_NEXT, false)
         dontRepeatSuggestions.value = prefs.getBoolean(KEY_DONT_REPEAT_SUGGESTIONS, false)
@@ -1079,13 +1096,17 @@ object AppSettings {
             reduceDynamicBlur.value = false
         }
         animatedCanvas.value = prefs.getBoolean(KEY_ANIMATED_CANVAS, true)
+        disableArtistVideo.value = prefs.getBoolean(KEY_DISABLE_ARTIST_VIDEO, false)
         canvasOverCellular.value = prefs.getBoolean(KEY_CANVAS_OVER_CELLULAR, false)
+        disableSpotifyCanvas.value = prefs.getBoolean(KEY_DISABLE_SPOTIFY_CANVAS, false)
         spotifyCanvasAutoHide.value = prefs.getBoolean(KEY_SPOTIFY_CANVAS_AUTO_HIDE, true)
         prioritizeSpotifyCanvas.value = prefs.getBoolean(KEY_PRIORITIZE_SPOTIFY_CANVAS, false)
+        updateEffectiveSpotifyCanvasSettings()
         signatureApiEnabled.value = prefs.getBoolean(KEY_SIGNATURE_API_ENABLED, false)
         signatureApiUrl.value = normalizeSignatureApiUrl(prefs.getString(KEY_SIGNATURE_API_URL, "").orEmpty())
         fullBleedArtwork.value = prefs.getBoolean(KEY_FULL_BLEED_ARTWORK, true)
         fullBleedDetailArtwork.value = prefs.getBoolean(KEY_FULL_BLEED_DETAIL_ARTWORK, false)
+        showTotalDuration.value = prefs.getBoolean(KEY_SHOW_TOTAL_DURATION, false)
         // The old legacy mesh switch answers until a theme has been picked.
         playerTheme.value = runCatching {
             PlayerTheme.valueOf(prefs.getString(KEY_PLAYER_THEME, null).orEmpty())
@@ -1479,6 +1500,11 @@ object AppSettings {
         prefs.edit().putBoolean(KEY_HIDE_SONG_STATUS, value).apply()
     }
 
+    fun setHideLyricsPreview(value: Boolean) {
+        hideLyricsPreview.value = value
+        prefs.edit().putBoolean(KEY_HIDE_LYRICS_PREVIEW, value).apply()
+    }
+
     fun setShowQueueHistory(value: Boolean) {
         showQueueHistory.value = value
         prefs.edit().putBoolean(KEY_SHOW_QUEUE_HISTORY, value).apply()
@@ -1715,6 +1741,11 @@ object AppSettings {
         prefs.edit().putBoolean(KEY_ANIMATED_CANVAS, value).apply()
     }
 
+    fun setDisableArtistVideo(value: Boolean) {
+        disableArtistVideo.value = value
+        prefs.edit().putBoolean(KEY_DISABLE_ARTIST_VIDEO, value).apply()
+    }
+
     fun setCanvasOverCellular(value: Boolean) {
         canvasOverCellular.value = value
         prefs.edit().putBoolean(KEY_CANVAS_OVER_CELLULAR, value).apply()
@@ -1725,13 +1756,21 @@ object AppSettings {
         prefs.edit().putBoolean(KEY_NAV_LABELS, value).apply()
     }
 
+    fun setDisableSpotifyCanvas(value: Boolean) {
+        disableSpotifyCanvas.value = value
+        updateEffectiveSpotifyCanvasSettings()
+        prefs.edit().putBoolean(KEY_DISABLE_SPOTIFY_CANVAS, value).apply()
+    }
+
     fun setSpotifyCanvasAutoHide(value: Boolean) {
         spotifyCanvasAutoHide.value = value
+        updateEffectiveSpotifyCanvasSettings()
         prefs.edit().putBoolean(KEY_SPOTIFY_CANVAS_AUTO_HIDE, value).apply()
     }
 
     fun setPrioritizeSpotifyCanvas(value: Boolean) {
         prioritizeSpotifyCanvas.value = value
+        updateEffectiveSpotifyCanvasSettings()
         prefs.edit().putBoolean(KEY_PRIORITIZE_SPOTIFY_CANVAS, value).apply()
     }
 
@@ -1755,6 +1794,11 @@ object AppSettings {
     fun setFullBleedDetailArtwork(value: Boolean) {
         fullBleedDetailArtwork.value = value
         prefs.edit().putBoolean(KEY_FULL_BLEED_DETAIL_ARTWORK, value).apply()
+    }
+
+    fun setShowTotalDuration(value: Boolean) {
+        showTotalDuration.value = value
+        prefs.edit().putBoolean(KEY_SHOW_TOTAL_DURATION, value).apply()
     }
 
     fun setPlayerTheme(value: PlayerTheme) {
@@ -2352,6 +2396,7 @@ object AppSettings {
     private const val KEY_HIDE_VOLUME_BAR = "hide_volume_bar"
     private const val KEY_HIDE_STATUS_BAR_IN_PLAYER = "hide_status_bar_in_player"
     private const val KEY_HIDE_SONG_STATUS = "hide_song_status"
+    private const val KEY_HIDE_LYRICS_PREVIEW = "hide_lyrics_preview"
     private const val KEY_SHOW_QUEUE_HISTORY = "show_queue_history"
     private const val KEY_SWIPE_TO_PLAY_NEXT = "swipe_to_play_next"
     private const val KEY_DONT_REPEAT_SUGGESTIONS = "dont_repeat_suggestions"
@@ -2373,13 +2418,16 @@ object AppSettings {
     private const val KEY_LYRICS_OFFSET_MS = "lyrics_offset_ms"
     private const val KEY_TRANSLATION_LANGUAGE = "translation_language"
     private const val KEY_ANIMATED_CANVAS = "animated_canvas"
+    private const val KEY_DISABLE_ARTIST_VIDEO = "disable_artist_video"
     private const val KEY_CANVAS_OVER_CELLULAR = "canvas_over_cellular"
+    private const val KEY_DISABLE_SPOTIFY_CANVAS = "disable_spotify_canvas"
     private const val KEY_SPOTIFY_CANVAS_AUTO_HIDE = "spotify_canvas_auto_hide"
     private const val KEY_PRIORITIZE_SPOTIFY_CANVAS = "prioritize_spotify_canvas"
     private const val KEY_SIGNATURE_API_ENABLED = "signature_api_enabled"
     private const val KEY_SIGNATURE_API_URL = "signature_api_url"
     private const val KEY_FULL_BLEED_ARTWORK = "full_bleed_artwork"
     private const val KEY_FULL_BLEED_DETAIL_ARTWORK = "full_bleed_detail_artwork"
+    private const val KEY_SHOW_TOTAL_DURATION = "show_total_duration"
     private const val KEY_PLAYER_THEME = "player_theme"
     private const val KEY_LEGACY_MESH_GRADIENT = "legacy_mesh_gradient"
     private const val KEY_LAST_PLAYER_SCREEN = "last_player_screen"

@@ -82,6 +82,7 @@ import androidx.media3.common.Player
 import com.music.bitchord.data.NerdStats
 import com.music.bitchord.data.canvas.CanvasArtwork
 import com.music.bitchord.data.canvas.CanvasRepository
+import com.music.bitchord.data.canvas.CanvasSource
 import com.music.bitchord.data.lyrics.LyricLine
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.settings.AppSettings
@@ -187,9 +188,10 @@ internal fun TvNowPlayingStage(
     val profile = rememberTvPerformanceProfile()
     val canvasEnabled by AppSettings.animatedCanvas.collectAsState()
     val canvasInLyrics by TvSettings.tvLyricsCanvasEnabled.collectAsState()
+    val disableSpotifyCanvas by AppSettings.disableSpotifyCanvas.collectAsState()
     val useCanvas = profile.allowsCanvas(canvasEnabled, showLyrics, canvasInLyrics)
     var canvas by remember(song.videoId, useCanvas) { mutableStateOf<CanvasArtwork?>(null) }
-    LaunchedEffect(song.videoId, useCanvas) {
+    LaunchedEffect(song.videoId, useCanvas, disableSpotifyCanvas) {
         // Key changes cancel a pending lookup; disabled canvas creates neither requests nor a player.
         canvas = if (useCanvas) CanvasRepository.canvasFor(song) else null
     }
@@ -223,7 +225,9 @@ internal fun TvNowPlayingStage(
         ) {
             TvArtwork(url = song.thumbnailUrl, px = profile.artworkMaxPx, shape = RectangleShape, modifier = Modifier.fillMaxSize())
             if (useCanvas) {
-                canvas?.let { CanvasArtworkPlayer(canvas = it, isPlaying = isPlaying, modifier = Modifier.fillMaxSize()) }
+                canvas?.takeIf { !disableSpotifyCanvas || it.source != CanvasSource.SPOTIFY }?.let {
+                    CanvasArtworkPlayer(canvas = it, isPlaying = isPlaying, modifier = Modifier.fillMaxSize())
+                }
             }
         }
 
