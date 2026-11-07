@@ -103,8 +103,9 @@ suspend fun loadAutoplayTracks(
     limit: Int = MAX_QUEUED_AUTOPLAY,
 ): Result<List<Song>> {
     val seed = youtubeSeedFor(seedSong) ?: return Result.success(emptyList())
-    // A music video plays on with music videos, as YouTube Music does.
-    val videos = seedSong.isVideo && seed == seedSong.videoId
+    // A music video plays on with music videos, as YouTube Music does — unless
+    // they would only be converted again, when the station's songs are the answer.
+    val videos = seedSong.isVideo && seed == seedSong.videoId && !MusicOnlyPlayback.isActive()
     val related = YtMusicRepository.radio(seed, preferVideo = videos).getOrElse { return Result.failure(it) }
     // Filtered before the batch is cut to [limit], so a station heavy with
     // explicit songs still fills up with clean ones.
