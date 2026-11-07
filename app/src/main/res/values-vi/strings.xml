@@ -217,6 +217,7 @@
     <string name="crossfade">Chuyển bài mượt (Crossfade)</string>
     <string name="crossfade_subtitle">Hòa quyện bài hát hiện tại vào bài tiếp theo</string>
     <string name="automix">Automix [BETA]</string>
+    <string name="automix_overview">Tổng quan Automix</string>
     <string name="automix_performance">Hiệu năng Automix</string>
     <string name="automix_performance_subtitle">Đặt mức sử dụng CPU cho phân tích nền</string>
     <string name="automix_performance_warning">Hiệu năng cao hơn phân tích nhanh hơn, nhưng có thể tốn pin hơn và làm máy ấm lên.</string>
@@ -1395,4 +1396,7 @@
     <string name="bit_perfect_status_inexact">%1$s · không chính xác: nguồn này không phải PCM lossless</string>
     <string name="bit_perfect_status_waiting">Đang chờ bản nhạc lossless trên đầu ra được hỗ trợ</string>
     <string name="bit_perfect_status_unavailable">Không khả dụng cho bản nhạc này (%1$s)</string>
+    <string name="diwali_title">BitChord chúc bạn một mùa Diwali hạnh phúc</string>
+    <string name="diwali_subtitle">Chúc lễ hội ánh sáng này mang niềm vui đến ngôi nhà bạn và âm nhạc đến mỗi ngày của bạn.</string>
+    <string name="diwali_cta">Cùng ăn mừng nào</string>
 </resources>

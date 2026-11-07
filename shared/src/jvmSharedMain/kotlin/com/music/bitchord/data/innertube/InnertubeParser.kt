@@ -583,10 +583,17 @@ object InnertubeParser {
      * generic walk.
      */
     fun parsePlaylistShelf(root: JsonElement): PlaylistShelfPage? {
+        // A later page of the playlist's own rows can also come appended by an
+        // action, with no `continuationContents` at all: the shape a long
+        // playlist's second page now has. Read as nothing, a reorder saw only
+        // the first 100 rows (#947).
+        val appended = root.a("onResponseReceivedActions")?.firstNotNullOfOrNull { it.o("appendContinuationItemsAction") }
         val scope: JsonElement = root.o("continuationContents")
+            ?: appended
             ?: root.o("contents").o("twoColumnBrowseResultsRenderer").o("secondaryContents")
             ?: return null
         val playlistScope = scope.o("musicPlaylistShelfContinuation")
+            ?: appended?.takeIf { scope === it }
             ?: collectRenderers(scope, "musicPlaylistShelfRenderer").firstOrNull()
         val suggestionShelves = collectRenderers(scope, "musicShelfRenderer")
             .filter { it.o("title").runs() == "Suggestions" }
@@ -714,11 +721,11 @@ object InnertubeParser {
             }
         // On the "All" tab the first segment is the row type ("Song", "Video"),
         // not the artist — skip those so the subtitle reads like a credit.
-        val rowType = parts.firstOrNull { it.lowercase(Locale.ROOT) in TYPE_WORDS }?.lowercase(Locale.ROOT)
+        val rowType = parts.firstNotNullOfOrNull(::typeWord)
         // A track row on an album lists its play count where a search row
         // lists the artist, so a segment that reads as a tally is no credit.
         val artist = parts.firstOrNull {
-            !it.matches(DURATION) && it.lowercase(Locale.ROOT) !in TYPE_WORDS && !it.matches(TALLY)
+            !it.matches(DURATION) && typeWord(it) == null && !it.matches(TALLY)
         }
 
         // The artist/album names in the subtitle carry browse endpoints; pull
@@ -863,12 +870,11 @@ object InnertubeParser {
         val subtitle = subtitleRuns.joinToString("") { it.s("text").orEmpty() }
         val parts = subtitle.split(" • ").filter { it.isNotBlank() }
         val duration = parts.lastOrNull()?.takeIf { it.matches(DURATION) }
-        val rowType = parts.firstOrNull { it.lowercase(Locale.ROOT) in TYPE_WORDS }
-            ?.lowercase(Locale.ROOT)
+        val rowType = parts.firstNotNullOfOrNull(::typeWord)
         val credits = creditsOf(subtitleRuns)
         val creditedArtists = artistNamesFromRuns(subtitleRuns)
         val artist = parts.firstOrNull {
-            !it.matches(DURATION) && it.lowercase(Locale.ROOT) !in TYPE_WORDS && !it.matches(TALLY)
+            !it.matches(DURATION) && typeWord(it) == null && !it.matches(TALLY)
         }
         val thumbnails = renderer.o("thumbnail").o("musicThumbnailRenderer")
             .o("thumbnail").a("thumbnails")
@@ -1044,7 +1050,10 @@ object InnertubeParser {
      * YouTube alternates name and separator runs inside a bullet-delimited
      * segment, but only some names are guaranteed to carry an artist endpoint.
      */
-    private fun artistNamesFromRuns(runs: List<JsonElement>): String? {
+    private fun artistNamesFromRuns(
+        runs: List<JsonElement>,
+        pages: (String) -> Boolean = { "ARTIST" in it },
+    ): String? {
         val groups = mutableListOf<MutableList<JsonElement>>(mutableListOf())
         runs.forEach { run ->
             if (run.s("text")?.trim() == "•") {
@@ -1058,7 +1067,7 @@ object InnertubeParser {
                 val pageType = run.o("navigationEndpoint").o("browseEndpoint")
                     .o("browseEndpointContextSupportedConfigs")
                     .o("browseEndpointContextMusicConfig").s("pageType").orEmpty()
-                "ARTIST" in pageType
+                pages(pageType)
             }
         } ?: return null
         return artistGroup.mapIndexedNotNull { index, run ->
@@ -1093,7 +1102,7 @@ object InnertubeParser {
         val parts = lines.flatMap { line ->
             line.joinToString("") { it.s("text").orEmpty() }.split(" • ", " · ").map(String::trim)
         }
-        if (parts.none { it.lowercase(Locale.ROOT) in RELEASE_WORDS }) return Credits()
+        if (parts.none { typeWord(it) in RELEASE_WORDS }) return Credits()
 
         val credits = creditsOf(lines.flatten())
         val creditedArtists = lines.firstNotNullOfOrNull(::artistNamesFromRuns)
@@ -1101,7 +1110,7 @@ object InnertubeParser {
         // An artist YouTube has no page for is named in the same line without
         // a link to follow, leaving the name as the only thing to go on.
         val name = parts.firstOrNull {
-            it.isNotBlank() && it.lowercase(Locale.ROOT) !in TYPE_WORDS && !it.matches(TALLY) &&
+            it.isNotBlank() && typeWord(it) == null && !it.matches(TALLY) &&
                 !it.matches(YEAR) && !it.matches(DURATION)
         }
         return credits.copy(artistName = name)
@@ -1691,8 +1700,16 @@ object InnertubeParser {
             browseId = resolvedBrowseId,
             isExplicit = renderer["subtitleBadges"].hasExplicitBadge(),
             isVideo = isVideo,
+            artist = artistNamesFromRuns(renderer.o("subtitle").a("runs").orEmpty(), CARD_CREDIT_PAGES),
         )
     }
+
+    /**
+     * Who a shelf card is credited to: its linked credit where it has one,
+     * else [artistFromSubtitle]'s reading of the words, which only knows
+     * English type labels (#1283).
+     */
+    fun artistOf(item: ShelfItem): String = item.artist ?: artistFromSubtitle(item.subtitle)
 
     /**
      * The credit out of a shelf card's subtitle, which reads "Song • Chelsea
@@ -1706,7 +1723,7 @@ object InnertubeParser {
     fun artistFromSubtitle(subtitle: String): String {
         val parts = subtitle.split(" • ").map(String::trim).filter { it.isNotBlank() }
         return parts.firstOrNull {
-            it.lowercase() !in TYPE_WORDS && !it.matches(TALLY) && !it.matches(DURATION)
+            typeWord(it) == null && !it.matches(TALLY) && !it.matches(DURATION)
         } ?: subtitle
     }
 
@@ -1751,10 +1768,46 @@ object InnertubeParser {
     )
     /** Header lines that name the artist, in either header shape. */
     private val HEADER_CREDIT_LINES = listOf("straplineTextOne", "subtitle")
-    private val TYPE_WORDS = setOf(
-        "song", "video", "album", "single", "ep", "artist",
-        "playlist", "podcast", "episode",
-    )
+    /** A card credits an artist, or for a video upload the channel that posted it. */
+    private val CARD_CREDIT_PAGES: (String) -> Boolean = { "ARTIST" in it || "USER_CHANNEL" in it }
+
+    /**
+     * The kind a subtitle segment names — "Song", "Álbum", "Сингл" — by its
+     * English key, for every language the app can ask YouTube in (its `hl`
+     * follows the app's language). Words as music.youtube.com writes them.
+     *
+     * One table for every language rather than one per `hl`: a word from
+     * another language ("Film", Polish for video) counts too, which a credit
+     * would have to be named exactly that to notice.
+     */
+    private val TYPE_WORDS: Map<String, String> = mapOf(
+        "song" to listOf(
+            "Titel", "Canción", "Titre", "שיר", "गाना", "Lagu", "Brano", "曲", "노래", "Utwór",
+            "Música", "Композиция", "เพลง", "Şarkı", "Bài hát", "歌曲",
+        ),
+        "video" to listOf("Vídeo", "Vidéo", "סרטון", "वीडियो", "動画", "동영상", "Film", "Видео", "วิดีโอ", "影片", "视频"),
+        "album" to listOf("Álbum", "אלבום", "एल्‍बम", "アルバム", "앨범", "Альбом", "อัลบั้ม", "Albüm", "Đĩa nhạc", "專輯", "专辑"),
+        "single" to listOf(
+            "סינגל", "सिंगल", "Singolo", "シングル", "싱글", "Singiel", "Сингл", "ซิงเกิล", "Đĩa đơn", "單曲", "单曲",
+        ),
+        "ep" to listOf("מיני-אלבום", "ईपी", "Đĩa nhạc mở rộng (EP)", "迷你专辑"),
+        "artist" to listOf(
+            "Künstler", "Artista", "Artiste", "אומן/ית", "कलाकार", "Artis", "アーティスト", "아티스트", "Wykonawca",
+            "Исполнитель", "ศิลปิน", "Sanatçı", "Nghệ sĩ", "藝人", "音乐人",
+        ),
+        "playlist" to listOf(
+            "Lista de reproducción", "פלייליסט", "प्लेलिस्ट", "プレイリスト", "재생목록", "Playlista", "Плейлист",
+            "เพลย์ลิสต์", "Oynatma listesi", "Danh sách phát", "播放清單", "播放列表",
+        ),
+        "podcast" to listOf("Pódcast", "פודקאסט", "पॉडकास्ट", "ポッドキャスト", "팟캐스트", "Подкаст", "พอดแคสต์", "播客"),
+        "episode" to listOf(
+            "Folge", "Episodio", "Épisode", "פרק", "एपिसोड", "Puntata", "エピソード", "에피소드", "Odcinek", "Episódio",
+            "Выпуск", "ตอน", "Bölüm", "Tập podcast", "單集", "分集",
+        ),
+    ).flatMap { (kind, words) -> (words + kind).map { it.lowercase(Locale.ROOT) to kind } }.toMap()
+
+    /** Which kind [segment] names ("song", "album", …), or null when it is a name. */
+    fun typeWord(segment: String): String? = TYPE_WORDS[segment.trim().lowercase(Locale.ROOT)]
     /**
      * Flags a browse card as video content: "50 videos" in a subtitle
      * (instead of "50 songs"), or the word right in a title like

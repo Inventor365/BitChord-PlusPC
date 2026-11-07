@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   best,
+  foldLatin,
   hasConflictingAlbums,
   matches,
   normalize,
@@ -165,5 +166,24 @@ describe('TrackMatcher', () => {
     expect(normalize('İstanbul')).toBe('istanbul');
     expect(normalize('gün')).toBe('gun');
     expect(normalize('ŞARKIM')).toBe('sarkim');
+  });
+});
+
+describe('Latin accents (TrackMatcherAccentsTest)', () => {
+  it('matches a Turkish title to its unaccented upload, both ways', () => {
+    expect(matches(song('Simarik', 'Tarkan'), 'Şımarık', 'Tarkan')).toBe(true);
+    expect(matches(song('Şımarık', 'Tarkan'), 'Simarik', 'Tarkan')).toBe(true);
+  });
+
+  it('matches an accented artist to its unaccented spelling', () => {
+    expect(matches(song('Nilüfer', 'Muslum Gurses'), 'Nilüfer', 'Müslüm Gürses')).toBe(true);
+  });
+
+  it('still refuses a different title', () => {
+    expect(matches(song('Kuzu Kuzu', 'Tarkan'), 'Şımarık', 'Tarkan')).toBe(false);
+  });
+
+  it('keeps the marks of other scripts', () => {
+    expect(foldLatin('दिल')).not.toBe(foldLatin('दल'));
   });
 });

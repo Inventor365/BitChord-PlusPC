@@ -212,6 +212,7 @@
     <string name="crossfade">Çapraz geçiş</string>
     <string name="crossfade_subtitle">Bir parçayı diğerine karıştırır</string>
     <string name="automix">Automix [BETA]</string>
+    <string name="automix_overview">Automix genel bakışı</string>
     <string name="automix_performance">Automix performansı</string>
     <string name="automix_performance_subtitle">Arka plan analizinin ne kadar CPU kullanabileceğini ayarlar</string>
     <string name="automix_performance_warning">Daha yüksek performans, parçaları daha hızlı analiz eder ancak daha fazla pil kullanabilir ve telefonu ısıtabilir.</string>
@@ -1459,4 +1460,7 @@
     <string name="bit_perfect_status_inexact">%1$s · tam değil: bu kaynak kayıpsız PCM değil</string>
     <string name="bit_perfect_status_waiting">Desteklenen bir çıkışta kayıpsız parça bekleniyor</string>
     <string name="bit_perfect_status_unavailable">Bu parça için kullanılamıyor (%1$s)</string>
+    <string name="diwali_title">BitChord Diwali bayramınızı kutlar</string>
+    <string name="diwali_subtitle">Bu ışık bayramı evinizi neşeyle, günlerinizi müzikle doldursun.</string>
+    <string name="diwali_cta">Hadi kutlayalım</string>
 </resources>
