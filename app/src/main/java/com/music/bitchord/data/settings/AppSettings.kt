@@ -15,6 +15,7 @@ import com.music.bitchord.data.lyrics.LyricsSource
 import com.music.bitchord.data.sources.SourceKind
 import com.music.bitchord.playback.EqLayout
 import com.music.bitchord.playback.EqualizerPreset
+import com.music.bitchord.R
 import kotlinx.coroutines.flow.MutableStateFlow
 
 
@@ -123,6 +124,26 @@ enum class DownloadQuality(
     ),
 }
 
+enum class DownloadMode {
+    IN_APP,
+    EXTERNAL,
+}
+
+enum class ExternalDownloaderApp(val defaultPackage: String) {
+    YTDLNIS("com.deniscerri.ytdl"),
+    SEAL("com.junkfood.seal"),
+    SEAL_PLUS("com.junkfood.sealplus"),
+    OTHER(""),
+    ;
+
+    fun displayName(context: Context): String = when (this) {
+        YTDLNIS -> context.getString(R.string.downloader_ytdlnis)
+        SEAL -> context.getString(R.string.downloader_seal)
+        SEAL_PLUS -> context.getString(R.string.downloader_seal_plus)
+        OTHER -> context.getString(R.string.downloader_other)
+    }
+}
+
 enum class ThemeMode(val label: String) {
     SYSTEM("System"), LIGHT("Light"), DARK("Dark")
 }
@@ -218,6 +239,9 @@ object AppSettings {
      * keeps it that way for the people it didn't.
      */
     val downloadQuality = MutableStateFlow(DownloadQuality.LOSSLESS)
+    val downloadMode = MutableStateFlow(DownloadMode.IN_APP)
+    val externalDownloaderApp = MutableStateFlow(ExternalDownloaderApp.YTDLNIS)
+    val externalDownloaderPackage = MutableStateFlow("")
 
     /**
      * Refuse to start a download while the connection charges for data.
@@ -277,6 +301,7 @@ object AppSettings {
      * See [com.music.bitchord.playback.smart.TransitionPlanner].
      */
     val smartFadeEnabled = MutableStateFlow(false)
+    val sleepTimerFadeOut = MutableStateFlow(true)
 
     /** The CPU budget used by Beat This! and vocal analysis for Automix. */
     val automixPerformanceMode = MutableStateFlow(AutomixPerformanceMode.BALANCED)
@@ -417,6 +442,9 @@ object AppSettings {
 
     /** Keep playing similar music once the queue runs out. */
     val autoplay = MutableStateFlow(true)
+
+    /** Automatically resume playback when a Bluetooth audio device connects. */
+    val autoPlayOnBluetoothConnection = MutableStateFlow(false)
 
     /** Whether the queue is held in shuffled order (Mix button). */
     val shuffleEnabled = MutableStateFlow(false)
@@ -1004,12 +1032,20 @@ object AppSettings {
         ).coerceIn(MIN_UPGRADE_LENGTH_SLACK_SECONDS, MAX_UPGRADE_LENGTH_SLACK_SECONDS)
         migrateDownloadQuality()
         downloadQuality.value = readDownloadQuality()
+        downloadMode.value = runCatching {
+            DownloadMode.valueOf(prefs.getString(KEY_DOWNLOAD_MODE, DownloadMode.IN_APP.name) ?: DownloadMode.IN_APP.name)
+        }.getOrDefault(DownloadMode.IN_APP)
+        externalDownloaderApp.value = runCatching {
+            ExternalDownloaderApp.valueOf(prefs.getString(KEY_EXTERNAL_DOWNLOADER_APP, ExternalDownloaderApp.YTDLNIS.name) ?: ExternalDownloaderApp.YTDLNIS.name)
+        }.getOrDefault(ExternalDownloaderApp.YTDLNIS)
+        externalDownloaderPackage.value = prefs.getString(KEY_EXTERNAL_DOWNLOADER_PACKAGE, "").orEmpty()
         wifiOnlyDownloads.value = prefs.getBoolean(KEY_WIFI_ONLY_DOWNLOADS, true)
         exportDownloads.value = prefs.getBoolean(KEY_EXPORT_DOWNLOADS, false)
         autoDownloadPlaylists.value = prefs.getBoolean(KEY_AUTO_DOWNLOAD_PLAYLISTS, true)
         syncDownloadedPlaylists.value = prefs.getBoolean(KEY_SYNC_DOWNLOADED_PLAYLISTS, false)
         crossfadeSeconds.value = prefs.getInt(KEY_CROSSFADE, 0)
         smartFadeEnabled.value = prefs.getBoolean(KEY_SMART_FADE, false)
+        sleepTimerFadeOut.value = prefs.getBoolean(KEY_SLEEP_TIMER_FADE_OUT, true)
         automixPerformanceMode.value = runCatching {
             AutomixPerformanceMode.valueOf(
                 prefs.getString(KEY_AUTOMIX_PERFORMANCE_MODE, null) ?: AutomixPerformanceMode.BALANCED.name,
@@ -1051,6 +1087,7 @@ object AppSettings {
             AppFont.valueOf(prefs.getString(KEY_APP_FONT, null) ?: AppFont.DEFAULT.name)
         }.getOrDefault(AppFont.DEFAULT)
         autoplay.value = prefs.getBoolean(KEY_AUTOPLAY, true)
+        autoPlayOnBluetoothConnection.value = prefs.getBoolean(KEY_AUTO_PLAY_ON_BLUETOOTH_CONNECTION, false)
         shuffleEnabled.value = prefs.getBoolean(KEY_SHUFFLE_ENABLED, false)
         repeatMode.value = prefs.getInt(KEY_REPEAT_MODE, Player.REPEAT_MODE_OFF)
         showNerdStats.value = prefs.getBoolean(KEY_NERD_STATS, false)
@@ -1293,6 +1330,11 @@ object AppSettings {
         prefs.edit().putBoolean(KEY_AUTOPLAY, value).apply()
     }
 
+    fun setAutoPlayOnBluetoothConnection(value: Boolean) {
+        autoPlayOnBluetoothConnection.value = value
+        prefs.edit().putBoolean(KEY_AUTO_PLAY_ON_BLUETOOTH_CONNECTION, value).apply()
+    }
+
     fun setShuffleEnabled(value: Boolean) {
         shuffleEnabled.value = value
         prefs.edit().putBoolean(KEY_SHUFFLE_ENABLED, value).apply()
@@ -1327,6 +1369,22 @@ object AppSettings {
         prefs.edit().putString(KEY_QUALITY_DOWNLOAD, value.name).apply()
     }
 
+    fun setDownloadMode(value: DownloadMode) {
+        downloadMode.value = value
+        prefs.edit().putString(KEY_DOWNLOAD_MODE, value.name).apply()
+    }
+
+    fun setExternalDownloaderApp(value: ExternalDownloaderApp) {
+        externalDownloaderApp.value = value
+        prefs.edit().putString(KEY_EXTERNAL_DOWNLOADER_APP, value.name).apply()
+    }
+
+    fun setExternalDownloaderPackage(value: String) {
+        val trimmed = value.trim()
+        externalDownloaderPackage.value = trimmed
+        prefs.edit().putString(KEY_EXTERNAL_DOWNLOADER_PACKAGE, trimmed).apply()
+    }
+
     fun setWifiOnlyDownloads(value: Boolean) {
         wifiOnlyDownloads.value = value
         prefs.edit().putBoolean(KEY_WIFI_ONLY_DOWNLOADS, value).apply()
@@ -1340,6 +1398,11 @@ object AppSettings {
     fun setSmartFadeEnabled(value: Boolean) {
         smartFadeEnabled.value = value
         prefs.edit().putBoolean(KEY_SMART_FADE, value).apply()
+    }
+
+    fun setSleepTimerFadeOut(value: Boolean) {
+        sleepTimerFadeOut.value = value
+        prefs.edit().putBoolean(KEY_SLEEP_TIMER_FADE_OUT, value).apply()
     }
 
     fun setAutomixPerformanceMode(value: AutomixPerformanceMode) {
@@ -1431,9 +1494,13 @@ object AppSettings {
         }
     }
 
+    const val MIN_PLAYBACK_SPEED = 0.5f
+    const val MAX_PLAYBACK_SPEED = 2.0f
+
     fun setPlaybackSpeed(value: Float) {
-        playbackSpeed.value = value
-        prefs.edit().putFloat(KEY_SPEED, value).apply()
+        val clamped = value.coerceIn(MIN_PLAYBACK_SPEED, MAX_PLAYBACK_SPEED)
+        playbackSpeed.value = clamped
+        prefs.edit().putFloat(KEY_SPEED, clamped).apply()
     }
 
     fun setShowNerdStats(value: Boolean) {
@@ -2351,12 +2418,16 @@ object AppSettings {
     private const val KEY_QUALITY_CELLULAR = "audio_quality_cellular"
     private const val KEY_UPGRADE_LENGTH_SLACK_SECONDS = "upgrade_length_slack_seconds"
     private const val KEY_QUALITY_DOWNLOAD = "audio_quality_download"
+    private const val KEY_DOWNLOAD_MODE = "download_mode"
+    private const val KEY_EXTERNAL_DOWNLOADER_APP = "external_downloader_app"
+    private const val KEY_EXTERNAL_DOWNLOADER_PACKAGE = "external_downloader_package"
     private const val KEY_WIFI_ONLY_DOWNLOADS = "wifi_only_downloads"
     private const val KEY_EXPORT_DOWNLOADS = "export_downloads"
     private const val KEY_AUTO_DOWNLOAD_PLAYLISTS = "auto_download_playlists"
     private const val KEY_SYNC_DOWNLOADED_PLAYLISTS = "sync_downloaded_playlists"
     private const val KEY_CROSSFADE = "crossfade_seconds"
     private const val KEY_SMART_FADE = "smart_fade_enabled"
+    private const val KEY_SLEEP_TIMER_FADE_OUT = "sleep_timer_fade_out"
     private const val KEY_AUTOMIX_PERFORMANCE_MODE = "automix_performance_mode"
     private const val KEY_SKIP_SILENCE = "skip_silence"
     private const val KEY_OUTPUT_PCM_MODE = "output_pcm_mode"
@@ -2380,6 +2451,7 @@ object AppSettings {
     private const val KEY_THEME = "theme_mode"
     private const val KEY_APP_FONT = "app_font"
     private const val KEY_AUTOPLAY = "autoplay"
+    private const val KEY_AUTO_PLAY_ON_BLUETOOTH_CONNECTION = "auto_play_on_bluetooth_connection"
     private const val KEY_SHUFFLE_ENABLED = "shuffle_enabled"
     private const val KEY_REPEAT_MODE = "repeat_mode"
     private const val KEY_NERD_STATS = "show_nerd_stats"

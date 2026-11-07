@@ -388,6 +388,48 @@ class PlaybackService : MediaLibraryService() {
      */
     private var cachedLiked: Pair<Long, List<Song>>? = null
     private var cachedLikedCookie: String? = null
+    private var cachedLikedPage: YtMusicRepository.SongPage? = null
+
+    private class ExpiredBrowseContextException :
+        IllegalArgumentException("Browse context expired; reopen the folder")
+
+    private data class AutoBrowseContext(
+        val page: YtMusicRepository.SongPage,
+        val cookie: String?,
+        val source: QueueSource,
+    )
+
+    // Each browse response retains its own order, even if another client browses later.
+    private val autoBrowseContexts = LinkedHashMap<String, AutoBrowseContext>()
+
+    private fun autoBrowseItems(
+        songs: List<Song>,
+        source: QueueSource,
+        continuation: String? = null,
+        cookie: String? = com.music.bitchord.data.innertube.Innertube.cookie,
+    ): List<MediaItem> {
+        if (songs.isEmpty()) return emptyList()
+        val context = AutoBrowseContext(YtMusicRepository.SongPage(songs, continuation), cookie, source)
+        val token = synchronized(autoBrowseContexts) {
+            val existing = autoBrowseContexts.entries.firstOrNull { it.value == context }
+            if (existing != null) {
+                // Re-insert to refresh MRU order in LinkedHashMap
+                autoBrowseContexts.remove(existing.key)
+                autoBrowseContexts[existing.key] = context
+                existing.key
+            } else {
+                UUID.randomUUID().toString().also { key ->
+                    if (autoBrowseContexts.size >= 32) autoBrowseContexts.remove(autoBrowseContexts.keys.first())
+                    autoBrowseContexts[key] = context
+                }
+            }
+        }
+        return songs.mapIndexed { index, song ->
+            song.toMediaItem().buildUpon()
+                .setMediaId("auto-browse:$token:$index")
+                .build()
+        }
+    }
     private val likedMutex = Mutex()
     private val LIKED_CACHE_TTL_MS = 60_000L
 
@@ -395,19 +437,21 @@ class PlaybackService : MediaLibraryService() {
         val cookie = com.music.bitchord.data.innertube.Innertube.cookie
         if (cookie == null) {
             cachedLiked = null
+            cachedLikedPage = null
             cachedLikedCookie = null
             return emptyList()
         }
         if (cachedLikedCookie != null && cachedLikedCookie != cookie) {
+            cachedLikedPage = null
             cachedLiked = null
         }
         cachedLiked?.let { (at, songs) ->
             if (SystemClock.elapsedRealtime() - at < LIKED_CACHE_TTL_MS && songs.isNotEmpty()) return songs
         }
-        val songs = try {
+        val page = try {
             withTimeoutOrNull(4000L) {
-                YtMusicRepository.browseSongs(YtMusicRepository.LIKED_MUSIC).getOrNull()?.songs?.ifEmpty { null }
-                    ?: YtMusicRepository.browseSongs("LM").getOrNull()?.songs?.ifEmpty { null }
+                YtMusicRepository.browseSongs(YtMusicRepository.LIKED_MUSIC).getOrNull()?.takeIf { it.songs.isNotEmpty() }
+                    ?: YtMusicRepository.browseSongs("LM").getOrNull()?.takeIf { it.songs.isNotEmpty() }
                     ?: run {
                         val libPlaylists = YtMusicRepository.libraryPlaylists().getOrNull()
                         val likedCard = libPlaylists?.firstOrNull {
@@ -415,15 +459,17 @@ class PlaybackService : MediaLibraryService() {
                         }
                         val likedBrowseId = likedCard?.browseId
                         if (likedBrowseId != null) {
-                            YtMusicRepository.browseSongs(likedBrowseId).getOrNull()?.songs
+                            YtMusicRepository.browseSongs(likedBrowseId).getOrNull()?.takeIf { it.songs.isNotEmpty() }
                         } else null
                     }
-                    ?: YtMusicRepository.browseSongs("FEmusic_liked_videos").getOrNull()?.songs
-            } ?: emptyList()
+                    ?: YtMusicRepository.browseSongs("FEmusic_liked_videos").getOrNull()?.takeIf { it.songs.isNotEmpty() }
+            }
         } catch (_: Exception) {
-            emptyList()
+            null
         }
+        val songs = page?.songs.orEmpty()
         if (songs.isNotEmpty()) {
+            cachedLikedPage = page
             cachedLiked = SystemClock.elapsedRealtime() to songs
             cachedLikedCookie = cookie
             songs.forEach { songCache[it.videoId] = it }
@@ -552,6 +598,7 @@ class PlaybackService : MediaLibraryService() {
             // picker for "go back to following the system", so a stuck choice
             // would be a picker that had quietly broken the obvious behaviour.
             AudioRouting.forget()
+            resumeAfterBluetoothAudioConnects(addedDevices)
             requestOutputReconfiguration()
         }
         override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
@@ -572,6 +619,28 @@ class PlaybackService : MediaLibraryService() {
      * capturing it.
      */
     private var player: ExoPlayer? = null
+
+    /**
+     * Whether the listener intentionally paused playback, so a Bluetooth
+     * connection must not unexpectedly resume it. Programmatic pauses (such as
+     * the becoming-noisy pause on a disconnect) do not set this.
+     */
+    private var manuallyPaused: Boolean = false
+
+    private fun isBluetoothAudioOutput(info: AudioDeviceInfo): Boolean =
+        info.isSink && AudioRouting.kindOf(info.type) == AudioRouting.Kind.BLUETOOTH
+
+    private fun resumeAfterBluetoothAudioConnects(added: Array<out AudioDeviceInfo>) {
+        if (added.orEmpty().none(::isBluetoothAudioOutput)) return
+        if (!AppSettings.autoPlayOnBluetoothConnection.value || manuallyPaused) return
+        val p = mediaSession?.player ?: return
+        val currentItem = p.currentMediaItem ?: return
+        val canPlay = !p.isPlaying && p.playbackState != Player.STATE_ENDED
+        if (canPlay) {
+            p.play()
+            manuallyPaused = false
+        }
+    }
 
     /**
      * The idle player. Between transitions it holds nothing; to arm one,
@@ -849,7 +918,12 @@ class PlaybackService : MediaLibraryService() {
 
     private var serviceLyricsJob: Job? = null
     private var serviceLyrics: List<LyricLine>? = null
-    private var lastPublishedSubtitle: String? = null
+    /** The lyric line being sung and the next one, or null to show the song's title and artist. */
+    private var lastPublishedLyric: Pair<String, String>? = null
+    /** The lyrics that the Lyrics tab last showed. updateLyricSubtitle compares this list with serviceLyrics to know when the song changed. */
+    private var lyricsTabLines: List<LyricLine>? = null
+    /** Which sung line the Android Auto Lyrics tab starts at. lyricsTabItems reads it on the IO thread. */
+    @Volatile private var lyricsTabStart = 0
     private var lyricsTickerJob: Job? = null
 
     /**
@@ -936,6 +1010,8 @@ class PlaybackService : MediaLibraryService() {
             // on advancing through a song that has stopped — and finishes it.
             if (isPlaying) {
                 pushDiscordPresence(exoPlayer)
+                // A queue restored after the app restarts starts without a track change, so the lyrics of the current song were never loaded.
+                if (serviceLyricsJob == null) loadLyricsForCurrentTrack()
                 startLyricsTicker()
             } else {
                 clearDiscordPresence()
@@ -1884,11 +1960,12 @@ class PlaybackService : MediaLibraryService() {
         player,
         crossfade,
         onUserIntent = { partySync?.onLocalIntent() },
+        onManualPlaybackState = { playing -> manuallyPaused = !playing },
         deferPlayToParty = { partySync?.shouldDeferPlay() == true },
         lockedTransport = { playing -> partySync?.onLockedTransport(playing) == true },
         cast = speakers,
         onShuffleRequest = ::toggleShuffleFromSession,
-    ) { lastPublishedSubtitle }
+    ) { lastPublishedLyric }
 
     /**
      * The stream a Cast receiver can open for [item], or null when there is none
@@ -2784,15 +2861,24 @@ class PlaybackService : MediaLibraryService() {
      * PartySync user-intent path.
      */
     private fun startBoundedContext(args: Bundle) {
-        val exoPlayer = player ?: return
         val requestToken = args.getString(EXTRA_BOUNDED_CONTEXT_SONGS) ?: return
         val request = BoundedContextRequests.take(requestToken) ?: return
+        val result = prepareBoundedContext(request) ?: return
+        val exoPlayer = player ?: return
+        exoPlayer.setMediaItems(result.mediaItems, result.startIndex, result.startPositionMs)
+        saveBoundedContextSnapshot(exoPlayer)
+        exoPlayer.prepare()
+        exoPlayer.play()
+    }
+
+    // Must run on the player/application thread. Does not set the player's queue.
+    private fun prepareBoundedContext(
+        request: BoundedContextRequests.Request,
+    ): MediaSession.MediaItemsWithStartPosition? {
+        val exoPlayer = player ?: return null
         if (CastController.state.value.casting || castPlayback.active) {
-            // MainActivity normally keeps Cast on the full-queue path. This
-            // closes the race where a receiver connects after the tap but
-            // before this session command is handled.
-            BoundedContextRequests.discard(requestToken)
-            return
+            request.handoffToken?.let(BoundedContextRequests::discard)
+            return null
         }
         BoundedContextPersistence.clearImmediately()
         boundedEditState = BoundedQueueEdits.invalidateContext(boundedEditState)
@@ -2806,7 +2892,7 @@ class PlaybackService : MediaLibraryService() {
                 playbackSourceType = source.type,
                 playbackSourceId = source.id,
             ) }
-        if (requestedSongs.isEmpty()) return
+        if (requestedSongs.isEmpty()) return null
 
         val requestedIndex = request.startIndex
             .coerceIn(requestedSongs.indices)
@@ -2876,11 +2962,10 @@ class PlaybackService : MediaLibraryService() {
 
         val items = boundedMediaItems(plan, window)
         val start = plan.history.size
-        exoPlayer.setMediaItems(items, start.coerceIn(items.indices), 0L)
-        saveBoundedContextSnapshot(exoPlayer)
-        exoPlayer.prepare()
-        exoPlayer.play()
         startBoundedContinuationLoading(contextToken)
+        return MediaSession.MediaItemsWithStartPosition(
+            ImmutableList.copyOf(items), start.coerceIn(items.indices), 0L,
+        )
     }
 
     /** Clears local bounded state before a non-context queue replaces the player. */
@@ -6744,11 +6829,34 @@ class PlaybackService : MediaLibraryService() {
     private fun watchSleepTimer() {
         scope.launch {
             SleepTimer.deadline.collectLatest { deadline ->
-                if (deadline == null) return@collectLatest
-                val remaining = deadline - SystemClock.elapsedRealtime()
-                if (remaining > 0) delay(remaining)
-                player?.pause()
-                SleepTimer.cancel()
+                if (deadline == null) {
+                    player?.volume = 1f
+                    return@collectLatest
+                }
+                try {
+                    val fadeDurationMs = if (AppSettings.sleepTimerFadeOut.value) SleepTimer.FADE_OUT_DURATION_MS else 0L
+                    val totalRemaining = deadline - SystemClock.elapsedRealtime()
+                    val waitBeforeFade = (totalRemaining - fadeDurationMs).coerceAtLeast(0L)
+                    if (waitBeforeFade > 0) delay(waitBeforeFade)
+
+                    val remainingBeforeFade = deadline - SystemClock.elapsedRealtime()
+                    if (fadeDurationMs > 0 && remainingBeforeFade > 0) {
+                        val fadeStart = SystemClock.elapsedRealtime()
+                        val actualDuration = remainingBeforeFade.coerceAtMost(fadeDurationMs)
+                        while (true) {
+                            val elapsed = SystemClock.elapsedRealtime() - fadeStart
+                            val remaining = (actualDuration - elapsed).coerceAtLeast(0L)
+                            player?.volume = SleepTimer.calculateFadeVolume(remaining, actualDuration, true)
+                            if (elapsed >= actualDuration) break
+                            delay(100L)
+                        }
+                    }
+
+                    player?.pause()
+                    SleepTimer.cancel()
+                } finally {
+                    player?.volume = 1f
+                }
             }
         }
     }
@@ -7994,6 +8102,38 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
+    /** Returns the lines that have words, without the empty gap lines. */
+    private fun sungLines(lines: List<LyricLine>?) = lines?.filter { !it.isGap && it.text.isNotBlank() }.orEmpty()
+
+    /**
+     * Rows for the Android Auto Lyrics tab: 11 sung lines, starting at [lyricsTabStart].
+     * Android Auto cannot scroll a list by itself, so [updateLyricSubtitle] moves the start.
+     */
+    private fun lyricsTabItems(): List<MediaItem> {
+        val lines = sungLines(serviceLyrics)
+        if (lines.isEmpty()) return listOf(createInfoItem("msg:no_lyrics", "No lyrics for this song"))
+        return lines.drop(lyricsTabStart).take(11).map { line ->
+            MediaItem.Builder()
+                .setMediaId("$LYRIC_ITEM_PREFIX${line.timeMs}")
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(line.text)
+                        .setIsBrowsable(false)
+                        // The row is playable, so that a tap on it reaches onSetMediaItems, which seeks to the line.
+                        .setIsPlayable(true)
+                        .build(),
+                )
+                .build()
+        }
+    }
+
+    /** Splits [text] at the space nearest its middle. With no space in [text], the split is at the middle. */
+    private fun splitInHalf(text: String): Pair<String, String> {
+        val mid = text.length / 2
+        val at = text.indices.filter { text[it] == ' ' }.minByOrNull { kotlin.math.abs(it - mid) } ?: mid
+        return text.substring(0, at).trim() to text.substring(at).trim()
+    }
+
     private fun startLyricsTicker() {
         if (lyricsTickerJob?.isActive == true) return
         lyricsTickerJob = scope.launch(Dispatchers.Main) {
@@ -8014,34 +8154,30 @@ class PlaybackService : MediaLibraryService() {
         val exoPlayer = player ?: return
         val currentSong = exoPlayer.currentMediaItem?.toSong() ?: return
         val lines = serviceLyrics
-        val pos = crossfade?.loopPositionMs() ?: exoPlayer.currentPosition
-        val subtitleText = if (lines != null && lines.isNotEmpty() && AppSettings.syncedLyrics.value) {
-            val idx = lines.indexOfLast { it.timeMs <= pos }
-            val currentLine = lines.getOrNull(idx)
-            if (currentLine != null && !currentLine.isGap && currentLine.text.isNotBlank()) {
-                "♪ ${currentLine.text}"
-            } else {
-                currentSong.artist
-            }
-        } else {
-            currentSong.artist
+        // The lyrics offset setting in the phone app applies here too. A negative offset shows lines earlier.
+        val pos = (crossfade?.loopPositionMs() ?: exoPlayer.currentPosition) - AppSettings.lyricsOffsetMs.value
+        val sung = sungLines(lines)
+        val cur = sung.indexOfLast { it.timeMs <= pos }
+        // The Lyrics tab stays still while the line being sung is one of the rows on screen.
+        // When the line being sung moves past those rows, the tab starts again at that line.
+        // Android Auto reloads a list only after notifyChildrenChanged.
+        if (lines !== lyricsTabLines || cur < lyricsTabStart || cur >= lyricsTabStart + LYRICS_TAB_ROWS_ON_SCREEN) {
+            lyricsTabLines = lines
+            lyricsTabStart = cur.coerceAtLeast(0)
+            mediaSession?.notifyChildrenChanged(MEDIA_LYRICS_ID, Int.MAX_VALUE, null)
         }
-
-        if (subtitleText != lastPublishedSubtitle) {
-            lastPublishedSubtitle = subtitleText
-            // buildUpon() off the metadata that's already playing, not a fresh
-            // Builder() — a synced lyric line can advance every second or two,
-            // and re-stating setArtworkUri() on every tick made media3 treat
-            // the cover as newly changed that often, racing its own artwork
-            // decode/cache against the legacy MediaSession broadcast and
-            // crashing with "cannot use a recycled source in createBitmap".
-            // Carrying the existing artwork field forward keeps that field
-            // untouched while still firing onMediaMetadataChanged for the
-            // subtitle itself.
-            exoPlayer.playlistMetadata = exoPlayer.mediaMetadata
-                .buildUpon()
-                .setSubtitle(subtitleText)
-                .build()
+        // While the song plays, the title is the line being sung and the subtitle is the next line.
+        // When the song is paused or stopped, or before the first line, the song's title and artist show.
+        val now = sung.getOrNull(cur)?.takeIf { exoPlayer.isPlaying && AppSettings.syncedLyrics.value }
+        val lyric = now?.let { line ->
+            // A long line is cut off on the small split-screen card, so it is split over
+            // the title and the subtitle instead of showing the next line.
+            if (line.text.length > LYRIC_TITLE_MAX_CHARS) splitInHalf(line.text)
+            else line.text to (sung.getOrNull(cur + 1)?.text ?: currentSong.artist)
+        }
+        if (lyric != lastPublishedLyric) {
+            lastPublishedLyric = lyric
+            (mediaSession?.player as? SessionPlayer)?.onLyricChanged()
         }
     }
 
@@ -8085,6 +8221,8 @@ class PlaybackService : MediaLibraryService() {
          * a listener's action from its own corrections. See [PartySync].
          */
         private val onUserIntent: () -> Unit,
+        /** Reports whether playback was just started (true) or paused (false) by the user. */
+        private val onManualPlaybackState: (Boolean) -> Unit = {},
         /** @see PartySync.shouldDeferPlay */
         private val deferPlayToParty: () -> Boolean,
         /** @see PartySync.onLockedTransport */
@@ -8093,7 +8231,7 @@ class PlaybackService : MediaLibraryService() {
         private val cast: RemoteSpeaker,
         /** Flips the app's own shuffle — the queue edit in [QueueShuffle]. */
         private val onShuffleRequest: () -> Unit,
-        private val getSubtitle: () -> String?,
+        private val getLyric: () -> Pair<String, String>?,
     ) : ForwardingPlayer(player), CastSink {
 
         // The listeners registered through this wrapper, kept so the receiver's
@@ -8164,6 +8302,17 @@ class PlaybackService : MediaLibraryService() {
             } else {
                 onRemoteVolumeChanged()
             }
+        }
+
+        /**
+         * Call this when the lyric lines change. Only this wrapper adds the lyric lines, so ExoPlayer
+         * never reports the change, and Android Auto would keep showing the old lines.
+         */
+        fun onLyricChanged() {
+            val metadata = mediaMetadata
+            listeners.forEach { it.onMediaMetadataChanged(metadata) }
+            val events = Player.Events(FlagSet.Builder().add(Player.EVENT_MEDIA_METADATA_CHANGED).build())
+            listeners.forEach { it.onEvents(this, events) }
         }
 
         override fun addListener(listener: Player.Listener) {
@@ -8405,6 +8554,7 @@ class PlaybackService : MediaLibraryService() {
             // [PartySync.onLockedTransport], which owns that catch-up.
             if (lockedTransport(true)) return
             onUserIntent()
+            onManualPlaybackState(true)
             // Held back only when a party will schedule the start for everyone
             // at once — see [PartySync.shouldDeferPlay], which starts the player
             // itself on the party's instant, and starts it anyway if the party
@@ -8420,6 +8570,7 @@ class PlaybackService : MediaLibraryService() {
         override fun pause() {
             if (lockedTransport(false)) return
             onUserIntent()
+            onManualPlaybackState(false)
             if (cast.active) {
                 cast.pause()
                 return
@@ -8433,6 +8584,7 @@ class PlaybackService : MediaLibraryService() {
         override fun stop() {
             if (locked()) { super.stop(); return }
             onUserIntent()
+            onManualPlaybackState(false)
             super.stop()
         }
 
@@ -8451,6 +8603,7 @@ class PlaybackService : MediaLibraryService() {
         override fun setPlayWhenReady(playWhenReady: Boolean) {
             if (lockedTransport(playWhenReady)) return
             onUserIntent()
+            onManualPlaybackState(playWhenReady)
             if (playWhenReady && deferPlayToParty()) return
             if (cast.active) {
                 if (playWhenReady) cast.play() else cast.pause()
@@ -8595,12 +8748,10 @@ class PlaybackService : MediaLibraryService() {
 
         override fun getMediaMetadata(): MediaMetadata {
             val base = wrappedPlayer.mediaMetadata
-            val subtitle = getSubtitle()
-            return if (!subtitle.isNullOrBlank()) {
-                base.buildUpon().setSubtitle(subtitle).build()
-            } else {
-                base
-            }
+            val lyric = getLyric()
+            // Android Auto shows the display title and subtitle when a display title is set.
+            // Without a display title, Android Auto shows the title and artist.
+            return if (lyric == null) base else base.buildUpon().setDisplayTitle(lyric.first).setSubtitle(lyric.second).build()
         }
 
         override fun seekTo(mediaItemIndex: Int, positionMs: Long) {
@@ -8812,12 +8963,16 @@ class PlaybackService : MediaLibraryService() {
             val items: List<MediaItem> = when (parentId) {
                 MEDIA_ROOT_ID -> listOf(
                     createFolderItem(MEDIA_QUICK_PICKS_ID, getString(R.string.auto_quick_picks), folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS),
-                    createFolderItem(MEDIA_RECENTS_ID, getString(R.string.auto_recents), folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS),
+                    // Android Auto shows at most 4 tabs. With more than 4, Android Auto moves the rest
+                    // into its own "More" tab, so Recent and Liked songs are inside our More folder.
+                    createFolderItem(MEDIA_LYRICS_ID, "Lyrics"),
                     createFolderItem(MEDIA_PLAYLISTS_ID, getString(R.string.playlists), folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS, isGrid = true),
-                    createFolderItem(MEDIA_LIKED_ID, getString(R.string.auto_liked), folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS),
                     createFolderItem(MEDIA_MORE_ID, getString(R.string.more), folderType = MediaMetadata.FOLDER_TYPE_MIXED),
                 )
+                MEDIA_LYRICS_ID -> lyricsTabItems()
                 MEDIA_MORE_ID -> listOf(
+                    createFolderItem(MEDIA_RECENTS_ID, getString(R.string.auto_recents), folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS),
+                    createFolderItem(MEDIA_LIKED_ID, getString(R.string.auto_liked), folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS),
                     createFolderItem(MEDIA_DOWNLOADS_ID, getString(R.string.downloads), folderType = MediaMetadata.FOLDER_TYPE_MIXED),
                     createFolderItem(MEDIA_LOCAL_MUSIC_ID, getString(R.string.local_music), folderType = MediaMetadata.FOLDER_TYPE_MIXED),
                 )
@@ -8834,7 +8989,7 @@ class PlaybackService : MediaLibraryService() {
                         cachedRecentsSongs()
                     }
                     songs.forEach { songCache[it.videoId] = it }
-                    if (songs.isNotEmpty()) songs.map { it.toMediaItem() } else listOf(
+                    if (songs.isNotEmpty()) autoBrowseItems(songs, QueueSource(getString(R.string.auto_recents), PlaybackSourceType.BROWSE, parentId)) else listOf(
                         createInfoItem(
                             "msg:empty_recents",
                             getString(R.string.auto_empty_recents_title),
@@ -8860,7 +9015,7 @@ class PlaybackService : MediaLibraryService() {
                         }
                     }
                     songs.forEach { songCache[it.videoId] = it }
-                    if (songs.isNotEmpty()) songs.map { it.toMediaItem() } else listOf(
+                    if (songs.isNotEmpty()) autoBrowseItems(songs, QueueSource(getString(R.string.auto_quick_picks), PlaybackSourceType.BROWSE, parentId)) else listOf(
                         createInfoItem(
                             "msg:empty_quick_picks",
                             getString(R.string.auto_empty_quick_picks_title),
@@ -8885,7 +9040,16 @@ class PlaybackService : MediaLibraryService() {
                         }
                         songs.forEach { songCache[it.videoId] = it }
                         if (songs.isNotEmpty()) {
-                            songs.map { it.toMediaItem() }
+                            likedMutex.withLock {
+                                val page = cachedLikedPage
+                                if (cachedLikedCookie != com.music.bitchord.data.innertube.Innertube.cookie) emptyList()
+                                else autoBrowseItems(
+                                    page?.songs ?: songs,
+                                    QueueSource(getString(R.string.auto_liked), PlaybackSourceType.BROWSE, YtMusicRepository.LIKED_MUSIC),
+                                    page?.continuation,
+                                    cachedLikedCookie,
+                                )
+                            }
                         } else {
                             listOf(
                                 createInfoItem(
@@ -8900,7 +9064,7 @@ class PlaybackService : MediaLibraryService() {
                 MEDIA_DOWNLOADS_ID -> {
                     val downloaded = Downloads.getDownloadedSongs(this@PlaybackService)
                     downloaded.forEach { songCache[it.videoId] = it }
-                    if (downloaded.isNotEmpty()) downloaded.map { it.toMediaItem() } else listOf(
+                    if (downloaded.isNotEmpty()) autoBrowseItems(downloaded, QueueSource(getString(R.string.downloads), PlaybackSourceType.BROWSE, parentId), cookie = null) else listOf(
                         createInfoItem(
                             "msg:empty_downloads",
                             getString(R.string.auto_empty_offline_title),
@@ -8935,7 +9099,7 @@ class PlaybackService : MediaLibraryService() {
                 MEDIA_LOCAL_MUSIC_ID -> {
                     val local = LocalMediaRepository.getLocalMusic(this@PlaybackService)
                     local.forEach { songCache[it.videoId] = it }
-                    if (local.isNotEmpty()) local.map { it.toMediaItem() } else listOf(
+                    if (local.isNotEmpty()) autoBrowseItems(local, QueueSource(getString(R.string.local_music), PlaybackSourceType.BROWSE, parentId), cookie = null) else listOf(
                         createInfoItem(
                             "msg:empty_local",
                             getString(R.string.auto_empty_offline_title),
@@ -8945,30 +9109,23 @@ class PlaybackService : MediaLibraryService() {
                 }
                 else -> {
                     when {
-                        parentId.startsWith("playlist:") -> {
-                            val playlistId = parentId.removePrefix("playlist:")
-                            val songs = try {
-                                withTimeoutOrNull(2500L) {
-                                    YtMusicRepository.browseSongs("VL$playlistId").getOrNull()?.songs
-                                        ?: YtMusicRepository.browseSongs(playlistId).getOrNull()?.songs
-                                } ?: emptyList()
-                            } catch (_: Exception) {
-                                emptyList()
+                        parentId.startsWith("playlist:") || parentId.startsWith("browse:") -> {
+                            val id = parentId.substringAfter(':')
+                            val browseId = if (parentId.startsWith("playlist:")) "VL$id" else id
+                            val cookie = com.music.bitchord.data.innertube.Innertube.cookie
+                            val songPage = withTimeoutOrNull(2500L) {
+                                YtMusicRepository.browseSongs(browseId).getOrNull()
+                                    ?: if (browseId != id) YtMusicRepository.browseSongs(id).getOrNull() else null
                             }
-                            songs.forEach { songCache[it.videoId] = it }
-                            songs.map { it.toMediaItem() }
-                        }
-                        parentId.startsWith("browse:") -> {
-                            val browseId = parentId.removePrefix("browse:")
-                            val songs = try {
-                                withTimeoutOrNull(2500L) {
-                                    YtMusicRepository.browseSongs(browseId).getOrNull()?.songs
-                                } ?: emptyList()
-                            } catch (_: Exception) {
-                                emptyList()
+                            if (songPage == null) emptyList() else {
+                                songPage.songs.forEach { songCache[it.videoId] = it }
+                                val source = QueueSource(
+                                    songPage.header?.title ?: getString(R.string.playlists),
+                                    PlaybackSourceType.BROWSE,
+                                    browseId,
+                                )
+                                autoBrowseItems(songPage.songs, source, songPage.continuation, cookie)
                             }
-                            songs.forEach { songCache[it.videoId] = it }
-                            songs.map { it.toMediaItem() }
                         }
                         else -> {
                             val cachedSong = songCache[parentId]
@@ -8995,6 +9152,15 @@ class PlaybackService : MediaLibraryService() {
             browser: MediaSession.ControllerInfo,
             mediaId: String,
         ): ListenableFuture<LibraryResult<MediaItem>> = scope.future(Dispatchers.IO) {
+            if (mediaId.startsWith("auto-browse:")) {
+                val selection = runCatching { autoBrowseSelection(mediaId) }.getOrNull()
+                if (selection != null) {
+                    val (context, index) = selection
+                    return@future LibraryResult.ofItem(
+                        context.page.songs[index].toMediaItem().buildUpon().setMediaId(mediaId).build(), null,
+                    )
+                }
+            }
             val item = when (mediaId) {
                 MEDIA_ROOT_ID -> MediaItem.Builder()
                     .setMediaId(MEDIA_ROOT_ID)
@@ -9011,6 +9177,9 @@ class PlaybackService : MediaLibraryService() {
                 MEDIA_PLAYLISTS_ID -> createFolderItem(MEDIA_PLAYLISTS_ID, getString(R.string.playlists), folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS, isGrid = true)
                 MEDIA_MORE_ID -> createFolderItem(MEDIA_MORE_ID, getString(R.string.more), folderType = MediaMetadata.FOLDER_TYPE_MIXED)
                 MEDIA_LIKED_ID -> createFolderItem(MEDIA_LIKED_ID, getString(R.string.auto_liked), folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS)
+                // Android Auto subscribes to the Lyrics folder, and so hears about changes,
+                // only when onGetItem returns the folder as browsable.
+                MEDIA_LYRICS_ID -> createFolderItem(MEDIA_LYRICS_ID, "Lyrics")
                 MEDIA_DOWNLOADS_ID -> createFolderItem(MEDIA_DOWNLOADS_ID, getString(R.string.downloads))
                 MEDIA_LOCAL_MUSIC_ID -> createFolderItem(MEDIA_LOCAL_MUSIC_ID, getString(R.string.local_music))
                 "msg:login_required" -> createLoginPromptItem()
@@ -9151,14 +9320,77 @@ class PlaybackService : MediaLibraryService() {
             mediaItems: List<MediaItem>,
             startIndex: Int,
             startPositionMs: Long,
-        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> = scope.future(Dispatchers.IO) {
-            val resolved = resolveMediaItems(mediaItems)
-            val validIndex = startIndex.coerceIn(0, (resolved.size - 1).coerceAtLeast(0))
-            MediaSession.MediaItemsWithStartPosition(
-                ImmutableList.copyOf(resolved),
-                validIndex,
-                startPositionMs.coerceAtLeast(0L),
-            )
+        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+            // A tap on a Lyrics tab row seeks inside the current song. The failed future stops
+            // media3 from replacing the queue with that row.
+            val lyricMs = mediaItems.singleOrNull()?.mediaId
+                ?.takeIf { it.startsWith(LYRIC_ITEM_PREFIX) }?.removePrefix(LYRIC_ITEM_PREFIX)?.toLongOrNull()
+            if (lyricMs != null) {
+                player?.seekTo((lyricMs + AppSettings.lyricsOffsetMs.value).coerceAtLeast(0L))
+                return Futures.immediateFailedFuture(UnsupportedOperationException("lyric row: seek only"))
+            }
+            return scope.future(Dispatchers.IO) {
+                val selected = (if (startIndex in mediaItems.indices) mediaItems[startIndex] else null)
+                    ?: mediaItems.singleOrNull()
+                    ?: mediaItems.firstOrNull { it.mediaId.startsWith("auto-browse:") }
+                if (selected?.mediaId?.startsWith("auto-browse:") == true) {
+                    val (context, index) = try {
+                        autoBrowseSelection(selected.mediaId)
+                    } catch (expired: ExpiredBrowseContextException) {
+                        // Report the stale row to the requesting controller. Failing the
+                        // future rejects the request before it can replace the active queue.
+                        withContext(Dispatchers.Main) {
+                            mediaSession.sendError(
+                                controller,
+                                SessionError(SessionError.ERROR_BAD_VALUE, "Reopen the folder and select the track again"),
+                            )
+                        }
+                        throw expired
+                    }
+                    val bounded = withContext(Dispatchers.Main) {
+                        if (context.cookie != null) {
+                            check(context.cookie == com.music.bitchord.data.innertube.Innertube.cookie) {
+                                "Account changed; reopen the folder"
+                            }
+                        }
+                        if (CastController.state.value.casting || castPlayback.active) return@withContext null
+                        val token = BoundedContextRequests.put(
+                            BoundedContextRequests.Request(
+                                songs = context.page.songs,
+                                startIndex = index,
+                                source = context.source,
+                                continuationToken = context.page.continuation,
+                                shuffle = QueueShuffle.enabled.value,
+                            ),
+                        )
+                        val request = checkNotNull(BoundedContextRequests.take(token))
+                        val result = prepareBoundedContext(request)
+                        if (result == null) {
+                            BoundedContextRequests.discard(token)
+                            error("Player unavailable or browse context contains no playable tracks")
+                        }
+                        MediaSession.MediaItemsWithStartPosition(
+                            result.mediaItems, result.startIndex, startPositionMs.coerceAtLeast(0L),
+                        )
+                    }
+                    if (bounded != null) return@future bounded
+                    // Cast uses an explicit queue. Resolve browser-only ids to real tracks.
+                    val songs = context.page.songs
+                    require(!songs[index].isUnresolvedSpotify) { "Selected track is unavailable" }
+                    val castIndex = (0 until index).count { !songs[it].isUnresolvedSpotify }
+                    val items = songs.filterNot { it.isUnresolvedSpotify }.map { it.toMediaItem() }
+                    return@future MediaSession.MediaItemsWithStartPosition(
+                        ImmutableList.copyOf(items), castIndex, startPositionMs.coerceAtLeast(0L),
+                    )
+                }
+                val resolved = resolveMediaItems(mediaItems)
+                val validIndex = startIndex.coerceIn(0, (resolved.size - 1).coerceAtLeast(0))
+                MediaSession.MediaItemsWithStartPosition(
+                    ImmutableList.copyOf(resolved),
+                    validIndex,
+                    startPositionMs.coerceAtLeast(0L),
+                )
+            }
         }
 
         override fun onAddMediaItems(
@@ -9169,12 +9401,36 @@ class PlaybackService : MediaLibraryService() {
             resolveMediaItems(mediaItems)
         }
 
+        private fun autoBrowseSelection(mediaId: String): Pair<AutoBrowseContext, Int> {
+            val parts = mediaId.split(':')
+            require(parts.size == 3 && parts[0] == "auto-browse") { "Invalid browse id" }
+            val context = synchronized(autoBrowseContexts) { autoBrowseContexts[parts[1]] }
+            if (context == null) throw ExpiredBrowseContextException()
+            if (context.cookie != null) {
+                require(context.cookie == com.music.bitchord.data.innertube.Innertube.cookie) {
+                    "Account changed; reopen the folder"
+                }
+            }
+            val index = parts[2].toIntOrNull()
+            require(index != null && index in context.page.songs.indices) { "Invalid browse index" }
+            return context to index
+        }
+
         private suspend fun resolveMediaItems(mediaItems: List<MediaItem>): List<MediaItem> {
             val resolved = mutableListOf<MediaItem>()
             for (item in mediaItems) {
                 val id = item.mediaId
                 val searchQuery = item.requestMetadata.searchQuery
                 when {
+                    // Adding one browsed track to an existing queue must resolve
+                    // the browser-only id too, without replacing that queue.
+                    id.startsWith("auto-browse:") -> {
+                        val selection = runCatching { autoBrowseSelection(id) }.getOrNull()
+                        if (selection != null) {
+                            val (context, index) = selection
+                            resolved.add(context.page.songs[index].toMediaItem())
+                        }
+                    }
                     !searchQuery.isNullOrBlank() -> {
                         val cached = searchResults[searchQuery]
                         val songs = if (!cached.isNullOrEmpty()) {
@@ -9520,6 +9776,13 @@ class PlaybackService : MediaLibraryService() {
         const val MEDIA_PLAYLISTS_ID = "playlists"
         const val MEDIA_MORE_ID = "more"
         const val MEDIA_LIKED_ID = "liked"
+        const val MEDIA_LYRICS_ID = "lyrics"
+        /** Lyric rows have ids like "lyric:12000", where the number is the line's start time in ms. */
+        const val LYRIC_ITEM_PREFIX = "lyric:"
+        /** How many lyric rows fit on the car screen. The 800x480 Android Auto simulator shows 4, and a bigger screen shows more. */
+        const val LYRICS_TAB_ROWS_ON_SCREEN = 4
+        /** Roughly how many characters fit in the 2-line title on the small split-screen card. Longer lines get cut off there. */
+        const val LYRIC_TITLE_MAX_CHARS = 36
         /** See [scheduleForeignCachePurge]: comfortably past the longest crossfade. */
         const val FOREIGN_CACHE_PURGE_DELAY_MS = 30_000L
         /** How many upcoming tracks [scheduleForeignCachePurge] leaves alone for read-ahead and Automix. */

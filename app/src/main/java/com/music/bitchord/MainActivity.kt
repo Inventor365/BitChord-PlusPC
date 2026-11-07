@@ -232,6 +232,8 @@ import com.music.bitchord.download.DownloadStore
 import com.music.bitchord.download.MediaTagger
 import com.music.bitchord.download.DownloadTarget
 import com.music.bitchord.download.Downloads
+import com.music.bitchord.download.ExternalDownloader
+import com.music.bitchord.data.settings.DownloadMode
 import com.music.bitchord.ui.components.BrowseActionsMenu
 import com.music.bitchord.ui.components.BrowseTarget
 import com.music.bitchord.ui.components.ConfirmationAlert
@@ -392,6 +394,26 @@ internal fun shouldSkipAfterDislike(
     targetVideoId: String,
     currentVideoId: String?,
 ): Boolean = previousStatus != LikeStatus.DISLIKE && targetVideoId == currentVideoId
+
+/**
+ * [shown] keeps [page]'s own order: every entry is the page's, in the page's
+ * sequence, though a search may have left some out. A sort breaks that, and
+ * then the page snapshot can't stand in for the list on screen (#1141).
+ */
+internal fun inPageOrder(shown: List<String>, page: List<String>): Boolean {
+    val rest = page.iterator()
+    return shown.all { key -> rest.asSequence().any { it == key } }
+}
+
+/**
+ * The tracks a release page's own menu can act on as they stand: all of them
+ * once the page has loaded its last page, none while a continuation is still
+ * to come. None makes the menu fetch the whole list itself, so Download, Play
+ * Next and Add to Queue never stop at however far the page had scrolled in
+ * (#1178).
+ */
+internal fun <T> loadedWhole(songs: List<T>, continuation: String?): List<T> =
+    if (continuation == null) songs else emptyList()
 
 
 class MainActivity : AppCompatActivity() {
@@ -2327,6 +2349,17 @@ private fun BitChordApp(
     // track, which is not a release however many of them are asked for one at a
     // time.
     val startDownload: (List<Song>, DownloadTarget?) -> Unit = { requested, from ->
+        if (AppSettings.downloadMode.value == DownloadMode.EXTERNAL) {
+            val url = if (from != null && from.playlist) {
+                ExternalDownloader.buildMediaUrl(null, from.id)
+            } else {
+                requested.firstOrNull()?.let { ExternalDownloader.buildMediaUrl(it) }.orEmpty()
+            }
+            if (url.isNotBlank()) {
+                ExternalDownloader.launch(context, url)
+            }
+            return@startDownload
+        }
         val saved = Downloads.saved.value
         // Already on disk, and already queued or running: neither needs asking
         // again. What's left is what a tap on "Download" actually means.
@@ -3297,11 +3330,14 @@ private fun BitChordApp(
                                     page.browseId,
                                 )
                                 val selected = songs.getOrNull(index)
-                                val pageSongKeys =
-                                    (page.songs as? UiState.Success)?.data.orEmpty().mapTo(HashSet()) { it.contextEntryKey() }
+                                val pageKeys =
+                                    (page.songs as? UiState.Success)?.data.orEmpty().map { it.contextEntryKey() }
+                                val pageSongKeys = pageKeys.toHashSet()
                                 val useBounded =
                                     (page.type == BrowseType.ALBUM || page.type == BrowseType.PLAYLIST) &&
                                         selected?.contextEntryKey()?.let(pageSongKeys::contains) == true &&
+                                        // A sorted list plays as sorted, not in the page's order.
+                                        inPageOrder(songs.map { it.contextEntryKey() }, pageKeys) &&
                                         !CastController.state.value.casting
                                 val latestPage = if (useBounded) {
                                     viewModel.takePlaybackContext(page.browseId)
@@ -3342,6 +3378,14 @@ private fun BitChordApp(
                                 onSongClick = ::playDetailSongs,
                                 onSongLongPress = { openSongMenu(withAlbum(it)) },
                                 onSongSwipe = { onSongSwipe(withAlbum(it)) },
+                                onPlay = { songs ->
+                                    if (songs.isNotEmpty()) {
+                                        // Play is the release in order, so a shuffle left on
+                                        // from the last queue goes off before this one is built.
+                                        QueueShuffle.disableForNextQueue()
+                                        playDetailSongs(songs, 0)
+                                    }
+                                },
                                 onShuffle = { songs ->
                                     if (songs.isNotEmpty()) {
                                         // Shuffle goes on first so the queue is built shuffled
@@ -4117,7 +4161,7 @@ private fun BitChordApp(
                                                 subtitle = detail.subtitle,
                                                 thumbnailUrl = detail.thumbnailUrl,
                                                 type = detail.type,
-                                                songs = releaseSongs.sortedForDetail(songSort).map { song ->
+                                                songs = loadedWhole(releaseSongs, detail.continuation).sortedForDetail(songSort).map { song ->
                                                     if (detail.type == BrowseType.ALBUM) {
                                                         song.copy(albumName = song.albumName ?: detail.title)
                                                     } else {
@@ -5209,7 +5253,10 @@ private fun BitChordApp(
                 startRenaming = browseRenameInSheet,
                 onPlayNext = act(playSongsNext),
                 onAddToQueue = act(addSongsToQueue),
-                onPlay = act { songs -> play(songs, 0) }.takeIf { target.fromCard },
+                onPlay = act { songs ->
+                    QueueShuffle.disableForNextQueue()
+                    play(songs, 0)
+                }.takeIf { target.fromCard },
                 onShuffle = act { songs ->
                     // As on a release page: shuffle goes on before the queue
                     // is built, so it is built shuffled rather than played
