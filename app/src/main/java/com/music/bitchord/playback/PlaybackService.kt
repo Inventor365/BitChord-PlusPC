@@ -1095,6 +1095,10 @@ class PlaybackService : MediaLibraryService() {
                 return
             }
 
+            if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                partySync?.onLocalIntent()
+            }
+
             // A receiver, if it is the speaker, is put on whatever became
             // current — or it is the one that moved, and this is the phone
             // catching up, which [CastPlayback] tells apart by track.
@@ -1115,14 +1119,6 @@ class PlaybackService : MediaLibraryService() {
             // keeping the timeline clean and ensuring REPEAT_MODE_ALL loops only CONTEXT items.
             QueueCoordinator.consumePlayedUserQueue(exoPlayer)
 
-            // The queue moving on by itself. Nobody pressed anything, but it
-            // is still this device deciding what the party plays next, and no
-            // other path reports it: an automatic advance never passes through
-            // the session wrapper. A skip does pass through it, and is reported
-            // there; publishing is debounced, so being told twice costs nothing.
-            if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
-                partySync?.onLocalIntent()
-            }
             autoplayLoadJob?.cancel()
             autoplayLoadJob = null
             autoplaySeed = null
@@ -2872,6 +2868,12 @@ class PlaybackService : MediaLibraryService() {
     private fun startBoundedContext(args: Bundle) {
         val requestToken = args.getString(EXTRA_BOUNDED_CONTEXT_SONGS) ?: return
         val request = BoundedContextRequests.take(requestToken) ?: return
+        if (ListenTogether.state.value.inParty) {
+            clearBoundedContext()
+            BoundedContextRequests.discard(requestToken)
+            partySync?.playPlaylist(request)
+            return
+        }
         val result = prepareBoundedContext(request) ?: return
         val exoPlayer = player ?: return
         exoPlayer.setMediaItems(result.mediaItems, result.startIndex, result.startPositionMs)
@@ -2979,6 +2981,7 @@ class PlaybackService : MediaLibraryService() {
 
     /** Clears local bounded state before a non-context queue replaces the player. */
     private fun clearBoundedContext() {
+        partySync?.clearPlaylist()
         boundedEditState = BoundedQueueEdits.invalidateContext(boundedEditState)
         boundedContextRequest?.handoffToken?.let(BoundedContextRequests::discard)
         boundedCanonicalJob?.cancel()
@@ -8791,6 +8794,8 @@ class PlaybackService : MediaLibraryService() {
                 mediaItemIndex,
                 positionMs = positionMs,
                 play = false,
+                // Party history anchors the retained playlist tail, including bypassed tracks.
+                preserveQueue = ListenTogether.state.value.inParty,
             )
         }
 
