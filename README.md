@@ -11,9 +11,9 @@
 
 <br/>
 
-[![Latest release](https://img.shields.io/github/v/release/Inventor365/BitChord-PC?style=for-the-badge&labelColor=0d1117)](https://github.com/Inventor365/BitChord-PC/releases/latest)
-[![License](https://img.shields.io/github/license/Inventor365/BitChord-PC?style=for-the-badge&labelColor=0d1117)](https://github.com/Inventor365/BitChord-PC/blob/main/LICENSE)
-[![Downloads](https://img.shields.io/github/downloads/Inventor365/BitChord-PC/total?style=for-the-badge&labelColor=0d1117)](https://github.com/Inventor365/BitChord-PC/releases)
+[![Latest release](https://img.shields.io/github/v/release/Inventor365/BitChord-PlusPC?style=for-the-badge&labelColor=0d1117)](https://github.com/Inventor365/BitChord-PlusPC/releases/latest)
+[![License](https://img.shields.io/github/license/Inventor365/BitChord-PlusPC?style=for-the-badge&labelColor=0d1117)](https://github.com/Inventor365/BitChord-PlusPC/blob/main/LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/Inventor365/BitChord-PlusPC/total?style=for-the-badge&labelColor=0d1117)](https://github.com/Inventor365/BitChord-PlusPC/releases)
 [![Listening now](https://api.bitchord.kushagrasingh.in/api/stats/live/badge.svg)](https://api.bitchord.kushagrasingh.in/api/stats/live)
 
 <br/>
@@ -65,18 +65,18 @@
 <h1><a id="download"></a>Download</h1>
 
 <p>
-  <a href="https://github.com/Inventor365/BitChord-PC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/android/cozy.svg" alt="Download for Android" height="56"/></a>
+  <a href="https://github.com/Inventor365/BitChord-PlusPC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/android/cozy.svg" alt="Download for Android" height="56"/></a>
   &nbsp;
-  <a href="https://github.com/Inventor365/BitChord-PC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/windows/cozy.svg" alt="Download for Windows" height="56"/></a>
+  <a href="https://github.com/Inventor365/BitChord-PlusPC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/windows/cozy.svg" alt="Download for Windows" height="56"/></a>
   &nbsp;
-  <a href="https://github.com/Inventor365/BitChord-PC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/macos/cozy.svg" alt="Download for macOS" height="56"/></a>
+  <a href="https://github.com/Inventor365/BitChord-PlusPC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/macos/cozy.svg" alt="Download for macOS" height="56"/></a>
   &nbsp;
-  <a href="https://github.com/Inventor365/BitChord-PC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="docs/badges/linux-cozy.svg" alt="Download for Linux" height="56"/></a>
+  <a href="https://github.com/Inventor365/BitChord-PlusPC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="docs/badges/linux-cozy.svg" alt="Download for Linux" height="56"/></a>
 </p>
 
 </div>
 
-| Platform | Architectures | Packages on [Releases](https://github.com/Inventor365/BitChord-PC/releases/latest) |
+| Platform | Architectures | Packages on [Releases](https://github.com/Inventor365/BitChord-PlusPC/releases/latest) |
 | :--- | :--- | :--- |
 | **Android (Phone & Tablet)** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChord-v1.9.apk`, `BitChord-v1.9_<abi>.apk` |
 | **Android TV / Fire TV** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChordTV-v1.9.apk`, `BitChordTV-v1.9_<abi>.apk` |

@@ -2,7 +2,7 @@
   "version": "1.9",
   "versionCode": 36,
   "tvVersionCode": 36,
-  "releaseUrl": "https://github.com/Inventor365/BitChord-PC/releases/tag/v1.9",
+  "releaseUrl": "https://github.com/Inventor365/BitChord-PlusPC/releases/tag/v1.9",
   "changelogUrl": "https://raw.githubusercontent.com/Inventor365/Bitchord-OTA/refs/heads/main/changelogs.txt?token=GHSAT0AAAAAADUIC3ZQ4LG6AXEKYTMTOL2I2XE3AZA",
   "changelog": [
     "## BitChord v1.9",
@@ -11,34 +11,34 @@
     "- **Keep Playlists Updated & FFmpeg ALAC**: Automatic background sync for downloaded playlists, native FFmpeg ALAC decoding, and WebM/addon cache safety fixes.",
     "- **Desktop Browser Sign-In Link & Universal Paste**: Copyable browser sign-in links for Google/YouTube Music and Spotify, macOS/Windows/Linux browser profile import, and 1-click Paste from Clipboard (supports cURL, PowerShell, DevTools Cookies table, and JSON)."
   ],
-  "downloadUrl": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChord-v1.9.apk",
+  "downloadUrl": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChord-v1.9.apk",
   "downloads": {
     "android": {
-      "universal": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChord-v1.9.apk",
-      "arm64-v8a": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChord-v1.9_arm64-v8a.apk",
-      "armeabi-v7a": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChord-v1.9_armeabi-v7a.apk",
-      "x86_64": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChord-v1.9_x86_64.apk"
+      "universal": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChord-v1.9.apk",
+      "arm64-v8a": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChord-v1.9_arm64-v8a.apk",
+      "armeabi-v7a": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChord-v1.9_armeabi-v7a.apk",
+      "x86_64": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChord-v1.9_x86_64.apk"
     },
     "tv": {
-      "universal": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChordTV-v1.9.apk",
-      "arm64-v8a": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChordTV-v1.9_arm64-v8a.apk",
-      "armeabi-v7a": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChordTV-v1.9_armeabi-v7a.apk",
-      "x86_64": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChordTV-v1.9_x86_64.apk"
+      "universal": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChordTV-v1.9.apk",
+      "arm64-v8a": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChordTV-v1.9_arm64-v8a.apk",
+      "armeabi-v7a": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChordTV-v1.9_armeabi-v7a.apk",
+      "x86_64": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChordTV-v1.9_x86_64.apk"
     },
-    "wear": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChordWear-v1.9.apk",
+    "wear": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChordWear-v1.9.apk",
     "windows": {
-      "exe": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChord-1.9-windows-x64-setup.exe",
-      "msi": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChord-1.9-windows-x64.msi",
-      "portable": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChord-1.9-windows-x64-portable.zip"
+      "exe": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChord-1.9-windows-x64-setup.exe",
+      "msi": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChord-1.9-windows-x64.msi",
+      "portable": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChord-1.9-windows-x64-portable.zip"
     },
     "macos": {
-      "arm64": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChord-1.9-macos-arm64.dmg",
-      "x64": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChord-1.9-macos-x64.dmg"
+      "arm64": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChord-1.9-macos-arm64.dmg",
+      "x64": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChord-1.9-macos-x64.dmg"
     },
     "linux": {
-      "appimage": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChord-1.9-linux-x86_64.AppImage",
-      "deb": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChord-1.9-linux-amd64.deb",
-      "rpm": "https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChord-1.9-linux-x86_64.rpm"
+      "appimage": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChord-1.9-linux-x86_64.AppImage",
+      "deb": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChord-1.9-linux-amd64.deb",
+      "rpm": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChord-1.9-linux-x86_64.rpm"
     }
   }
 }

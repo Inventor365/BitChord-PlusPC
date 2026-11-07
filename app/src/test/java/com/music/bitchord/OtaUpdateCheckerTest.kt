@@ -25,7 +25,7 @@ class OtaUpdateCheckerTest {
         )
         assertNotNull(phoneInfo)
         assertEquals("1.9", phoneInfo!!.version)
-        assertEquals("https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChord-v1.9.apk", phoneInfo.apkUrl)
+        assertEquals("https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChord-v1.9.apk", phoneInfo.apkUrl)
         assertTrue(phoneInfo.notes.orEmpty().contains("Bit-Perfect Output"))
         assertTrue(phoneInfo.notes.orEmpty().contains("Verified OTA"))
 
@@ -36,7 +36,7 @@ class OtaUpdateCheckerTest {
         )
         assertNotNull(tvInfo)
         assertEquals("1.9", tvInfo!!.version)
-        assertEquals("https://github.com/Inventor365/BitChord-PC/releases/download/v1.9/BitChordTV-v1.9.apk", tvInfo.apkUrl)
+        assertEquals("https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.9/BitChordTV-v1.9.apk", tvInfo.apkUrl)
     }
 
     @Test

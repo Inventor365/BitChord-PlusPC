@@ -1,11 +1,11 @@
-![BitChord Android Banner](https://raw.githubusercontent.com/Inventor365/BitChord-PC/main/Banner.png)
+![BitChord Android Banner](https://raw.githubusercontent.com/Inventor365/BitChord-PlusPC/main/Banner.png)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Inventor365/BitChord-PC/main/docs/screenshots/macos.png" alt="BitChord for macOS" width="49%" />
-  <img src="https://raw.githubusercontent.com/Inventor365/BitChord-PC/main/docs/screenshots/linux.png" alt="BitChord for Linux & Windows" width="49%" />
+  <img src="https://raw.githubusercontent.com/Inventor365/BitChord-PlusPC/main/docs/screenshots/macos.png" alt="BitChord for macOS" width="49%" />
+  <img src="https://raw.githubusercontent.com/Inventor365/BitChord-PlusPC/main/docs/screenshots/linux.png" alt="BitChord for Linux & Windows" width="49%" />
 </p>
 
-## What's Extra Over Official (`Inventor365/BitChord-PC` — `v1.9`)
+## What's Extra Over Official (`Inventor365/BitChord-PlusPC` — `v1.9`)
 
 This release combines the official **`v1.9`** release (`b690dc14`) and **`web-player`** developments from [`kushagrasinghx/BitChord`](https://github.com/kushagrasinghx/BitChord) with **full native desktop builds** and **23+ verified community pull requests** integrated ahead of upstream:
 
