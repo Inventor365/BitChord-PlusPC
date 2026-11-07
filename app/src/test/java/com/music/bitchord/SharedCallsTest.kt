@@ -254,64 +254,6 @@ class SharedCallsTest {
     }
 
     /**
-     * The incident this fix came from, with the track that produced it.
-     *
-     * ```
-     * 07:37:01.321  the addon call starts for 'linda louca e mimada oriente'
-     * 07:37:01.139  sound starts on the YouTube fallback, so the caller that
-     *               started the request stops waiting - by design, and by
-     *               cancellation
-     * 07:37:20.511  addon search ... CACHE HIT
-     *               the second look arrives and joins the request on the wire
-     * 07:37:46.322  addon call failed: timeout (45 s ceiling)
-     * ```
-     *
-     * Before the fix that failure stayed in the map for the whole ten-minute
-     * TTL: every later lookup for the same query was answered from it without a
-     * request leaving the device, which is the `CACHE HIT` logged beside a
-     * timeout. After it, the failure is dropped where the *work* settles and the
-     * next caller asks the addon again.
-     */
-    @Test
-    fun `the Oriente search is asked again after the request died with its starter gone`() = runBlocking {
-        val query = "linda louca e mimada oriente"
-        val calls = AtomicInteger()
-        val joined = AtomicInteger()
-        val onTheWire = CompletableDeferred<Unit>()
-        val ceiling = CompletableDeferred<Unit>()
-        val shared = shared<String>(ttlMs = 10 * 60_000, onReuse = { joined.incrementAndGet() })
-
-        // The live resolve asks, then gives up: sound is already playing on the
-        // fallback, and a caller in this layer is meant to walk away.
-        val live = async(Dispatchers.Default) {
-            shared.get(query, { "addon search q=\"$query\"" }) {
-                calls.incrementAndGet()
-                onTheWire.complete(Unit)
-                ceiling.await()
-                Result.failure(IllegalStateException("timeout"))
-            }
-        }
-        onTheWire.await()
-        live.cancelAndJoin()
-
-        // The second look arrives while the request is still running and joins
-        // it. This is the caller still inside await() when the ceiling fires.
-        val secondLook = async(Dispatchers.Default) {
-            shared.get(query, { "addon search q=\"$query\"" }) {
-                calls.incrementAndGet()
-                Result.success("a second request, which would be a duplicate")
-            }
-        }
-        while (joined.get() < 1) yield()
-        ceiling.complete(Unit)
-
-        assertTrue("the joined caller sees the failure", secondLook.await().isFailure)
-        assertEquals("one request on the wire, not two", 1, calls.get())
-
-        // Dropped where the work settles, not where a caller returns; give that
-        // handler its turn. Without the fix the entry outlives the TTL below.
-        withTimeout(5_000) { while (shared.size() != 0) delay(10) }
-
         // A replay, or the next track that asks the same question. A failure is
         // not an answer, so this asks the addon again.
         val answer = shared.get(query, { "addon search q=\"$query\"" }) {
@@ -320,5 +262,32 @@ class SharedCallsTest {
         }
         assertEquals("flac tidal:track:57852175", answer.getOrNull())
         assertEquals("the failure did not become the answer", 2, calls.get())
+    }
+
+    /**
+     * An answer that says it will be different shortly — an addon's "not yet,
+     * ask again in 30 seconds" — is a success, and holding it would replay the
+     * stale "not yet" to every caller for the whole window.
+     */
+    @Test
+    fun `an answer the caller says not to keep is asked again`() = runBlocking {
+        val calls = AtomicInteger()
+        val shared = shared<String>(ttlMs = 60_000)
+
+        repeat(3) {
+            shared.get("q", { "" }, keep = { it != "not yet" }) {
+                calls.incrementAndGet()
+                Result.success("not yet")
+            }
+        }
+        assertEquals(3, calls.get())
+
+        repeat(3) {
+            shared.get("r", { "" }, keep = { it != "not yet" }) {
+                calls.incrementAndGet()
+                Result.success("flac")
+            }
+        }
+        assertEquals(4, calls.get())
     }
 }

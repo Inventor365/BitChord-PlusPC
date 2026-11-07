@@ -28,7 +28,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.IosShare
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -48,6 +52,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -138,7 +143,7 @@ fun ReplayScreen(
             summary == null || summary.isEmpty -> 0
             else -> replayChartIndex(summary, landingPage)
         }
-        listState.scrollToItem(target)
+        runCatching { listState.scrollToItem(target) }
         if (summary != null) landed = true
     }
 
@@ -276,11 +281,35 @@ private fun Heading(state: ReplayState, onPeriodChange: (ReplayPeriod) -> Unit, 
             fontWeight = FontWeight.W800,
             color = textColor,
         )
-        Text(
-            text = state.summary?.localizedLabel(context) ?: state.period.localizedChip(context),
-            style = MaterialTheme.typography.titleMedium,
-            color = textColor.copy(alpha = 0.6f),
-        )
+        // Under Monthly the label picks the month: every month with listening, newest first.
+        val canPickMonth = state.period == ReplayPeriod.THIS_MONTH && state.months.size > 1
+        var picking by remember { mutableStateOf(false) }
+        Box {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = if (canPickMonth) Modifier.clickable(role = Role.DropdownList) { picking = true } else Modifier,
+            ) {
+                Text(
+                    text = state.summary?.localizedLabel(context) ?: state.period.localizedChip(context),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = textColor.copy(alpha = 0.6f),
+                )
+                if (canPickMonth) {
+                    Icon(Icons.Rounded.ArrowDropDown, contentDescription = null, tint = textColor.copy(alpha = 0.6f))
+                }
+            }
+            DropdownMenu(expanded = picking, onDismissRequest = { picking = false }) {
+                state.months.forEach { month ->
+                    DropdownMenuItem(
+                        text = { Text(month.localizedName()) },
+                        onClick = {
+                            picking = false
+                            state.onMonthChange(month)
+                        },
+                    )
+                }
+            }
+        }
         Spacer(Modifier.height(14.dp))
         PeriodPicker(state.period, onPeriodChange, dark)
         Spacer(Modifier.height(18.dp))
@@ -363,7 +392,7 @@ internal fun ReplayCardRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         flingBehavior = rememberSnapFlingBehavior(lazyListState = rowState),
     ) {
-        items(cards, key = { it.label }) { card ->
+        items(cards, key = { "${it.label}_${it.page.name}" }) { card ->
             ReplayCreditCard(
                 label = card.label,
                 value = card.value,
@@ -385,12 +414,13 @@ internal fun ReplayCardRow(
 private fun replayChartIndex(summary: ReplaySummary, page: ReplayStoryPage): Int {
     val songs = summary.songRows(CHART_LENGTH)
     val artists = summary.artistRows(CHART_LENGTH)
+    val albums = summary.albumRows(CHART_LENGTH)
     fun span(rows: List<ReplayRow>): Int = if (rows.isEmpty()) 0 else rows.size + 2
 
     return when (page) {
-        ReplayStoryPage.SONGS -> 3
-        ReplayStoryPage.ARTISTS -> 3 + span(songs)
-        ReplayStoryPage.ALBUMS -> 3 + span(songs) + span(artists)
+        ReplayStoryPage.SONGS -> if (songs.isNotEmpty()) 3 else 0
+        ReplayStoryPage.ARTISTS -> if (artists.isNotEmpty()) 3 + span(songs) else if (songs.isNotEmpty()) 3 else 0
+        ReplayStoryPage.ALBUMS -> if (albums.isNotEmpty()) 3 + span(songs) + span(artists) else if (artists.isNotEmpty()) 3 + span(songs) else if (songs.isNotEmpty()) 3 else 0
         else -> 0
     }
 }
@@ -450,7 +480,7 @@ private fun LazyListScope.chart(
 ) {
     if (rows.isEmpty()) return
     item("$key-title") { SectionTitle(title, dark) }
-    items(rows, key = { "$key-${it.key}" }) { row ->
+    items(rows, key = { "$key-${it.rank}-${it.key}" }) { row ->
         ReplayChartRow(row, circular, dark) { onClick(row.rank - 1) }
     }
     item("$key-gap") { Spacer(Modifier.height(20.dp)) }
@@ -542,7 +572,7 @@ private fun Habits(summary: ReplaySummary, dark: Boolean) {
             Spacer(Modifier.height(10.dp))
             Note(stringResource(R.string.listen_most_around, formatHour(context, it)), dark)
         }
-        summary.busiestDay?.let {
+        summary.busiestDay?.takeIf { summary.busiestDayMs > 0 }?.let {
             Spacer(Modifier.height(6.dp))
             Note(
                 stringResource(

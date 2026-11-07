@@ -13,6 +13,7 @@ import com.music.bitchord.data.sources.addon.AddonTrack
 import com.music.bitchord.data.sources.addon.AddonUnavailable
 import com.music.bitchord.playback.StreamContainer
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.withContext
 import java.util.Collections
 import java.util.Locale
@@ -255,12 +256,19 @@ class AddonSource(
         limit: Int,
         waitForAll: Boolean,
         request: StreamRequest?,
+        target: TrackMatcher.Target?,
     ): List<Song> =
         withContext(Dispatchers.IO) {
             if (query.isBlank()) return@withContext emptyList()
             if (!admitted("a search")) return@withContext emptyList()
             val tier = request?.tier ?: AddonClient.TIER_LOSSLESS
-            val tracks = client.search(query, tier).getOrElse { failure ->
+            val tracks = client.search(
+                query,
+                tier,
+                // The track's own metadata, not the query's folded words.
+                title = target?.title.orEmpty(),
+                artist = target?.artist.orEmpty(),
+            ).getOrElse { failure ->
                 TrackLog.w(TAG, "${config.displayName}: search failed — ${failure.message}")
                 return@withContext emptyList()
             }
@@ -334,11 +342,18 @@ class AddonSource(
                 // up empty, others a credential the user has to go and set on
                 // the addon's own setup page — and that second kind is only
                 // ever actionable if it is said out loud here.
+                val retryAfter = answer.retryAfterSec
                 TrackLog.w(
                     TAG,
                     "${config.displayName}: no stream for $trackId" +
-                        (answer.error?.ifBlank { null }?.let { " — $it" } ?: ""),
+                        (answer.error?.ifBlank { null }?.let { " — $it" } ?: "") +
+                        (retryAfter?.let { " (ask again in ${it}s)" } ?: ""),
                 )
+                // A "not yet" rather than a "no": whoever is looking and can
+                // afford to wait hears when to come back — see [RetryHints].
+                if (retryAfter != null) {
+                    currentCoroutineContext()[RetryHints]?.note(retryAfter, config.displayName, answer.error)
+                }
                 return@withContext fromRow(trackId, tier)
             }
 

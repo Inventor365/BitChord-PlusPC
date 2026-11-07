@@ -315,10 +315,12 @@ object ListeningStats {
      * Off the main thread and off the open bucket both: the months it needs are
      * files, and the one being written to is flushed first so that the page
      * agrees with what has just been playing.
+     *
+     * [month] picks an earlier month for [ReplayPeriod.THIS_MONTH]; see [ReplayPeriod.asOf].
      */
-    suspend fun summary(period: ReplayPeriod): ReplaySummary = withContext(Dispatchers.IO) {
+    suspend fun summary(period: ReplayPeriod, month: YearMonth? = null): ReplaySummary = withContext(Dispatchers.IO) {
         flushAndAwait()
-        val today = LocalDate.now()
+        val today = period.asOf(month, LocalDate.now())
         val facts = ArtistFacts.revision.value
         // Every input to the merge, so the cache cannot be stale: which months
         // are on disk and what is in them ([version]), what is known about the
@@ -579,14 +581,16 @@ object ListeningStats {
             }
             // Merge day-level sub-buckets for the flat days map and cross-month totals.
             addDaySubs(bucket)
+            repeat(24) { hours[it] += bucket.hours.getOrElse(it) { 0L } }
             bucket.days.forEach { (day, ms) ->
                 val candidate = "${bucket.month}-%02d".format(day)
-                val date = runCatching { LocalDate.parse(candidate.replace("-", "/")) }.getOrNull()
+                val date = runCatching { LocalDate.parse(candidate) }.getOrNull()
                     ?: return@forEach
                 if (date >= range.first && date <= range.second) {
                     days[candidate] = (days[candidate] ?: 0L) + ms
                 }
             }
+            if (earliest == null || bucket.month < earliest!!) earliest = bucket.month
         }
 
         fun toSummary(period: ReplayPeriod, today: LocalDate): ReplaySummary {
@@ -746,6 +750,7 @@ object ListeningStats {
                 distinctArtists = rankedArtists.size,
                 distinctAlbums = rankedAlbums.size,
                 since = earliest,
+                asOf = today,
             )
         }
     }
@@ -1025,6 +1030,14 @@ enum class ReplayPeriod(val chip: String) {
         ALL_TIME -> true
     }
 
+    /**
+     * The day this period is read as of. [month] picks an earlier month for
+     * THIS_MONTH, read as of its last day; every other period, and a [month]
+     * that is not in the past, reads as of [today].
+     */
+    fun asOf(month: YearMonth?, today: LocalDate): LocalDate =
+        if (this == THIS_MONTH && month != null && month < YearMonth.from(today)) month.atEndOfMonth() else today
+
     /** Whether this period needs day-level filtering (week spans potentially multiple months). */
     fun needsDayFilter(): Boolean = this == THIS_WEEK
 
@@ -1062,6 +1075,8 @@ data class ReplaySummary(
     val distinctAlbums: Int,
     /** The earliest month with anything in it, `YYYY-MM`. */
     val since: String?,
+    /** The day [period] was read as of — see [ReplayPeriod.asOf]. */
+    val asOf: LocalDate,
 ) {
     val minutes: Long get() = totalMs / 60_000
     val hours: Long get() = totalMs / 3_600_000

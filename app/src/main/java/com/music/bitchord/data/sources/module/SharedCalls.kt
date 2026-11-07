@@ -81,8 +81,20 @@ internal class SharedCalls<T>(
      */
     private val lock = Mutex()
 
+    /**
+     * [keep] decides whether a successful answer is held for [ttlMs] once it
+     * lands. An answer that says it will be different shortly — an addon's
+     * "not yet, ask again in 30 seconds" — is a success, and holding it would
+     * hand the next caller the stale "not yet" for five minutes. It is still
+     * shared while in flight, like every answer.
+     */
     @OptIn(ExperimentalCoroutinesApi::class)
-    suspend fun get(key: String, describe: () -> String, produce: suspend () -> Result<T>): Result<T> {
+    suspend fun get(
+        key: String,
+        describe: () -> String,
+        keep: (T) -> Boolean = { true },
+        produce: suspend () -> Result<T>,
+    ): Result<T> {
         val entry = lock.withLock {
             val live = entries[key]?.takeIf { it.work.isActive || now() - it.startedAtMs < ttlMs }
             if (live != null) {
@@ -105,14 +117,18 @@ internal class SharedCalls<T>(
                         // `cause` covers a cancelled or thrown call; a plain
                         // `Result.failure` is a *normal* completion, which is
                         // why the settled result is read here.
-                        if (cause != null || work.getCompleted().isFailure) {
+                        if (cause != null || work.getCompleted().let { it.isFailure || it.getOrNull()?.let(keep) == false }) {
                             entries.remove(key, pending)
                         }
                     }
                 }
             }
         }
-        return entry.work.await()
+        return entry.work.await().also { result ->
+            // By identity, so a retry that has already replaced this entry is
+            // not thrown away along with the failure it replaced.
+            if (result.isFailure || result.getOrNull()?.let(keep) == false) entries.remove(key, entry)
+        }
     }
 
     /** Everything held, dropped — the configuration it was all about is gone. */

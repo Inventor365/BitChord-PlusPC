@@ -144,11 +144,23 @@ class AddonClient(rawBaseUrl: String, private val pickedQuality: String? = null)
      * so trimming the list is the caller's job. Nothing else here is negotiable
      * either: the spec fixes the path, the parameter name and the shape coming
      * back.
+     *
+     * [title] and [artist], when known, go along as their own parameters
+     * beside `q`. `q` mixes the two into one string, so an addon cannot tell
+     * which words name the singer; given them apart it can keep the right
+     * recording of a title several artists have sung. An addon that does not
+     * read them ignores them, as it does any unknown parameter.
      */
-    suspend fun search(query: String, tier: String): Result<List<AddonTrack>> {
+    suspend fun search(
+        query: String,
+        tier: String,
+        title: String = "",
+        artist: String = "",
+    ): Result<List<AddonTrack>> {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) return Result.success(emptyList())
-        val params = settingsFor(tier)
+        val params = settingsFor(tier) +
+            listOf("title" to title.trim(), "artist" to artist.trim()).filter { it.second.isNotEmpty() }
         return searches.get(
             // The parameters are in the key because they are in the request:
             // the same query at a different quality is a different question,
@@ -181,6 +193,9 @@ class AddonClient(rawBaseUrl: String, private val pickedQuality: String? = null)
         return streams.get(
             key = keyOf(trackId, params.toString()),
             describe = { "▶ addon stream(${redact(baseUrl)}) id=$trackId tier=$tier quality=${params[QUALITY_KEY]}" },
+            // A "not yet" is only true until the addon's download finishes;
+            // the next caller asks again rather than reusing it.
+            keep = { it.retryAfterSec == null },
         ) {
             fetch<AddonStream>(endpoint(listOf("stream", trackId), params))
         }
