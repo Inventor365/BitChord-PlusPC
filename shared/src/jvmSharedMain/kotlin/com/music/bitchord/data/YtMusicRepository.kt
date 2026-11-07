@@ -34,6 +34,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
@@ -161,9 +162,6 @@ object YtMusicRepository {
      */
     private suspend fun fetchHistory(): List<Song> = historyLock.withLock {
         val cookie = Innertube.cookie
-        // Recents and Top Picks both want the history the moment Home opens;
-        // whichever asks second waits for the first and shares its answer
-        // instead of sending the same request again.
         historyMemo?.takeIf { it.cookie == cookie && System.currentTimeMillis() - it.at < HISTORY_SHARE_MS }
             ?.let { return@withLock it.songs }
         InnertubeParser.collectSongsDeep(Innertube.browse(HISTORY)).distinctBy { it.videoId }
@@ -1113,6 +1111,28 @@ object YtMusicRepository {
 
     suspend fun renamePlaylist(playlistId: String, title: String): Result<Unit> =
         call("playlist:rename") { Innertube.renamePlaylist(playlistId, title) }
+
+    /** App memory-safety limit, not a claimed YouTube upload limit. */
+    const val MAX_PLAYLIST_COVER_BYTES = 10 * 1024 * 1024
+
+    suspend fun setPlaylistCover(
+        playlistId: String,
+        image: ByteArray,
+        isCurrent: () -> Boolean = { true },
+    ): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            // Do not use call(): its auth recovery would replay the entire mutation.
+            runCatching {
+                require(image.isNotEmpty() && image.size <= MAX_PLAYLIST_COVER_BYTES)
+                val jpeg = image.size >= 3 && image[0] == 0xff.toByte() &&
+                    image[1] == 0xd8.toByte() && image[2] == 0xff.toByte()
+                val png = image.size >= 8 && image.take(8) ==
+                    listOf(0x89.toByte(), 0x50.toByte(), 0x4e.toByte(), 0x47.toByte(),
+                        0x0d.toByte(), 0x0a.toByte(), 0x1a.toByte(), 0x0a.toByte())
+                require(jpeg || png)
+                Innertube.setPlaylistCover(playlistId, image, isCurrent)
+            }.onFailure { if (it is CancellationException) throw it }
+        }
 
     suspend fun deletePlaylist(playlistId: String): Result<Unit> =
         call("playlist:delete") { Innertube.deletePlaylist(playlistId) }

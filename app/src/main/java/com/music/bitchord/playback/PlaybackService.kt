@@ -154,6 +154,8 @@ import com.music.bitchord.playback.smart.AutomixAnalysisSource
 import com.music.bitchord.playback.smart.VersionAudioAligner
 import com.music.bitchord.widget.MediaWidget
 import com.music.bitchord.widget.MediaWidgetSnapshot
+import com.music.bitchord.widget.QuickPlayStore
+import com.music.bitchord.widget.QuickPlayWidget
 import com.music.bitchord.wear.WearBridge
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -352,6 +354,10 @@ class PlaybackService : MediaLibraryService() {
         if (songs.isNotEmpty()) {
             cachedRecents = SystemClock.elapsedRealtime() to songs
             songs.forEach { songCache[it.videoId] = it }
+            if (QuickPlayStore.load(this@PlaybackService).isEmpty()) {
+                QuickPlayStore.saveSongs(this@PlaybackService, songs)
+                QuickPlayWidget.refresh(this@PlaybackService)
+            }
         }
         songs
     }
@@ -379,6 +385,8 @@ class PlaybackService : MediaLibraryService() {
         if (songs.isNotEmpty()) {
             cachedQuickPicks = SystemClock.elapsedRealtime() to songs
             songs.forEach { songCache[it.videoId] = it }
+            QuickPlayStore.saveSongs(this@PlaybackService, songs)
+            QuickPlayWidget.refresh(this@PlaybackService)
         }
         songs
     }
@@ -2120,7 +2128,8 @@ class PlaybackService : MediaLibraryService() {
     /** Whether [item] is liked, by whichever of the two records owns it. */
     private fun isLiked(item: MediaItem?): Boolean {
         val song = item?.toSong() ?: return false
-        return if (song.localUri != null) {
+        // Only true external local files (no YouTube identity) use the offline liked list.
+        return if (song.localUri != null && (song.videoId.startsWith("content://") || song.videoId.startsWith("file://"))) {
             OfflinePlaylists.isLiked(song)
         } else {
             LikeState.overrides.value[song.videoId] == LikeStatus.LIKE
@@ -6401,7 +6410,7 @@ class PlaybackService : MediaLibraryService() {
         // started from the widget or a restart has none until something seeds
         // it. Unknown is not "not liked", so keep what was last published for
         // this same track rather than emptying a heart that was right.
-        val liked = (if (song.localUri != null) OfflinePlaylists.isLiked(song) else null)
+        val liked = (if (song.localUri != null && (song.videoId.startsWith("content://") || song.videoId.startsWith("file://"))) OfflinePlaylists.isLiked(song) else null)
             ?: LikeState.overrides.value[song.videoId]?.let { it == LikeStatus.LIKE }
             ?: MediaWidgetSnapshot.load(this).takeIf { it.mediaId == song.videoId }?.isLiked
             ?: false
@@ -8896,9 +8905,8 @@ class PlaybackService : MediaLibraryService() {
                     ?.takeIf(::canLike)
                     ?.let { item ->
                         val song = item.toSong()
-                        if (song.localUri != null) {
-                            // On the device and nowhere else: nothing to
-                            // reconcile, and the button follows [OfflinePlaylists.liked].
+                        // Only true external local files use the offline liked list; app-downloaded songs go through YouTube Music.
+                        if (song.localUri != null && (song.videoId.startsWith("content://") || song.videoId.startsWith("file://"))) {
                             OfflinePlaylists.toggleLike(song)
                         } else {
                             toggleFavoriteFromNotification(item.mediaId)

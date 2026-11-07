@@ -85,9 +85,9 @@ import java.util.Locale
  * always the fallback for "I meant to do something with this song".
  *
  * Everything that writes to the account is hidden outright when [signedIn] is
- * false rather than shown and refused. A track playing from a local file or a
- * finished download (`song.localUri != null`) carries no YouTube identity to
- * rate, fetch again or share, so it gets the offline player's rows instead:
+  * false rather than shown and refused. A track playing from a true external local file
+  * (`song.localUri != null` and no YouTube identity) carries no YouTube identity to
+  * rate, fetch again or share, so it gets the offline player's rows instead:
  * Like and Add to playlist against the device's own playlists (see
  * [com.music.bitchord.data.OfflinePlaylists]), signed in or not.
  *
@@ -127,6 +127,12 @@ fun SongActionsMenu(
     onOpenArtist: (String) -> Unit,
     modifier: Modifier = Modifier,
     onRemoveFromPlaylist: (() -> Unit)? = null,
+    /**
+     * Starts picking several songs on the page this one was opened from, with
+     * this one picked. Null hides the row: off a playlist or album page there
+     * is no list to pick from.
+     */
+    onSelect: (() -> Unit)? = null,
     /**
      * Takes this track out of the song cache. Null hides the row — the caller
      * passes one only while the cache actually holds some of it.
@@ -216,7 +222,8 @@ fun SongActionsMenu(
     val palette = neutralMenuPalette()
     val liked = likeStatus == LikeStatus.LIKE
     val disliked = likeStatus == LikeStatus.DISLIKE
-    // External device files have no YouTube identity to rate, fetch, or share.
+    // Only a true external local file (no YouTube identity) is "offline" in the
+    // sense that it can't be rated to the account, shared by link, or fetched again.
     val isOffline = song.localUri != null &&
         (song.videoId.startsWith("content://") || song.videoId.startsWith("file://"))
 
@@ -256,6 +263,19 @@ fun SongActionsMenu(
                     IosMenuQuickAction(icon = SfIcons.Share, label = stringResource(R.string.share), onClick = it)
                 }
             }
+        }
+
+        // Remove from history — only shown when opened from the History screen
+        // and the track has a feedback token. Sits at the top of the action
+        // list, directly below the quick actions and above Convert to video.
+        onRemoveFromHistory?.let {
+            if (startsGroup()) IosMenuSeparator()
+            ActionRow(
+                icon = SfIcons.History,
+                label = stringResource(R.string.remove_from_history),
+                accent = palette.accent,
+                onClick = it,
+            )
         }
 
         // Leads the list whenever it's available: which recording is playing
@@ -309,14 +329,18 @@ fun SongActionsMenu(
         // player's own pair: a heart that files the track under this device's
         // Liked playlist, and the device's playlists. [likeStatus] is that
         // playlist's answer there, not YouTube's, and neither needs an account.
-        if (canRate) {
+        // Remove stands without an account too: a playlist imported onto
+        // this device is the user's to edit while signed out.
+        if (canRate || onRemoveFromPlaylist != null) {
             if (startsGroup()) IosMenuSeparator()
-            ActionRow(
-                icon = SfIcons.AddToPlaylist,
-                label = stringResource(R.string.add_to_playlist),
-                accent = palette.accent,
-                onClick = onAddToPlaylist,
-            )
+            if (canRate) {
+                ActionRow(
+                    icon = SfIcons.AddToPlaylist,
+                    label = stringResource(R.string.add_to_playlist),
+                    accent = palette.accent,
+                    onClick = onAddToPlaylist,
+                )
+            }
             if (signedIn && !isOffline) {
                 onSaveQueueAsPlaylist?.let {
                     val label = if (song.radioName != null) {
@@ -346,6 +370,14 @@ fun SongActionsMenu(
         // ride in this group rather than one of their own because for a
         // device file they can all be absent, and a group may not be empty.
         if (startsGroup()) IosMenuSeparator()
+        onSelect?.let {
+            ActionRow(
+                icon = SfIcons.Check,
+                label = stringResource(R.string.select_songs),
+                accent = palette.accent,
+                onClick = it,
+            )
+        }
         ActionRow(
             icon = SfIcons.Radio,
             label = stringResource(R.string.start_radio),
@@ -374,14 +406,6 @@ fun SongActionsMenu(
             )
         }
         WebDavUploadRow(song, palette, isOffline, onUploadToWebDav)
-        onRemoveFromHistory?.let {
-            ActionRow(
-                icon = SfIcons.History,
-                label = stringResource(R.string.remove_from_history),
-                accent = palette.accent,
-                onClick = it,
-            )
-        }
         onToggleExplicitAllowed?.let {
             ActionRow(
                 icon = if (explicitAllowed) Icons.Rounded.Block else Icons.Rounded.Explicit,
@@ -1012,6 +1036,8 @@ private fun LoadingActionRow(icon: ImageVector, label: String, palette: ArtworkP
  * The track the playlist picker is adding, drawn at its head — the same track
  * the menu it was opened from was about.
  *
+ * [title] is set when that track's artwork and artist preview an album instead.
+ *
  * [subtitleColor] is for ground other than the flat theme background, where
  * the usual dim grey may not hold.
  */
@@ -1020,6 +1046,7 @@ internal fun SheetTrackHeader(
     song: Song,
     modifier: Modifier = Modifier,
     subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    title: String? = null,
 ) {
     Row(
         modifier = modifier
@@ -1039,11 +1066,21 @@ internal fun SheetTrackHeader(
         )
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            ExplicitSongTitle(
-                song = song,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
+            if (title == null) {
+                ExplicitSongTitle(
+                    song = song,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            } else {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Text(
                 text = song.artist,
                 style = MaterialTheme.typography.bodyMedium,

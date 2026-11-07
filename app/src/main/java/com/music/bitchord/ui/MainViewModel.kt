@@ -3,6 +3,11 @@ package com.music.bitchord.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import coil3.SingletonImageLoader
+import com.music.bitchord.data.model.artworkAt
+import com.music.bitchord.data.model.ROW_ART_PX
+import com.music.bitchord.data.model.CARD_ART_PX
+import com.music.bitchord.data.model.HEADER_ART_PX
 import com.music.bitchord.R
 import com.music.bitchord.auth.AuthStore
 import com.music.bitchord.auth.SignedIn
@@ -17,6 +22,8 @@ import com.music.bitchord.data.LikeState
 import com.music.bitchord.data.YtMusicRepository
 import com.music.bitchord.data.TopPicks
 import com.music.bitchord.data.AppleArtistPhotos
+import com.music.bitchord.widget.QuickPlayStore
+import com.music.bitchord.widget.QuickPlayWidget
 import com.music.bitchord.data.model.ArtistRef
 import com.music.bitchord.data.model.TopPick
 import com.music.bitchord.data.stats.ListeningStats
@@ -68,6 +75,8 @@ import com.music.bitchord.data.model.UserPlaylist
 import com.music.bitchord.data.model.SearchHistoryEntity
 import com.music.bitchord.data.model.EntityType
 import com.music.bitchord.data.settings.SearchHistory
+import com.music.bitchord.data.settings.SongSort
+import com.music.bitchord.ui.screens.sortedForDetail
 import com.music.bitchord.download.Downloads
 import android.util.LruCache
 import kotlinx.coroutines.Dispatchers
@@ -111,6 +120,7 @@ import com.music.bitchord.data.LocalGroup
 import com.music.bitchord.data.LocalGroups
 import com.music.bitchord.data.OfflinePlaylists
 import com.music.bitchord.data.matchesSearch
+import java.util.IdentityHashMap
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -139,6 +149,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Titles already on screen, so a later page can't repeat a shelf. */
     private val homeSeenTitles = mutableSetOf<String>()
+    /** The Recently played shelf's title, once it's in: the daylist goes straight after it. */
+    private var homeRecentTitle: String? = null
+    /** How many of the library's playlists the Home row shows; the Library tab has the rest. */
+    private val HOME_PLAYLISTS_LIMIT = 12
 
     private val _homeLoadingMore = MutableStateFlow(false)
 
@@ -613,6 +627,55 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _detailStack = MutableStateFlow<List<DetailPage>>(emptyList())
     val detailStack: StateFlow<List<DetailPage>> = _detailStack.asStateFlow()
 
+    private val _selection = MutableStateFlow<SongSelection?>(null)
+    /** Songs picked on the open playlist or album page; null while not picking. */
+    val selection: StateFlow<SongSelection?> = _selection.asStateFlow()
+
+    /** Starts picking on [browseId]'s page, with [song] picked when it came from that song's menu. */
+    fun startSelection(browseId: String, song: Song? = null) {
+        _selection.value = SongSelection(browseId, setOfNotNull(song?.videoId))
+    }
+
+    fun toggleSelected(song: Song) {
+        _selection.value = _selection.value?.toggled(song)
+    }
+
+    fun selectAll(browseId: String, songs: List<Song>) {
+        _selection.value = (_selection.value ?: SongSelection(browseId)).withAll(songs)
+    }
+
+    fun clearSelection() {
+        _selection.value = null
+    }
+
+    /**
+     * Remove from Playlist for every picked song at once: one request for all
+     * of them (several edits at once, YouTube refuses some), then off the open
+     * page straight away, as [removeFromPlaylist] does for one.
+     */
+    fun removeFromPlaylist(browseId: String, songs: List<Song>, onResult: (Boolean) -> Unit = {}) {
+        val entries = songs.mapNotNull { song -> song.setVideoId?.let { it to song.videoId } }
+        if (entries.isEmpty() || !requireSignIn()) return onResult(false)
+        val removed = entries.mapTo(HashSet()) { it.first }
+        viewModelScope.launch {
+            YtMusicRepository.removeFromPlaylist(browseId.removePrefix("VL"), entries).fold(
+                onSuccess = {
+                    libraryStale = true
+                    _detailStack.value = _detailStack.value.map { page ->
+                        val current = (page.songs as? UiState.Success)?.data
+                        if (page.browseId != browseId || current == null) {
+                            page
+                        } else {
+                            page.copy(songs = UiState.Success(current.filterNot { it.setVideoId in removed }))
+                        }
+                    }
+                    onResult(true)
+                },
+                onFailure = { onResult(false) },
+            )
+        }
+    }
+
     /**
      * The app's back stack: the routes pushed over the tabs, interleaved with
      * [detailStack]. Held here so it survives a configuration change along
@@ -922,6 +985,148 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _playlistsLoading = MutableStateFlow(false)
     val playlistsLoading: StateFlow<Boolean> = _playlistsLoading.asStateFlow()
 
+    private val _coverArtUploading = MutableStateFlow(false)
+    val coverArtUploading: StateFlow<Boolean> = _coverArtUploading.asStateFlow()
+    private val _coverArtOutcome = MutableStateFlow<Result<Boolean>?>(null)
+    val coverArtOutcome: StateFlow<Result<Boolean>?> = _coverArtOutcome.asStateFlow()
+    private val coverArtGeneration = AtomicLong(0L)
+
+    fun clearCoverArtOutcome() {
+        _coverArtOutcome.value = null
+    }
+
+    /**
+     * A successful result means the mutation was accepted. Its Boolean reports
+     * whether the subsequent header refresh worked, NOT whether the upload did.
+     * Duplicate submissions are ignored synchronously; state survives UI recreation.
+     * An account/profile switch invalidates the operation, including its callback.
+     */
+    fun changePlaylistCover(
+        playlist: UserPlaylist,
+        image: ByteArray,
+        onResult: (Result<Boolean>) -> Unit,
+    ) {
+        if (_coverArtUploading.value) return
+        val identity = listenerKey()
+        if (!_signedIn.value || identity == null) {
+            val result = Result.failure<Boolean>(IllegalStateException("signed out"))
+            _coverArtOutcome.value = result
+            onResult(result)
+            return
+        }
+        if (!_coverArtUploading.compareAndSet(false, true)) return
+        val generation = coverArtGeneration.incrementAndGet()
+        _coverArtOutcome.value = null
+        fun isCurrent() = generation == coverArtGeneration.get() && identity == listenerKey()
+        viewModelScope.launch {
+            var accepted = false
+            try {
+                val result = try {
+                    if (!isCurrent()) return@launch
+                    YtMusicRepository.setPlaylistCover(playlist.playlistId, image, ::isCurrent).getOrThrow()
+                    if (!isCurrent()) return@launch
+                    accepted = true
+                    libraryStale = true
+                    // Fetch metadata only. Never replace the current songs,
+                    // duplicates, continuation, or in-flight pagination state.
+                    val thumbnail = try {
+                        YtMusicRepository.browseSongs(playlist.browseId)
+                            .getOrNull()?.header?.thumbnailUrl?.takeIf { it.isNotBlank() }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        null
+                    }
+                    if (!isCurrent()) return@launch
+                    try {
+                        evictPlaylistCover(playlist, thumbnail)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        // The unique URI revision still bypasses old entries.
+                    }
+                    if (!isCurrent()) return@launch
+                    setPlaylistCoverArtwork(playlist, thumbnail)
+                    Result.success(thumbnail != null)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // Once accepted, a refresh/cache failure must not invite the
+                    // user to retry an upload that already succeeded remotely.
+                    if (accepted) Result.success(false) else Result.failure<Boolean>(e)
+                }
+                if (!isCurrent()) return@launch
+                _coverArtOutcome.value = result
+                _coverArtUploading.value = false
+                onResult(result)
+            } finally {
+                if (isCurrent()) _coverArtUploading.value = false
+            }
+        }
+    }
+
+    private suspend fun evictPlaylistCover(playlist: UserPlaylist, thumbnail: String?) {
+        val urls = buildSet {
+            fun include(url: String?) {
+                if (url.isNullOrBlank()) return
+                // Include both the last displayed revision and the actual URL.
+                for (source in listOf(url, url.substringBefore('#'))) {
+                    add(source)
+                    add(source.artworkAt(ROW_ART_PX)!!)
+                    add(source.artworkAt(CARD_ART_PX)!!)
+                    add(source.artworkAt(HEADER_ART_PX)!!)
+                }
+            }
+            include(playlist.thumbnailUrl)
+            include(thumbnail)
+            (_home.value as? UiState.Success)?.data
+                ?.flatMap { it.items }?.filter { it.browseId == playlist.browseId }
+                ?.forEach { include(it.thumbnailUrl) }
+            _playlists.value.filter { it.playlistId == playlist.playlistId }.forEach { include(it.thumbnailUrl) }
+            _detailStack.value.filter { it.browseId == playlist.browseId }.forEach { include(it.thumbnailUrl) }
+            (_library.value as? UiState.Success)?.data?.shelves
+                ?.flatMap { it.items }?.filter { it.browseId == playlist.browseId }
+                ?.forEach { include(it.thumbnailUrl) }
+        }
+        withContext(Dispatchers.IO) {
+            val loader = SingletonImageLoader.get(getApplication<Application>())
+            loader.memoryCache?.let { cache ->
+                // Match the URL, not Key extras: decoded sizes share this URL
+                // but have distinct keys, all of which must be removed.
+                cache.keys.filter { it.key in urls }.forEach { cache.remove(it) }
+            }
+            urls.forEach { loader.diskCache?.remove(it) }
+        }
+    }
+
+    private fun setPlaylistCoverArtwork(playlist: UserPlaylist, thumbnail: String?) {
+        val revision = java.util.UUID.randomUUID().toString()
+        fun revised(previous: String?): String? = (thumbnail ?: previous)
+            ?.takeIf { it.isNotBlank() }?.substringBefore('#')
+            ?.let { "$it#bitchord-cover=$revision" }
+        // Coil keys the full URI, while HTTP never sends its fragment. Changing
+        // the model restarts an already displayed painter even if YouTube reuses
+        // the URL. artworkAt preserves the fragment for row/card/header variants.
+        _detailStack.value = _detailStack.value.map {
+            if (it.browseId == playlist.browseId) it.copy(thumbnailUrl = revised(it.thumbnailUrl)) else it
+        }
+        _playlists.value = _playlists.value.map {
+            if (it.playlistId == playlist.playlistId) it.copy(thumbnailUrl = revised(it.thumbnailUrl)) else it
+        }
+        (_home.value as? UiState.Success)?.let { home ->
+            _home.value = UiState.Success(home.data.map { shelf ->
+                shelf.copy(items = shelf.items.map {
+                    if (it.browseId == playlist.browseId) it.copy(thumbnailUrl = revised(it.thumbnailUrl)) else it
+                })
+            })
+        }
+        editPlaylistShelf { items ->
+            items.map {
+                if (it.browseId == playlist.browseId) it.copy(thumbnailUrl = revised(it.thumbnailUrl)) else it
+            }
+        }
+    }
+
     /** Re-fetched rather than cached for the session: playlists are edited here. */
     fun loadPlaylists() {
         if (!_signedIn.value || _playlistsLoading.value) return
@@ -1007,6 +1212,42 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * with a rate limit. The duplicate check is per playlist, so a track
      * already in one of them is skipped there and still added to the rest.
      */
+    /**
+     * Add to Playlist for several picked songs: per playlist, one request with
+     * every song it doesn't hold yet. Playlists in turn, not at once, for the
+     * rate limit [addToPlaylists] explains. [onResult] counts playlists.
+     */
+    fun addSongsToPlaylists(
+        playlists: List<UserPlaylist>,
+        songs: List<Song>,
+        onResult: (added: Int, alreadyThere: Int, failed: Int) -> Unit = { _, _, _ -> },
+    ) {
+        if (!requireSignIn() || playlists.isEmpty() || songs.isEmpty()) return
+        viewModelScope.launch {
+            val outcomes = playlists.map { playlist ->
+                val openSongs = (_detailStack.value.firstOrNull { it.browseId == playlist.browseId }
+                    ?.songs as? UiState.Success)?.data
+                val known = (openSongs ?: YtMusicRepository.allSongs(playlist.browseId).getOrNull())
+                    .orEmpty().mapTo(HashSet()) { it.videoId }
+                val fresh = songs.filter { it.videoId !in known }.distinctBy { it.videoId }
+                if (fresh.isEmpty()) return@map AddOutcome.ALREADY_THERE
+                YtMusicRepository.addToPlaylist(playlist.playlistId, fresh.map { it.videoId }).fold(
+                    onSuccess = { added ->
+                        libraryStale = true
+                        fresh.forEach { appendToOpenPlaylist(playlist.browseId, it, added[it.videoId]) }
+                        AddOutcome.ADDED
+                    },
+                    onFailure = { AddOutcome.FAILED },
+                )
+            }
+            onResult(
+                outcomes.count { it == AddOutcome.ADDED },
+                outcomes.count { it == AddOutcome.ALREADY_THERE },
+                outcomes.count { it == AddOutcome.FAILED },
+            )
+        }
+    }
+
     fun addToPlaylists(
         playlists: List<UserPlaylist>,
         song: Song,
@@ -1023,6 +1264,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Adds every distinct song in [songs] to each selected playlist, serially. */
     fun addSongsToPlaylists(
         playlists: List<UserPlaylist>,
         songs: List<Song>,
@@ -1030,36 +1272,41 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     ) {
         if (playlists.isEmpty() || songs.isEmpty()) return
         viewModelScope.launch {
-            val videoIds = songs.map { it.videoId }
             var addedCount = 0
+            var alreadyThereCount = 0
             var failedCount = 0
+            val uniqueSongs = songs.distinctBy { it.videoId }
             playlists.forEach { playlist ->
                 val local = com.music.bitchord.data.spotify.LocalPlaylistStore.getPlaylist(playlist.playlistId)
                 if (local != null) {
-                    val newSongs = songs.filterNot { s -> local.songs.any { it.videoId == s.videoId } }
+                    val newSongs = uniqueSongs.filterNot { s -> local.songs.any { it.videoId == s.videoId } }
+                    alreadyThereCount += uniqueSongs.size - newSongs.size
                     val merged = local.songs + newSongs
                     com.music.bitchord.data.spotify.LocalPlaylistStore.deletePlaylist(local.id)
                     com.music.bitchord.data.spotify.LocalPlaylistStore.savePlaylist(local.title, merged)
-                    addedCount++
+                    addedCount += newSongs.size
                 } else if (authStore.isSignedIn) {
-                    var allSuccess = true
-                    videoIds.chunked(50).forEach { chunk ->
-                        YtMusicRepository.addToPlaylist(playlist.playlistId, chunk).fold(
-                            onSuccess = { addedMap ->
+                    val openSongs = (_detailStack.value.firstOrNull { it.browseId == playlist.browseId }
+                        ?.songs as? UiState.Success)?.data
+                    val known = openSongs ?: YtMusicRepository.allSongs(playlist.browseId).getOrNull()
+                    val knownIds = known?.mapTo(HashSet()) { it.videoId }
+                    val missing = uniqueSongs.filterNot { it.videoId in knownIds.orEmpty() }
+                    alreadyThereCount += uniqueSongs.size - missing.size
+                    missing.chunked(50).forEach { chunk ->
+                        YtMusicRepository.addToPlaylist(playlist.playlistId, chunk.map { it.videoId }).fold(
+                            onSuccess = { returned ->
                                 libraryStale = true
-                                songs.forEach { s ->
-                                    appendToOpenPlaylist(playlist.browseId, s, addedMap[s.videoId])
+                                addedCount += chunk.size
+                                chunk.forEach { song ->
+                                    appendToOpenPlaylist(playlist.browseId, song, returned[song.videoId])
                                 }
                             },
-                            onFailure = {
-                                allSuccess = false
-                            },
+                            onFailure = { failedCount += chunk.size },
                         )
                     }
-                    if (allSuccess) addedCount++ else failedCount++
                 }
             }
-            onResult(addedCount, 0, failedCount)
+            onResult(addedCount, alreadyThereCount, failedCount)
         }
     }
 
@@ -1090,14 +1337,21 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * track's menu — one request, so it can't half-succeed into an empty
      * playlist the user has to add to again.
      */
-    fun createPlaylist(title: String, privacy: PlaylistPrivacy, song: Song? = null) {
+    fun createPlaylist(
+        title: String,
+        privacy: PlaylistPrivacy,
+        song: Song? = null,
+        /** Several picked songs to seed it with instead of one. */
+        songs: List<Song> = listOfNotNull(song),
+    ) {
         if (!requireSignIn()) return
         val name = title.trim().ifBlank { text(R.string.new_playlist) }
+        val first = songs.firstOrNull()
         viewModelScope.launch {
             YtMusicRepository.createPlaylist(
                 title = name,
                 privacy = privacy,
-                videoIds = listOfNotNull(song?.videoId),
+                videoIds = songs.map { it.videoId }.distinct(),
             ).fold(
                 onSuccess = { playlistId ->
                     // Nothing to look up for a playlist this account has just
@@ -1113,8 +1367,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         // surfaces that draw it leave a blank one out, so an
                         // unseeded playlist gets a card of just its name rather
                         // than a guess at what the feed will call it.
-                        subtitle = if (song != null) "1 song" else "",
-                        thumbnailUrl = song?.thumbnailUrl,
+                        subtitle = when (songs.size) {
+                            0 -> ""
+                            1 -> "1 song"
+                            else -> "${songs.size} songs"
+                        },
+                        thumbnailUrl = first?.thumbnailUrl,
                     )
                     // Drawn from what was just sent rather than waited for: the
                     // library feed does not have this playlist yet, and the
@@ -1151,24 +1409,22 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val name = title.trim().ifBlank { text(R.string.new_playlist) }
         viewModelScope.launch {
             if (authStore.isSignedIn) {
-                val initialBatch = videoIds.take(50)
+                val batches = playlistImportBatches(videoIds)
                 YtMusicRepository.createPlaylist(
                     title = name,
                     privacy = privacy,
-                    videoIds = initialBatch,
+                    videoIds = batches.firstOrNull().orEmpty(),
                 ).fold(
                     onSuccess = { playlistId ->
-                        if (videoIds.size > 50) {
-                            videoIds.drop(50).chunked(50).forEach { chunk ->
-                                YtMusicRepository.addToPlaylist(playlistId, chunk)
-                            }
+                        batches.drop(1).forEach { chunk ->
+                            YtMusicRepository.addToPlaylist(playlistId, chunk)
                         }
                         setPlaylistOwned("VL$playlistId", true)
                         libraryStale = true
                         val created = UserPlaylist(
                             playlistId = playlistId,
                             title = name,
-                            subtitle = "${videoIds.size} songs",
+                            subtitle = "${batches.sumOf { it.size }} songs",
                             thumbnailUrl = null,
                         )
                         _playlists.value = listOf(created) +
@@ -1787,6 +2043,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         }
                 }
             }
+            launch { loadDaylistShelf(identity) { isCurrentHomeLoad(identity, generation) } }
+            launch { loadPlaylistsShelf(identity) { isCurrentHomeLoad(identity, generation) } }
             YtMusicRepository.HOME_SUPPLEMENT_BROWSE_IDS.forEach { browseId ->
                 launch {
                     try {
@@ -1904,6 +2162,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun publishHomeShelves(shelves: List<HomeShelf>, prepend: Boolean = false) {
         val existing = (_home.value as? UiState.Success)?.data.orEmpty()
         if (prepend) {
+            homeRecentTitle = shelves.firstOrNull()?.title
             // YouTube's core home can also contain a stale "Recently played"
             // shelf. The dedicated history endpoint wins and replaces it.
             val replacing = shelves.map { it.title.lowercase(Locale.ROOT) }.toSet()
@@ -1916,6 +2175,22 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val added = shelves.withoutRepeatsOf(existing)
             .filter { homeSeenTitles.add(it.title.lowercase(Locale.ROOT)) }
         if (added.isNotEmpty()) _home.value = UiState.Success(existing + added)
+
+        val quickCandidates = (shelves + existing).flatMap { it.items }
+            .mapNotNull { item ->
+                item.videoId?.let { id ->
+                    Song(
+                        videoId = id,
+                        title = item.title,
+                        artist = com.music.bitchord.data.innertube.InnertubeParser.artistFromSubtitle(item.subtitle),
+                        thumbnailUrl = item.thumbnailUrl,
+                    )
+                }
+            }
+        if (quickCandidates.isNotEmpty()) {
+            QuickPlayStore.saveSongs(getApplication(), quickCandidates)
+            QuickPlayWidget.refresh(getApplication())
+        }
     }
 
     /** Refreshes the core feed without blanking the current Play page first. */
@@ -1935,6 +2210,78 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         recent?.await()?.onSuccess { shelf ->
             if (identity == listenerKey()) shelf?.let { publishHomeShelves(listOf(it), prepend = true) }
         }
+        loadDaylistShelf(identity) { identity == listenerKey() }
+        loadPlaylistsShelf(identity) { identity == listenerKey() }
+    }
+
+    /**
+     * Spotify's daylist, as a Home row of its own right after Recently played,
+     * once Spotify is connected and has made one for this listener. Opening it
+     * is an ordinary Spotify playlist page. Quiet when Spotify isn't connected,
+     * hasn't made a daylist yet, or can't be reached.
+     */
+    private suspend fun loadDaylistShelf(identity: String?, stillCurrent: () -> Boolean) {
+        if (AppSettings.spotifySpdcToken.value.isBlank()) return
+        val daylist = runCatching { SpotifyLibrary.daylist() }.getOrNull() ?: return
+        if (!stillCurrent() || identity != listenerKey()) return
+        val shelf = HomeShelf(
+            title = text(R.string.home_daylist),
+            items = listOf(
+                ShelfItem(
+                    title = daylist.name,
+                    subtitle = text(R.string.spotify),
+                    thumbnailUrl = daylist.imageUrl,
+                    videoId = null,
+                    browseId = SPOTIFY_PAGE_PREFIX + daylist.id,
+                ),
+            ),
+            leading = true,
+        )
+        placeOwnShelf(shelf)
+    }
+
+    /**
+     * The library's playlists as a Home row, after Recently played and the
+     * daylist, as Spotify's Home leads with yours: signed in only. Opening one
+     * is its ordinary page.
+     */
+    private suspend fun loadPlaylistsShelf(identity: String?, stillCurrent: () -> Boolean) {
+        if (!_signedIn.value) return
+        val playlists = YtMusicRepository.userPlaylists().getOrNull()?.takeIf { it.isNotEmpty() } ?: return
+        if (!stillCurrent() || identity != listenerKey()) return
+        _playlists.value = playlists
+        placeOwnShelf(
+            HomeShelf(
+                title = text(R.string.home_your_playlists),
+                items = playlists.take(HOME_PLAYLISTS_LIMIT).map { playlist ->
+                    ShelfItem(
+                        title = playlist.title,
+                        subtitle = playlist.subtitle,
+                        thumbnailUrl = playlist.thumbnailUrl,
+                        videoId = null,
+                        browseId = playlist.browseId,
+                    )
+                },
+                leading = true,
+                showAll = true,
+            ),
+        )
+    }
+
+    /**
+     * Puts one of the rows this app adds to Home (the daylist, your
+     * playlists) in its place: after Recently played and any of these that
+     * come before it, whichever request answered first. Replaces an older
+     * copy of itself.
+     */
+    private fun placeOwnShelf(shelf: HomeShelf) {
+        val leading = listOf(homeRecentTitle, text(R.string.home_daylist), text(R.string.home_your_playlists))
+        val rank = leading.indexOf(shelf.title)
+        val existing = (_home.value as? UiState.Success)?.data.orEmpty()
+            .filterNot { it.title == shelf.title }
+        // After every leading row that ranks before this one and is already there.
+        val after = existing.indexOfLast { it.title in leading.take(rank) } + 1
+        _home.value = UiState.Success(existing.take(after) + shelf + existing.drop(after))
     }
 
     /**
@@ -2978,8 +3325,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 return@launch
             }
             val gate = Semaphore(SPOTIFY_MATCH_PARALLELISM)
+            // Matched in the order the page shows them, so the rows on screen
+            // are playable first. In playlist order, "Recently added" put the
+            // last tracks on top and left them for last (#879).
+            val shown = (_detailStack.value.firstOrNull { it.browseId == browseId }?.songs as? UiState.Success)?.data
+            val order = shown?.takeIf { it.size == tracks.size }
+                ?.let { matchOrder(it, AppSettings.detailSongSorts.value[browseId] ?: SongSort.DEFAULT) }
+                ?: tracks.indices.toList()
             coroutineScope {
-                tracks.forEachIndexed { index, track ->
+                order.forEach { index ->
+                    val track = tracks[index]
                     launch {
                         gate.withPermit {
                             if (!open()) return@withPermit
@@ -3597,6 +3952,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun clearListenerState(restoreCached: Boolean = false) {
+        // A switch away and back must not resurrect an older upload's result.
+        coverArtGeneration.incrementAndGet()
+        _coverArtUploading.value = false
+        _coverArtOutcome.value = null
         _account.value = null
         likedSyncJob?.cancel()
         LikeState.clear()
@@ -3644,6 +4003,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             removeAccount(current)
             return
         }
+        coverArtGeneration.incrementAndGet()
+        _coverArtUploading.value = false
+        _coverArtOutcome.value = null
         authStore.signOut()
         Innertube.cookie = null
         // The mirror image: verdicts reached with a session in hand say nothing
@@ -3706,3 +4068,26 @@ internal fun lyricsLookupKey(
     order: List<LyricsSource>,
     prioritizeSyllableSync: Boolean,
 ): List<Any> = listOf(videoId, sources, order, prioritizeSyllableSync)
+
+/**
+ * Positions in [rows] in the order the page lists them under [sort]: the
+ * order a Spotify page matches its tracks in. By identity, so two copies of
+ * the same track keep their own places.
+ */
+internal fun matchOrder(rows: List<Song>, sort: SongSort): List<Int> {
+    val at = IdentityHashMap<Song, Int>().apply { rows.forEachIndexed { i, song -> put(song, i) } }
+    return rows.sortedForDetail(sort).map { at.getValue(it) }
+}
+
+/**
+ * The requests a playlist import is sent in: the first seeds the new playlist,
+ * the rest are added to it.
+ *
+ * Each video once. YouTube refuses an add that holds a video already in the
+ * playlist — the whole request, not the one row — and an import matches two
+ * Spotify tracks to the same video often enough. Sent as they came, every
+ * batch of 50 holding such a pair was dropped without a word, which is how a
+ * 270-track import came out at 100 (#1117).
+ */
+internal fun playlistImportBatches(videoIds: List<String>): List<List<String>> =
+    videoIds.distinct().chunked(50)
