@@ -5,9 +5,9 @@
 
 <img src="Logo.png" alt="BitChord app icon" width="200" />
 
-# BitChord (PC, Desktop & Mobile Edition)
+# BitChord PlusPC (`v1.9.2`)
 
-### Aesthetic YouTube Music Client for Windows, macOS, Linux, Android, Android TV & Wear OS
+### Aesthetic YouTube Music Client for Windows, macOS, Linux, Android, Android Auto, Android TV & Wear OS
 
 <br/>
 
@@ -18,7 +18,7 @@
 
 <br/>
 
-[**Download**](#download) · [**What's Extra**](#whats-extra) · [**Features**](#features) · [**Desktop**](#desktop) · [**Contributing**](#contributing) · [**Credits**](#credits) · [**Disclaimer**](#disclaimer)
+[**Download**](#download) · [**What's New in v1.9.2**](#whats-extra) · [**Features**](#features) · [**Desktop**](#desktop) · [**Contributing**](#contributing) · [**Credits**](#credits) · [**Disclaimer**](#disclaimer)
 
 <br/>
 
@@ -62,7 +62,7 @@
 
 <div align="center">
 
-<h1><a id="download"></a>Download</h1>
+<h1><a id="download"></a>Download (`v1.9.2`)</h1>
 
 <p>
   <a href="https://github.com/Inventor365/BitChord-PlusPC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/android/cozy.svg" alt="Download for Android" height="56"/></a>
@@ -76,44 +76,38 @@
 
 </div>
 
-| Platform | Architectures | Packages on [Releases](https://github.com/Inventor365/BitChord-PlusPC/releases/latest) |
+| Platform | Architectures | Packages on [Releases (`v1.9.2`)](https://github.com/Inventor365/BitChord-PlusPC/releases/latest) |
 | :--- | :--- | :--- |
-| **Android (Phone & Tablet)** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChord-v1.9.apk`, `BitChord-v1.9_<abi>.apk` |
-| **Android TV / Fire TV** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChordTV-v1.9.apk`, `BitChordTV-v1.9_<abi>.apk` |
-| **Wear OS** | Universal | `BitChordWear-v1.9.apk` (also embedded in the phone APK) |
-| **Windows 10 / 11** | `x64` | `BitChord-1.9-windows-x64-setup.exe`, `.msi`, `-portable.zip` |
-| **macOS 12+** | Apple Silicon (`arm64`) & Intel (`x64`) | `BitChord-1.9-macos-arm64.dmg` / `.pkg` / `.zip`, `macos-x64.dmg` / `.pkg` / `.zip` |
-| **Linux** | `x86_64` / `amd64` | `BitChord-1.9-linux-x86_64.AppImage`, `-linux-amd64.deb`, `-linux-x86_64.rpm` |
+| **Android (Phone, Tablet & Auto)** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChord-v1.9.2.apk`, `BitChord-v1.9.2_<abi>.apk` |
+| **Android TV / Fire TV** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChordTV-v1.9.2.apk`, `BitChordTV-v1.9.2_<abi>.apk` |
+| **Wear OS** | Universal | `BitChordWear-v1.9.2.apk` (also embedded in the phone APK) |
+| **Windows 10 / 11** | `x64` | `BitChord-1.9.2-windows-x64-setup.exe`, `.msi`, `-portable.zip` |
+| **macOS 12+** | Apple Silicon (`arm64`) & Intel (`x64`) | `BitChord-1.9.2-macos-arm64.dmg` / `.pkg` / `.zip`, `macos-x64.dmg` / `.pkg` / `.zip` |
+| **Linux** | `x86_64` / `amd64` | `BitChord-1.9.2-linux-x86_64.AppImage`, `-linux-amd64.deb`, `-linux-x86_64.rpm` |
 
 For detailed desktop build and packaging instructions, see [DESKTOP.md](DESKTOP.md).
 
 ---
 
-<h1><a id="whats-extra"></a>What's Extra Over Official</h1>
+<h1><a id="whats-extra"></a>What's Extra Over Official (`v1.9.2`)</h1>
 
-This repository tracks [`kushagrasinghx/BitChord`](https://github.com/kushagrasinghx/BitChord) (**`v1.9`** + `web-player`) while restoring the native desktop client and integrating high-value community pull requests ahead of upstream:
+This repository syncs [`kushagrasinghx/BitChord`](https://github.com/kushagrasinghx/BitChord) (**`v1.9.1`** + `web-player`) while restoring and hardening the native **Windows, macOS, and Linux** desktop client, integrating **80+ verified community pull requests** ahead of upstream, and shipping a dedicated OTA update channel (`Inventor365/Bitchord-OTA` & `Inventor365/BitChord-PlusPC`):
 
-- **Native Desktop Client Restored (`:desktopApp` & `:desktopUi`)**:
-  - Native packages for **Windows (`x64` `.exe`, `.msi`, `portable.zip`)**, **macOS (`arm64` & `x64` `.dmg`, `.pkg`, `.zip`)**, and **Linux (`x86_64` `.AppImage`, `.deb`, `.rpm`)**.
+- **Native Desktop Client Restored & Hardened (`:desktopApp` & `:desktopUi`)**:
+  - Verified native packages for **Windows (`x64` `.exe`, `.msi`, `-portable.zip`)**, **macOS (`arm64` & `x64` `.dmg`, `.pkg`, `.zip`)**, and **Linux (`x86_64` `.AppImage`, `.deb`, `.rpm`)** with full UDIF `koly`/`blkx` CRC-32 validation, XAR raw-`zlib` (`0x78 0xda`) streams, `Bom` verification, and ad-hoc Mach-O `LC_CODE_SIGNATURE` + `_CodeSignature/CodeResources` SHA-256 seals.
   - Native audio output (`WASAPI`, `CoreAudio`, `ALSA`/`PulseAudio`/`PipeWire`), 10-band parametric EQ, system media integration (`SMTC`, `MPRIS2`, macOS Now Playing), Discord Rich Presence IPC, and local Beat This! (`final0`) ONNX Automix analysis.
   - **Easy Browser Sign-In Link & Universal Session Paste**: Copyable & one-click browser sign-in links for **YouTube Music (Google)** and **Spotify**, one-click browser profile import across Windows, macOS (Keychain), and Linux, plus a **Universal Smart Paste / Paste from Clipboard** flow that accepts DevTools Cookies table rows (`Ctrl+A`, `Ctrl+C`), *Copy as cURL* (Bash/CMD), *Copy as PowerShell*, *Copy as fetch*, Cookie-Editor JSON, Netscape `cookies.txt`, or raw cookie headers.
-- **Bit-Perfect Output Modes & Low-Spec DAC Conversion (`v1.9`)**: Android 14 bit-perfect USB mixer bypass, built-in DAP AAudio exclusive mode, custom direct USB Audio Class 1.0/2.0 hardware driver with hardware DAC volume HUD, and automatic format conversion for limited-rate DACs.
-- **Full Podcast Playback & Keep Playlists Updated (`v1.9`)**: Browse and stream full YouTube Music podcast episode lists, decode ALAC natively via FFmpeg, and automatically sync new songs in downloaded playlists (`PlaylistSync`).
-- **Interactive Quality Badge & Shared Call Hardening (`#1200`)**: Tap the lossless badge on the player to toggle the active source name, and drop failed addon calls even when cancelled.
-- **External Music Links (`#1145`)**: Open Spotify, Apple Music, Deezer, and SoundCloud links directly inside BitChord, matched automatically on YouTube Music.
-- **Save Queue & Radio as Playlist (`#1174`)**: Save your current queue or active radio session as a new playlist in one tap.
-- **Samsung Galaxy Buds Control Panel (`#983`)**: Control ANC, Ambient Sound, 360 Audio, equalizer presets, and view earbud/case battery levels directly from the player's audio output sheet.
-- **Chromecast Queue Window & Downloaded Track Casting (`#1186`)**: Casts bounded queue windows, resolves downloaded tracks to their remote stream URLs for Chromecast, and keeps cast session state accurate.
-- **Android TV Low-Memory Performance Mode & AMOLED Player (`#1044` + `v1.9`)**: Adaptive artwork sizing, memory budgets, and AMOLED Now Playing backdrop option for Android TV and Fire TV devices.
-- **Privacy, Matching & Customization Enhancements**:
-  - **Turkish Character Normalization for Song Matching (`#1223`)** (`ş→s`, `ğ→g`, `ö→o`, `ü→u`, `ç→c`, `ı→i`).
-  - **Block Explicit Songs (`#801`)** with queue/AutoPlay filtering and allow-once prompts.
-  - **Fully Disable Song Caching (`#985`)** (`0 MB` option + custom step slider).
-  - **Auto-Download Playlist Songs (`#935`)** when adding tracks to downloaded playlists.
-  - **Icon-Only Bottom Navigation Bar (`#907`)** toggle in Settings.
-  - **Fully Anonymous Search & Pagination (`#939`)** so searches never pollute YouTube Music history.
-  - **Per-Track Local Cover Art (`#1188`)** and **Embedded ID3 Lyrics (`#1119`)** for local MP3 libraries.
-  - **Complete Portuguese (`pt-BR`, `#1204`) & Turkish (`tr`, `#1211`) Localizations** across mobile, shared UI, and Wear OS.
+- **Android Auto, 3D Album Cover Tilt & Dynamic Cover App Icon (`v1.9.1`)**:
+  - Full **Android Auto** support with Quick Picks, Listen Again, Favorites, Offline Library, Playlists, Albums, Artists, voice search, and full Automix transitions in the car.
+  - **3D Album Cover Tilt** driven by the device gyroscope, **Dynamic App Icon** that adopts the currently playing song's cover art on the home screen, and **Audio Output Switcher** directly on the Android 13+ media notification.
+  - **Playlist Search & Sort** (Recently Added, Title, Artist, Album, Duration, Custom), **Local Albums / Artists / Artist pages**, **Multi-Select in Local Library & Downloads**, and **Swipe-to-Reply** in Listen Together chat.
+- **58+ Newly Integrated Community PRs (`v1.9.2`)**:
+  - **Parametric EQ Import/Export & Headphone Presets (`#1391`)**, **Separate Pitch & EQ Controls (`#1426`)**, and **Cast Audio Effects Notice (`#1392`, `#1400`)**.
+  - **Auto-Pause on Zero Volume (`#1396`)**, **Bluetooth Reconnect Auto-Resume (`#1395`)**, and **Pocket Hardware Volume Lock (`#1369`)**.
+  - **Remember Song/Video Choice (`#1437`)**, **Cast Queue Sync & Artwork (`#1510`)**, and **Resilient Queue Auto-Skip (`#1446`, `#1484`, `#1487`, `#1489`, `#1491`)**.
+  - **12 Lyrics Providers (`lrc.red`, `LyricsPlus` `#1240`, `SimpMusic` `#1250`, `BiniLyrics`, `BetterLyrics`, `PaxSenix`, `Unison`, `Megalobiz`, `KuGou`, `LRCLIB`, `Musixmatch`, `Genius`)** with **Fullscreen Translation/Romanization (`#1308`–`#1311`)**, **Word-Tap Seek (`#1447`–`#1449`)**, and **18-Script Romanization** (Cyrillic, Devanagari, Bengali, Gurmukhi, Tamil, Telugu, Kannada, Malayalam, Gujarati, Odia, Sinhala, Thai, Lao, Khmer, Myanmar, Japanese, Korean, Chinese).
+  - **M3U / JSON Playlist Export & Import (`#1386`, `#1389`)**, **Duplicate Track Detection (`#1399`)**, **Custom Playlist Cover Art (`#1436`, `#1438`)**, **Smart Offline Mode (`#1359`, `#1361`)**, and **Local Folder Tree & Tag Editing (`#1505`–`#1515`)**.
+  - **Material You Dynamic Accent (`#1478`, `#1480`, `#1482`)**, **Resizable Glance & Turntable Widgets (`#1523`, `#1525`)**, **Android TV D-Pad & Screensaver Polish (`#1554`, `#1558`, `#1560`)**, **Wear OS Standalone Tile & Rotary Crown Volume (`#1570`, `#1573`)**, and **19 Languages** (including Arabic `ar` & Vietnamese `vi`).
 
 ---
 
@@ -126,39 +120,39 @@ This repository tracks [`kushagrasinghx/BitChord`](https://github.com/kushagrasi
     <td width="50%" valign="top">
 
 #### Playback & Audio Engine
-- **Search, browse and play** anything available on YouTube Music — songs, albums, playlists, artists, and full **music videos up to 4K**.
-- **Hi-Res lossless audio** — FLAC/ALAC/Dolby Atmos from configured module/addon/Debrid sources, with waveform-aligned handover from YouTube Music.
+- **Search, browse and play** anything available on YouTube Music — songs, albums, playlists, podcasts, artists, and full **music videos up to 4K**.
+- **Hi-Res lossless & Bit-Perfect audio** — FLAC/ALAC/Dolby Atmos from configured module/addon/Debrid sources, with Android 14 USB mixer bypass, AAudio exclusive DAP mode, and custom USB Audio Class 1.0/2.0 driver.
 - **Gapless playback with true crossfade**, adjustable 0–12s.
-- **Automix & Loop Mix** — Beat-matched, key-aware, and vocal-aware DJ transitions powered by Beat This! (`final0`) and Signalsmith time-stretching, with an interactive Mix View popup.
-- **Offline downloads & Offline Player** — Save tracks with embedded metadata/lyrics, assemble DASH/HLS manifests into `.flac`, and browse local folders and device playlists offline.
+- **Automix & Loop Mix** — Beat-matched, key-aware, and vocal-aware DJ transitions powered by Beat This! (`final0`) and Signalsmith time-stretching, with an interactive Mix View popup and Android Auto support.
+- **Offline downloads & Offline Player** — Save tracks with embedded metadata/lyrics, assemble DASH/HLS manifests into `.flac`, sync downloaded playlists in the background, and browse local folders, albums, and artists offline.
 - **Open links from other apps** — Spotify, Apple Music, Deezer and SoundCloud track, album and playlist links play here, matched on YouTube Music.
-- **Save queue & radio as playlist** — Turn any queue or radio station into a saved playlist.
+- **Save queue & radio as playlist** — Turn any queue or radio station into a saved playlist, or export/import playlists as `.m3u` / `.json`.
 
 #### Connectivity & Accounts
 - **Sign in with your Google account** (including brand channels) for personalized content and library sync.
-- **Listen Together** — Synchronized listening parties with host controls, QR/link invites, and live activity feed.
+- **Android Auto** — Browse and play your library, playlists, and Automix queues directly from your car's head unit.
+- **Listen Together** — Synchronized listening parties with host controls, QR/link invites, swipe-to-reply chat, and live activity feed.
 - **Spotify integration** — Connect your account to play and import your playlists and Liked Songs.
 - **Discord Rich Presence** — Live track, artist, album art, audio quality badge, and seek-accurate progress on Android, Desktop, and Web.
 - **Scrobbling** to Last.fm and ListenBrainz.
-- **Pluggable sources & Debrid** — Add, edit, test, and prioritize module/addon sources plus TorBox Debrid cloud caching.
 
     </td>
     <td width="50%" valign="top">
 
 #### Experience & Design
-- **Liquid Glass UI** — Apple-inspired Liquid Glass bars with edge refraction, adaptive glyph contrast, progressive status-bar blur, and squircle segmented tabs.
+- **Liquid Glass UI** — Apple-inspired Liquid Glass bars with edge refraction, adaptive glyph contrast, progressive status-bar blur, 3D gyroscope cover tilt, and squircle segmented tabs.
 - **Animated album canvas** — 3:4 motion artwork on mobile and square motion sleeves on desktop/landscape.
-- **Apple-like word-synced lyrics** — Syllable/word-level sweep, duet alignment, live translation, Romanization, and Vazirmatn Persian font support. Credit to [binimum](https://github.com/binimum/am-lyrics).
+- **Apple-like word-synced lyrics** — Syllable/word-level sweep, duet alignment, live translation, 18-script Romanization, and Vazirmatn Persian font support. Credit to [binimum](https://github.com/binimum/am-lyrics).
 - **12 Lyrics providers** — [lrc.red](https://lrc.red), [BiniLyrics](https://github.com/binimum), [BetterLyrics](https://github.com/better-lyrics/better-lyrics), [PaxSenix](https://lyrics.paxsenix.org), [LyricsPlus](https://github.com/ibratabian17/YouLyPlus), [SimpMusic](https://github.com/maxrave-dev/SimpMusic), [Unison](https://unison.boidu.dev), [Megalobiz](https://www.megalobiz.com), [KuGou](https://www.kugou.com), [LRCLIB](https://lrclib.net), [Musixmatch](https://www.musixmatch.com), and [Genius](https://genius.com), plus embedded ID3/FLAC tags.
-- **Dynamic artwork-driven theming** — Real-time mesh gradient backdrops extracted from cover art.
-- **17 Languages** — English, German, Spanish, French, Hebrew, Hindi, Indonesian, Italian, Japanese, Korean, Polish, Portuguese, Russian, Thai, Turkish, Simplified Chinese, and Traditional Chinese.
+- **Dynamic artwork-driven theming** — Real-time mesh gradient backdrops extracted from cover art, optional Material You accent, and Dynamic Now Playing app icon.
+- **19 Languages** — Arabic, Vietnamese, English, German, Spanish, French, Hebrew, Hindi, Indonesian, Italian, Japanese, Korean, Polish, Portuguese, Russian, Thai, Turkish, Simplified Chinese, and Traditional Chinese.
 
 #### Controls, Hardware & Tweaks
-- **Galaxy Buds & Hi-Res Bluetooth** — Built-in Galaxy Buds noise/EQ/battery panel, 24-bit float Bluetooth preservation, and USB DAC bit-perfect mode.
+- **Galaxy Buds & Hi-Res Bluetooth** — Built-in Galaxy Buds noise/EQ/battery panel, 24-bit float Bluetooth preservation, Bluetooth reconnect auto-resume, and USB DAC bit-perfect mode.
 - **Per-network audio quality** — Separate quality ceilings for Wi-Fi and mobile data, plus Direct Source Stream mode.
-- **Playback speed & pitch control** (0.5×–2.0×) and **skip silence**.
+- **Playback speed & pitch control** (0.5×–2.0×), **skip silence**, **zero-volume auto-pause**, and **pocket volume lock**.
 - **Custom sleep timer** — 5 minutes to 12 hours, or "stop after this track".
-- **Equalizer & Limiter** — System & built-in multiband EQ with peak limiting.
+- **Parametric Equalizer & Limiter** — System & built-in multiband/parametric EQ with preset import/export and peak limiting.
 - **Stats for nerds** — Live codec, bit depth, sample rate, source name, and waveform alignment offset on the player.
 
     </td>
@@ -187,9 +181,9 @@ We welcome contributions to BitChord! Please review our [Contributing Guide](CON
 
 </div>
 
-- **Original Creator & Upstream Project**: **[Kushagra Singh (`@kushagrasinghx`)](https://github.com/kushagrasinghx)** and the official **[kushagrasinghx/BitChord](https://github.com/kushagrasinghx/BitChord)** project for creating BitChord, its Apple Music-inspired Liquid Glass design system, Automix DSP engine, and mobile/TV/Wear OS foundations.
-- **Desktop Restoration & Community Integration**: Maintained by **[`@Inventor365`](https://github.com/Inventor365)** — restoring and maintaining the native Windows, macOS, and Linux desktop client (`:desktopApp` & `:desktopUi`) alongside curated upstream pull requests.
-- **Lyrics & Visual Inspiration**: **[binimum (`am-lyrics`)](https://github.com/binimum/am-lyrics)** for Apple-style word-by-word synced lyrics design, and the open lyrics ecosystem ([LRCLIB](https://lrclib.net), [BetterLyrics](https://github.com/better-lyrics/better-lyrics), [PaxSenix](https://lyrics.paxsenix.org), [BiniLyrics](https://github.com/binimum), [LyricsPlus](https://github.com/ibratabian17/YouLyPlus), [SimpMusic](https://github.com/maxrave-dev/SimpMusic), [Unison](https://unison.boidu.dev)).
+- **Meticulously Crafted & Maintained (`BitChord-PlusPC`)**: **Pranav x [`@Inventor365`](https://github.com/Inventor365)** — restoring, engineering, and maintaining the native Windows, macOS, and Linux desktop client (`:desktopApp` & `:desktopUi`), cross-platform packaging pipeline, and 80+ curated community enhancements.
+- **Credits to Original Author**: **[Kushagra Singh (`@kushagrasinghx`)](https://bitchord.kushagrasingh.in/)** and the upstream **[kushagrasinghx/BitChord](https://github.com/kushagrasinghx/BitChord)** project for creating BitChord, its Apple Music-inspired Liquid Glass design system, Automix DSP engine, and mobile/TV/Wear OS foundations.
+- **Lyrics & Visual Inspiration**: **[binimum (`am-lyrics`)](https://github.com/binimum/am-lyrics)** for Apple-style word-by-word synced lyrics design, and the open lyrics ecosystem ([lrc.red](https://lrc.red), [LRCLIB](https://lrclib.net), [BetterLyrics](https://github.com/better-lyrics/better-lyrics), [PaxSenix](https://lyrics.paxsenix.org), [BiniLyrics](https://github.com/binimum), [LyricsPlus](https://github.com/ibratabian17/YouLyPlus), [SimpMusic](https://github.com/maxrave-dev/SimpMusic), [Unison](https://unison.boidu.dev)).
 
 <div align="center">
 

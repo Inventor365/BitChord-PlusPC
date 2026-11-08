@@ -2000,39 +2000,72 @@ fun SettingsScreen(
         // The version line is the page's colophon, not a setting: it belongs to
         // the whole list, so it goes when the list is narrowed to a few rows.
         if (section == null && searchQuery.isBlank()) {
-        Text(
-            text = buildAnnotatedString {
-                append("bitchord $version  ")
-                val linkStyles = TextLinkStyles(
-                    style = SpanStyle(
-                        color = MaterialTheme.colorScheme.primary,
-                        textDecoration = TextDecoration.Underline,
-                    ),
-                )
-                withLink(LinkAnnotation.Url("https://github.com/kushagrasinghx/BitChord", linkStyles)) {
-                    append("GitHub")
-                }
-                append("  ")
-                withLink(LinkAnnotation.Url("https://github.com/kushagrasinghx", linkStyles)) {
-                    append("Developer")
-                }
-                append("  ")
-                withLink(LinkAnnotation.Url("https://discord.gg/pDdKfrdHY6", linkStyles)) {
-                    append("Discord")
-                }
-                append("  ")
-                withLink(LinkAnnotation.Url("https://bitchord.kushagrasingh.in/", linkStyles)) {
-                    append("Website")
-                }
-                append("\n~YouTube Music & Listen Together Backend")
-            },
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 24.dp, bottom = 8.dp),
-        )
+            var easterEggTaps by remember { mutableStateOf(0) }
+            val easterEggActive = easterEggTaps > 0
+            val primaryColor = MaterialTheme.colorScheme.primary
+            val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
+            val linkStyles = TextLinkStyles(
+                style = SpanStyle(
+                    color = primaryColor,
+                    textDecoration = TextDecoration.Underline,
+                ),
+            )
+            val subtleLinkStyles = TextLinkStyles(
+                style = SpanStyle(
+                    color = mutedColor.copy(alpha = 0.78f),
+                    textDecoration = TextDecoration.Underline,
+                ),
+            )
+            val versionLinkStyles = TextLinkStyles(
+                style = SpanStyle(
+                    color = if (easterEggActive) primaryColor else mutedColor,
+                    fontWeight = if (easterEggActive) FontWeight.SemiBold else FontWeight.Normal,
+                ),
+            )
+            Text(
+                text = buildAnnotatedString {
+                    withLink(
+                        LinkAnnotation.Clickable("version_easter_egg", versionLinkStyles) {
+                            easterEggTaps++
+                            Toast.makeText(
+                                context,
+                                "✦ BitChord $version — Meticulously crafted by Pranav x Inventor365 ✦",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        },
+                    ) {
+                        append("bitchord $version")
+                    }
+                    append("  ")
+                    withLink(LinkAnnotation.Url("https://github.com/Inventor365/BitChord-PlusPC", linkStyles)) {
+                        append("GitHub")
+                    }
+                    append("  ")
+                    withLink(LinkAnnotation.Url("https://github.com/Inventor365", linkStyles)) {
+                        append("Developer")
+                    }
+                    append("\n")
+                    pushStyle(
+                        SpanStyle(
+                            color = if (easterEggActive) primaryColor else mutedColor,
+                            fontWeight = FontWeight.Medium,
+                        ),
+                    )
+                    append("Meticulously crafted by Pranav x Inventor365")
+                    pop()
+                    append("\n")
+                    withLink(LinkAnnotation.Url("https://bitchord.kushagrasingh.in/", subtleLinkStyles)) {
+                        append("Credits to author")
+                    }
+                    append(" · ~YouTube Music & Listen Together Backend")
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = mutedColor,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 24.dp, bottom = 8.dp),
+            )
         }
     }
 

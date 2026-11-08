@@ -45,6 +45,8 @@ internal object DesktopArtworkCache {
     /** Everything held, dropped — what the Storage settings' "Clear image cache" does. */
     fun clear() = images.clear()
 
+    fun peek(url: String?): ImageBitmap? = if (url.isNullOrBlank()) null else images.get(url)
+
     suspend fun load(url: String?): ImageBitmap? {
         if (url.isNullOrBlank()) return null
         images.get(url)?.let { return it }
@@ -67,9 +69,11 @@ fun DesktopArtwork(
     px: Int? = null,
 ) {
     val sized = if (px != null) url.artworkAt(px) else url
-    val bitmap by produceState<ImageBitmap?>(initialValue = null, key1 = sized) {
-        value = withContext(Dispatchers.IO) {
-            DesktopArtworkCache.load(sized)
+    val bitmap by produceState<ImageBitmap?>(initialValue = DesktopArtworkCache.peek(sized), key1 = sized) {
+        if (value == null) {
+            value = withContext(Dispatchers.IO) {
+                DesktopArtworkCache.load(sized)
+            }
         }
     }
     if (bitmap == null) {

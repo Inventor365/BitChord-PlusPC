@@ -6694,29 +6694,59 @@ private fun DesktopSettingsScreen(
 /** The line at the foot of the settings sheet, as Android has it. */
 @Composable
 private fun DesktopSettingsFooter(onLicenses: () -> Unit) {
-    val version = remember { System.getProperty("bitchord.version") ?: "1.8-beta1" }
+    val version = remember { System.getProperty("bitchord.version") ?: "1.9.2" }
+    var easterEggTaps by remember { mutableStateOf(0) }
+    val easterEggActive = easterEggTaps > 0
     val linkStyles = TextLinkStyles(
         style = SpanStyle(color = DesktopAccent, textDecoration = TextDecoration.Underline),
     )
+    val subtleLinkStyles = TextLinkStyles(
+        style = SpanStyle(color = DesktopSecondary.copy(alpha = 0.78f), textDecoration = TextDecoration.Underline),
+    )
+    val versionLinkStyles = TextLinkStyles(
+        style = SpanStyle(
+            color = if (easterEggActive) DesktopAccent else DesktopSecondary,
+            fontWeight = if (easterEggActive) FontWeight.SemiBold else FontWeight.Normal,
+        ),
+    )
     Text(
         text = buildAnnotatedString {
-            append("bitchord $version  ")
-            withLink(LinkAnnotation.Url("https://github.com/kushagrasinghx/BitChord", linkStyles)) {
+            withLink(
+                LinkAnnotation.Clickable("version_easter_egg", versionLinkStyles) {
+                    easterEggTaps++
+                },
+            ) {
+                append("bitchord $version")
+            }
+            append("  ")
+            withLink(LinkAnnotation.Url("https://github.com/Inventor365/BitChord-PlusPC", linkStyles)) {
                 append("GitHub")
             }
             append("  ")
-            withLink(LinkAnnotation.Url("https://github.com/kushagrasinghx", linkStyles)) {
+            withLink(LinkAnnotation.Url("https://github.com/Inventor365", linkStyles)) {
                 append("Developer")
-            }
-            append("  ")
-            withLink(LinkAnnotation.Url("https://discord.gg/pDdKfrdHY6", linkStyles)) {
-                append("Discord")
             }
             append("  ")
             withLink(LinkAnnotation.Clickable("licenses", linkStyles) { onLicenses() }) {
                 append("Licenses")
             }
-            append("\n~YouTube Music Backend")
+            append("\n")
+            pushStyle(
+                SpanStyle(
+                    color = if (easterEggActive) DesktopAccent else DesktopSecondary,
+                    fontWeight = FontWeight.Medium,
+                ),
+            )
+            append(
+                if (easterEggActive) "✦ Meticulously crafted by Pranav x Inventor365 ✦"
+                else "Meticulously crafted by Pranav x Inventor365",
+            )
+            pop()
+            append("\n")
+            withLink(LinkAnnotation.Url("https://bitchord.kushagrasingh.in/", subtleLinkStyles)) {
+                append("Credits to author")
+            }
+            append(" · ~YouTube Music Backend")
         },
         style = MaterialTheme.typography.labelSmall,
         color = DesktopSecondary,

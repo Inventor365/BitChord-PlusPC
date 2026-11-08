@@ -393,7 +393,7 @@ fun TvSettingsScreen(
                 TvListRow(
                     title = "About",
                     value = BuildConfig.VERSION_NAME,
-                    onFocused = { blurb = DefaultBlurb },
+                    onFocused = { blurb = "BitChord ${BuildConfig.VERSION_NAME} — Meticulously crafted by Pranav x Inventor365." },
                     onClick = { sheet = SettingsSheet.About },
                 )
             }

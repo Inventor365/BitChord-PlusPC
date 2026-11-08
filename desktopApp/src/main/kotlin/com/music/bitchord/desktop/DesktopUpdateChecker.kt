@@ -47,7 +47,11 @@ internal object DesktopUpdateChecker {
     private const val LATEST_RELEASE_URL =
         "https://api.github.com/repos/Inventor365/BitChord-PlusPC/releases/latest"
 
-    val currentVersion: String = System.getProperty("bitchord.version") ?: "1.9"
+    val currentVersion: String = System.getProperty("bitchord.version") ?: "1.9.2"
+
+    private fun normalizeRepoUrl(url: String): String = url
+        .replace("github.com/kushagrasinghx/BitChord", "github.com/Inventor365/BitChord-PlusPC", ignoreCase = true)
+        .replace("github.com/Inventor365/BitChord-PC/", "github.com/Inventor365/BitChord-PlusPC/", ignoreCase = true)
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
@@ -59,8 +63,9 @@ internal object DesktopUpdateChecker {
     }
 
     suspend fun check(): UpdateInfo? {
-        val customUrl = System.getProperty("bitchord.ota.url")?.trim()?.takeIf { it.isNotEmpty() }
-            ?: System.getenv("OTA_JSON_URL")?.trim()?.takeIf { it.isNotEmpty() }
+        val customUrl = (System.getProperty("bitchord.ota.url")?.trim()?.takeIf { it.isNotEmpty() }
+            ?: System.getenv("OTA_JSON_URL")?.trim()?.takeIf { it.isNotEmpty() })
+            ?.takeIf { !it.contains("kushagrasinghx", ignoreCase = true) }
         val endpoints = listOfNotNull(
             customUrl,
             OTA_TOKEN_URL,
@@ -120,8 +125,8 @@ internal object DesktopUpdateChecker {
 
         return UpdateInfo(
             version = latest,
-            releaseUrl = url,
-            downloadUrl = resolveDesktopDownloadUrl(obj),
+            releaseUrl = normalizeRepoUrl(url),
+            downloadUrl = resolveDesktopDownloadUrl(obj)?.let(::normalizeRepoUrl),
             notes = notes,
         )
     }

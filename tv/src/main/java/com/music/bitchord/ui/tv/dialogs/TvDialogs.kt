@@ -1210,10 +1210,49 @@ fun TvScrobbleDialog(onDismiss: () -> Unit) {
 
 @Composable
 fun TvAboutDialog(onDismiss: () -> Unit) {
-    TvDialog(title = "BitChord", message = "Version ${BuildConfig.VERSION_NAME}", onDismissRequest = onDismiss) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var easterEggTaps by remember { mutableStateOf(0) }
+    val subtitle = if (easterEggTaps > 0) {
+        "Version ${BuildConfig.VERSION_NAME} · ✦ Meticulously crafted by Pranav x Inventor365 ✦"
+    } else {
+        "Version ${BuildConfig.VERSION_NAME} · Meticulously crafted by Pranav x Inventor365"
+    }
+    TvDialog(title = "BitChord", message = subtitle, onDismissRequest = onDismiss) {
         TvAppMark(size = 77.dp, modifier = Modifier.padding(bottom = 21.dp))
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            TvListRow(title = "Kushagra Singh", value = "Creator", enabled = false, onClick = {})
+            TvListRow(
+                title = "Pranav x Inventor365",
+                value = "Meticulously Crafted",
+                onClick = { easterEggTaps++ },
+            )
+            TvListRow(
+                title = "GitHub",
+                value = "Inventor365/BitChord-PlusPC",
+                onClick = {
+                    runCatching {
+                        context.startActivity(
+                            android.content.Intent(
+                                android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse("https://github.com/Inventor365/BitChord-PlusPC"),
+                            ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    }
+                },
+            )
+            TvListRow(
+                title = "Credits to Author",
+                value = "Kushagra Singh",
+                onClick = {
+                    runCatching {
+                        context.startActivity(
+                            android.content.Intent(
+                                android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse("https://bitchord.kushagrasingh.in/"),
+                            ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    }
+                },
+            )
             TvListRow(title = "Nithyanantha", value = "TV App", enabled = false, onClick = {})
         }
         Spacer(modifier = Modifier.height(14.dp))

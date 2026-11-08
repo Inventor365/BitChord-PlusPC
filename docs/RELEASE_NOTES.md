@@ -5,73 +5,93 @@
   <img src="https://raw.githubusercontent.com/Inventor365/BitChord-PlusPC/main/docs/screenshots/linux.png" alt="BitChord for Linux & Windows" width="49%" />
 </p>
 
-## What's Extra Over Official (`Inventor365/BitChord-PlusPC` — `v1.9`)
+## What's New in `BitChord-PlusPC v1.9.2` (`versionCode = 40`)
 
-This release combines the official **`v1.9`** release (`b690dc14`) and **`web-player`** developments from [`kushagrasinghx/BitChord`](https://github.com/kushagrasinghx/BitChord) with **full native desktop builds** and **23+ verified community pull requests** integrated ahead of upstream:
+*Meticulously crafted by **Pranav x [@Inventor365](https://github.com/Inventor365)** · [Credits to author](https://bitchord.kushagrasingh.in/)*
 
-### 1. Native Desktop App Restored & Maintained (Windows, macOS & Linux)
-- **Windows (`x64`)**: `.msi` installer, `-setup.exe` installer, and zero-install `-portable.zip` bundle with native WASAPI exclusive/shared output, Windows System Media Transport Controls (`bitchord_smtc.dll`), and DWM Mica/Acrylic window backdrop.
-- **macOS (`arm64` Apple Silicon & `x64` Intel)**: `.dmg`, `.pkg`, and `.zip` app bundles with native traffic-light window chrome, CoreAudio output, and Now Playing media keys.
-- **Linux (`x86_64`)**: `.AppImage`, `.deb`, and `.rpm` packages with MPRIS2 D-Bus media integration, StatusNotifier/AppIndicator system tray menu, SecretService keyring storage, and HiDPI fractional scaling fix.
-- **Desktop Audio & Intelligence**: Bundled `libbitchord_analysis` native DSP + Beat This! (`final0`) ONNX model for local Automix beat/key/downbeat tracking, 10-band parametric EQ, Discord Rich Presence IPC, and full 17-language localization (including the new Korean `ko` desktop translation).
-- **Easy Browser Sign-In Link & Universal Session Paste (Google & Spotify)**: Copyable & openable browser sign-in links for **YouTube Music (Google)** and **Spotify**, one-click browser profile import across Windows, macOS (with Keychain decryption), and Linux, plus a **Universal Smart Paste / Paste from Clipboard** button that accepts DevTools Cookies table rows (`Ctrl+A`, `Ctrl+C`), *Copy as cURL* (Bash/CMD), *Copy as PowerShell*, *Copy as fetch*, Cookie-Editor JSON, Netscape `cookies.txt`, or raw cookie headers.
-
-### 2. Integrated Community Pull Requests & Enhancements (Ahead of Official)
-- **Turkish Character Normalization for Song Matching (`#1223`)**: Normalizes Turkish characters (`ş→s`, `ğ→g`, `ö→o`, `ü→u`, `ç→c`, `ı→i`) across `TrackMatcher`, `CanvasArtwork`, and `ArtistCredits` for broader cross-catalogue matching.
-- **Interactive Quality Badge & Shared Call Hardening (`#1200`)**: Tap the quality badge on the player to toggle the active source name, and drop failed addon calls even when the starter coroutine was cancelled.
-- **Open External Music Links (`#1145`)**: Intercepts Spotify, Apple Music, Deezer, and SoundCloud track, album, and playlist links and opens them directly in BitChord, matched automatically on YouTube Music.
-- **Save Queue & Radio as Playlist (`#1174`)**: Adds one-tap **Save queue as playlist** and **Save radio as playlist** actions in the queue header and playlist picker.
-- **Samsung Galaxy Buds Integration (`#983`)**: Native Bluetooth SPP control panel (`GalaxyBudsManager`) integrated directly into the audio output sheet for Galaxy Buds2 / Buds2 Pro / Buds3 / Buds3 Pro (ANC, Ambient Sound, 360 Audio, touch lock, equalizer presets, and per-earbud/case battery levels).
-- **Cast Queue Window & Downloaded Track Casting (`#1186`)**: Sends a bounded castable queue window to Chromecast receivers, streams downloaded tracks via their remote URLs instead of skipping them, and reports honest receiver playback positions.
-- **Android TV Low-Memory Performance Mode (`#1044`)**: Adaptive artwork sizing (`TvArtworkSizing`) and memory-aware rendering policies (`TvPerformancePolicy`) alongside the new AMOLED Now Playing backdrop for Android TV and Fire TV sticks.
-- **Block Explicit Songs (`#801`)**: Optional explicit content filter (`ExplicitFilter`) that filters AutoPlay and radio stations, skips blocked explicit tracks in the queue, dims explicit rows in lists, and offers an allow-once / disable-blocking prompt.
-- **Disable Song Caching & Custom Step Slider (`#985`)**: Allows setting the audio cache limit all the way down to `0 MB` (completely disabled) with a stepped slider while keeping the active playing track safe.
-- **Auto-Download Playlist Songs (`#935`)**: Automatically downloads newly added tracks immediately whenever they are added to a downloaded playlist, working alongside `v1.9`'s background `PlaylistSync`.
-- **Icon-Only Navigation Bar (`#907`)**: New appearance toggle to hide bottom navigation tab labels for a clean icon-only bar.
-- **Anonymous Search & History Privacy (`#939`)**: Ensures all YouTube Music search queries and search pagination continuations run anonymously without logging searches to your Google watch/search history.
-- **Local Per-Track Cover Art & Embedded ID3 Lyrics (`#1188`, `#1119`, `#1187`)**: Gives each local audio file its own embedded cover art rather than sharing one cover across an album ID, reads embedded ID3 `USLT`/`SYLT` lyrics from local MP3 files, and keys remote artwork on `(videoId, thumbnailUrl)`.
-- **Lyrics, Localization & Playlist Fixes (`#1211`, `#1204`, `#1099`, `#1095`, `#1094`, `#1091`, `#991`, `#932`)**: Complete Portuguese (`pt-BR`) and Turkish (`tr`) localizations across all modules, reloads Android service/notification lyrics when source order or syllable sync changes, decodes astral emoji HTML entities in Enhanced LRC, prevents plain lyrics from beating line-synced lyrics, expands multi-timestamp compressed LRC lines, loads all tracks in the playlist reorder screen, and resumes playback reliably after version swaps.
-- **Listen Together Party Hardening (`#997`, `#1089`, `#1088`, `#1087`, `#1086`)**: Publishes the exact playing copy's index when a track appears twice in a party queue, accepts uppercase/mixed-case invite URLs, avoids double-escaping invalid invite codes, writes human-readable activity feed entries, and prevents slow WebSocket listeners from holding party locks.
+This release merges upstream **`v1.9.1`** (`acf219a7`) with **58 newly integrated community pull requests** (80+ total ahead of upstream), **re-engineered macOS, Windows, and Linux desktop installers**, an interactive **`bitchord 1.9.2` Settings Easter egg**, and a dedicated **OTA update channel** (`Inventor365/Bitchord-OTA` & `Inventor365/BitChord-PlusPC`).
 
 ---
 
-## Upstream `v1.9` Highlights
-
-- **Bit-Perfect Output (`#1194`)**: Lossless tracks reach your DAC unchanged at each track's own sample rate and bit depth — choose Android 14's USB DAC mode, AAudio exclusive for DAPs with a built-in DAC, or BitChord's direct USB driver on any Android version, complete with hardware DAC volume HUD and low-spec DAC format conversion.
-- **Video Playback**: Full music video support in the main player — switch between a song and its video from the song menu, select video quality up to 4K, and play live streams.
-- **Podcast Playback**: YouTube Music podcast shows now open with their full episode list and stream directly in BitChord.
-- **Direct Source Stream & Cache Fixes**: Play tracks directly from your addon from the first note without mid-song switches, decode ALAC through FFmpeg, keep whole addon files in cache, and prevent mid-stream WebM/module collisions.
-- **Top Picks for You & Keep Playlists Updated**: New **Top Picks** row on Home (artist stations, new releases, mixes, Mood for You), plus background `PlaylistSync` for downloaded playlists.
-- **Automix Loop Mix**: DJ-style beat-matched loop mixing powered by Beat This! (`final0`) and Signalsmith time-stretching, with an interactive Mix View popup.
-- **Offline Player & iOS-Style Menus**: Device playlists, Liked playlist, Folders tab, *Open with BitChord*, iOS-style context menus with SF Symbols, custom Sleep Timer (5m–12h), Neon & Monochrome app icons, Vazirmatn Persian lyrics font, and Korean (`ko`) localization.
+### 1. Upstream `v1.9.1` Highlights (Merged Across Mobile, TV, Wear OS & Desktop)
+- **Android Auto Integration**: Browse and play Quick Picks, Listen Again, Favorites, Offline Library, Playlists, Albums, and Artists directly from your car's head unit — with voice search, Like/Shuffle controls, and full **Automix** DJ transitions in the car.
+- **Playlist Search & Sort**: Filter any playlist in place and sort by **Recently Added, Title, Artist, Album, Duration, or Custom**.
+- **Local Albums, Artists & Artist Pages**: Offline Player now groups device audio into **Albums** and **Artists** tabs alongside Songs, Playlists, and Folders, with full local artist pages.
+- **3D Album Cover Tilt & Dynamic Cover App Icon**: Optional gyroscope-driven 3D artwork tilt on the player (**Settings → Appearance → 3D Album Cover Tilt**) and **Dynamic App Icon** that adopts the currently playing song's cover art on the home screen.
+- **18-Script Lyrics Romanization & `lrc.red` Primary Provider**: Added `lrc.red` for fast word-synced lyrics, plus transliteration for Belarusian, Bulgarian, Nepali, Kyrgyz, Mongolian, Punjabi, Bengali, Tamil, Telugu, Kannada, Malayalam, Gujarati, Marathi, Odia, Sinhala, Lao, Khmer, and Burmese alongside Russian, Ukrainian, Serbian, Japanese, Korean, Chinese, Hindi, and Thai.
+- **Android 13+ Media Notification Output Switcher**: Switch between phone speaker, wired headphones, Bluetooth, and Cast directly from the media notification chip.
+- **Multi-Select in Local Library & Downloads + Listen Together Swipe-to-Reply**: Long-press any local or downloaded track to batch play, queue, add to playlists, or delete; swipe any Listen Together chat message to reply in context.
+- **Major Memory & Stability Fixes**: Bounded image caches, background album art eviction, and OOM fixes during long browsing sessions.
 
 ---
 
-## Installation Guide
+### 2. 58 Newly Integrated Community Pull Requests (`v1.9.2`)
+- **Audio, Equalizer & Playback Controls**:
+  - **Parametric EQ Import/Export & Headphone Preset Browser (`#1391`)**: Import/export parametric EQ configurations and browse headphone target presets.
+  - **Separate Pitch Control & Equalizer from Speed Sheet (`#1426`)** + **Cast Audio Effects Notice (`#1392`, `#1400`)**.
+  - **Auto-Pause on Zero Volume (`#1396`)**: Automatically pause playback when media volume reaches zero and optionally resume when raised.
+  - **Resume Playback on Bluetooth Reconnect (`#1395`)**: Automatically resume playback when a Bluetooth audio device reconnects.
+  - **Pocket Hardware Volume Button Lock (`#1369`)**: Optional setting to ignore accidental hardware volume presses when the screen is off.
+  - **Remember Song / Video Choice (`#1437`)**: Remembers your preferred audio vs. music-video mode per track.
+  - **Cast Queue Sync & Artwork (`#1510`)** and **Resilient Queue Auto-Skip (`#1446`, `#1484`, `#1487`, `#1489`, `#1491`)** so unavailable tracks never stall the queue.
+  - **Audio Cache Eviction & Local Storage Playback Fixes (`#1323`, `#1366`)**.
+- **Lyrics, Search & Discovery**:
+  - **LyricsPlus (`#1240`) & SimpMusic (`#1250`) Lyrics Providers**: Expanded to 12 synced lyrics providers.
+  - **Live Lyrics Translation & Romanization in Fullscreen Lyrics (`#1308`, `#1309`, `#1310`, `#1311`)**.
+  - **Interactive Lyrics Word Tap & Timestamp Seek (`#1447`, `#1448`, `#1449`)** + **Apple Music Lyrics Glow & Blur Polish (`#1456`, `#1460`, `#1474`)**.
+  - **In-Playlist & Local Song Search (`#1375`, `#1376`)**, **Top Picks & Moods Refresh (`#1378`, `#1380`, `#1381`, `#1383`)**, and **Full Artist Discography & Album Versions (`#1465`, `#1466`, `#1467`)**.
+- **Library, Playlists & Downloads**:
+  - **Export & Import Playlists as M3U / JSON (`#1386`, `#1389`)**.
+  - **Batch Multi-Select in Playlists & Downloads (`#1469`, `#1470`)**.
+  - **Duplicate Song Detection When Adding to Playlists (`#1399`)**.
+  - **Custom Playlist Cover Art Upload (`#1436`, `#1438`)**.
+  - **Smart Offline Mode Toggle (`#1359`, `#1361`)**.
+  - **Local Folder Hierarchy, Album/Artist Grouping & Tag Editing (`#1505`–`#1509`, `#1511`, `#1513`–`#1515`)**.
+- **UI, Widgets, TV, Wear OS & Localization**:
+  - **Interactive `bitchord 1.9.2` Settings Footer Easter Egg**: Tap `bitchord 1.9.2` in Settings on Android, Desktop, or Android TV for rotating musical quotes and animated sound-wave celebrations, with updated `Inventor365/BitChord-PlusPC` links and author credits.
+  - **Material You / Monet Dynamic Accent (`#1478`, `#1480`, `#1482`)** and **Resizable Glance & Turntable Widgets (`#1523`, `#1525`)**.
+  - **Android TV D-Pad Focus, Lyrics & Screensaver Polish (`#1554`, `#1558`, `#1560`)**.
+  - **Wear OS Standalone Tile & Rotary Crown Volume (`#1570`, `#1573`)**.
+  - **19 Languages (`#1574`, `#1575`, `#1576`, `#1587`, `#1246`–`#1249`, `#1303`)**: Complete translations across Arabic (`ar`), Vietnamese (`vi`), German (`de`), Spanish (`es`), French (`fr`), Hebrew (`iw`), Hindi (`hi`), Indonesian (`in`), Italian (`it`), Japanese (`ja`), Korean (`ko`), Polish (`pl`), Portuguese (`pt-BR`), Russian (`ru`), Thai (`th`), Turkish (`tr`), Simplified Chinese (`zh-CN`), and Traditional Chinese (`zh-TW`).
 
-### Android Phone & Tablet (Android 8.0 / API 26+)
-- **Universal APK (Recommended)**: `BitChord-v1.9.apk` (works on all devices).
+---
+
+### 3. Native Desktop Packaging & OTA Hardening
+- **macOS (`arm64` Apple Silicon & `x64` Intel)**:
+  - Fixed `DiskImageMounter: invalid checksum` on `.dmg` images by recomputing partition `blkx` (`mish`), Master, and Data Fork CRC-32 checksums in the UDIF `koly` trailer and validating HFS+ volumes with `fsck.hfsplus`.
+  - Fixed `.pkg` XAR stream verification and Gatekeeper bundle validation by compressing `Bom`, `PackageInfo`, and `Distribution` with raw `zlib` (`0x78 0xda`), updating `Bom` sizes and POSIX `cksum`s, and sealing all 300 files in `_CodeSignature/CodeResources` plus Mach-O `LC_CODE_SIGNATURE` Special Slots `-1` and `-3` (verified with `rcodesign`).
+- **Windows (`x64`) & Linux (`x86_64`)**:
+  - Rebuilt `.msi`, `-setup.exe`, and `-portable.zip` for Windows 10/11 and `.AppImage`, `.deb`, and `.rpm` for Linux with native `libbitchord_analysis` and Beat This! (`final0`) ONNX models.
+- **Dedicated `BitChord-PlusPC` OTA Updates**:
+  - All platforms (`Android`, `Android TV`, `Windows`, `macOS`, `Linux`) fetch updates exclusively from `Inventor365/Bitchord-OTA` and `Inventor365/BitChord-PlusPC` and never poll the upstream repository.
+
+---
+
+## Installation Guide (`v1.9.2`)
+
+### Android Phone, Tablet & Android Auto (Android 8.0 / API 26+)
+- **Universal APK (Recommended)**: `BitChord-v1.9.2.apk` (works on all devices).
 - **Per-ABI Splits (Smaller download)**:
-  - `BitChord-v1.9_arm64-v8a.apk` — Modern 64-bit ARM phones & tablets.
-  - `BitChord-v1.9_armeabi-v7a.apk` — Older 32-bit ARM devices.
-  - `BitChord-v1.9_x86_64.apk` — Chromebooks & Android emulators.
+  - `BitChord-v1.9.2_arm64-v8a.apk` — Modern 64-bit ARM phones & tablets.
+  - `BitChord-v1.9.2_armeabi-v7a.apk` — Older 32-bit ARM devices.
+  - `BitChord-v1.9.2_x86_64.apk` — Chromebooks & Android emulators.
 
 ### Android TV / Google TV / Fire TV (Android 8.0 / API 26+)
-- **Universal TV APK**: `BitChordTV-v1.9.apk`
-- **Per-ABI TV Splits**: `BitChordTV-v1.9_armeabi-v7a.apk` (most TVs & Fire TV sticks), `BitChordTV-v1.9_arm64-v8a.apk` (NVIDIA Shield, Google TV Streamer), `BitChordTV-v1.9_x86_64.apk`.
+- **Universal TV APK**: `BitChordTV-v1.9.2.apk`
+- **Per-ABI TV Splits**: `BitChordTV-v1.9.2_armeabi-v7a.apk` (most TVs & Fire TV sticks), `BitChordTV-v1.9.2_arm64-v8a.apk` (NVIDIA Shield, Google TV Streamer), `BitChordTV-v1.9.2_x86_64.apk`.
 
 ### Wear OS Companion
-- **Watch APK**: `BitChordWear-v1.9.apk` (also bundled inside the phone APK for automatic companion installation).
+- **Watch APK**: `BitChordWear-v1.9.2.apk` (also bundled inside the phone APK for automatic companion installation).
 
 ### Windows (`x64`, Windows 10 / 11)
-- **Installer (`.exe` / `.msi`)**: `BitChord-1.9-windows-x64-setup.exe` or `BitChord-1.9-windows-x64.msi`
-- **Portable (`.zip`)**: `BitChord-1.9-windows-x64-portable.zip` — extract anywhere and run `BitChord.exe` (no installation required).
+- **Installer (`.exe` / `.msi`)**: `BitChord-1.9.2-windows-x64-setup.exe` or `BitChord-1.9.2-windows-x64.msi`
+- **Portable (`.zip`)**: `BitChord-1.9.2-windows-x64-portable.zip` — extract anywhere and run `BitChord.exe` (no installation required).
 
 ### macOS (`arm64` Apple Silicon & `x64` Intel, macOS 12+)
-- **Apple Silicon (M1 / M2 / M3 / M4)**: `BitChord-1.9-macos-arm64.dmg` (or `.pkg` / `.zip`)
-- **Intel Mac (`x86_64`)**: `BitChord-1.9-macos-x64.dmg` (or `.pkg` / `.zip`)
+- **Apple Silicon (M1 / M2 / M3 / M4)**: `BitChord-1.9.2-macos-arm64.dmg` (or `.pkg` / `.zip`)
+- **Intel Mac (`x86_64`)**: `BitChord-1.9.2-macos-x64.dmg` (or `.pkg` / `.zip`)
 
 ### Linux (`x86_64`)
-- **AppImage (Universal)**: `BitChord-1.9-linux-x86_64.AppImage` (`chmod +x` and run directly)
-- **Debian / Ubuntu / Mint**: `sudo apt install ./BitChord-1.9-linux-amd64.deb`
-- **Fedora / RHEL / openSUSE**: `sudo dnf install ./BitChord-1.9-linux-x86_64.rpm`
+- **AppImage (Universal)**: `BitChord-1.9.2-linux-x86_64.AppImage` (`chmod +x` and run directly)
+- **Debian / Ubuntu / Mint**: `sudo apt install ./BitChord-1.9.2-linux-amd64.deb`
+- **Fedora / RHEL / openSUSE**: `sudo dnf install ./BitChord-1.9.2-linux-x86_64.rpm`
