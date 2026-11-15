@@ -28,6 +28,7 @@ import com.music.bitchord.data.webdav.WebDavCoilAuth
 import com.music.bitchord.data.canvas.SpotifyToken
 import com.music.bitchord.data.spotify.SpotifyLibrary
 import com.music.bitchord.playback.AudioCache
+import com.music.bitchord.data.YouTubeThumbnailFallback
 import com.music.bitchord.playback.LastPlayed
 import com.music.bitchord.playback.BoundedContextPersistence
 import com.music.bitchord.playback.OriginalVersion
@@ -203,6 +204,7 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory, Configu
         // The public "apps open right now" count; see Presence.
         com.music.bitchord.data.presence.AndroidPresence.install(this)
         backgroundInit.join()
+        com.music.bitchord.collab.AndroidCollab.init(this)
     }
 
     /**
@@ -245,6 +247,7 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory, Configu
             // the header is attached per request instead. See WebDavCoilAuth.
             .components {
                 add(WebDavCoilAuth())
+                add(YouTubeThumbnailFallback())
                 // Covers filed on the SMB share; anything else falls
                 // through to Coil's own fetchers. See SmbCoverFetcher.
                 add(SmbCoverFetcher.Factory())

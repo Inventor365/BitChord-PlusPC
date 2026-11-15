@@ -17,8 +17,10 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"github.com/KabirSinghBhatia/BitChord/backend/auth"
 	"github.com/KabirSinghBhatia/BitChord/backend/clock"
 	"github.com/KabirSinghBhatia/BitChord/backend/codes"
+	"github.com/KabirSinghBhatia/BitChord/backend/collab"
 	"github.com/KabirSinghBhatia/BitChord/backend/config"
 	"github.com/KabirSinghBhatia/BitChord/backend/hub"
 	"github.com/KabirSinghBhatia/BitChord/backend/party"
@@ -46,15 +48,31 @@ var (
 			return origin == "" || config.IsAllowedOrigin(origin)
 		},
 	}
+	collabHandler *collab.Handler
 )
 
-func main() {
-	go startHeartbeatTicker()
-	go startPresenceSweeper()
+func newCollabHandler(dataPath string) (*collab.Handler, error) {
+	cStore, err := collab.NewStore(dataPath, collab.StoreLimits{
+		MaxPlaylistsPerUser:   config.CollabMaxPlaylistsPerUser,
+		MaxTracksPerPlaylist:  config.CollabMaxTracksPerPlaylist,
+		MaxMembersPerPlaylist: config.CollabMaxMembersPerPlaylist,
+	})
+	if err != nil {
+		return nil, err
+	}
+	verifier := auth.NewVerifier(auth.VerifierConfig{
+		AllowedClientIDs: config.CollabGoogleClientIDs,
+		AllowAnyAudience: config.CollabAllowAnyGoogleAudience,
+		ClientSecret:     config.CollabGoogleClientSecret,
+	})
+	authMgr := auth.NewManager(verifier, cStore, config.CollabSessionTTLMs)
+	return collab.NewHandler(cStore, authMgr), nil
+}
 
+func setupMux() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	// REST endpoints
+	// REST endpoints (Listen Together)
 	mux.HandleFunc("GET /{$}", handleRoot)
 	mux.HandleFunc("GET /healthz", handleHealthz)
 	mux.HandleFunc("GET /api/time", handleTime)
@@ -69,16 +87,42 @@ func main() {
 	mux.HandleFunc("GET /api/stats/live", handleLiveStats)
 	mux.HandleFunc("GET /api/stats/live/badge.svg", handleLiveBadge)
 
-	// Web invite endpoint
+	// Web invite endpoint (Listen Together)
 	mux.HandleFunc("GET /invite/{code}", handleInviteLanding)
 
-	// WebSocket endpoint
+	// WebSocket endpoint (Listen Together)
 	mux.HandleFunc("GET /ws/parties/{code}", handleWebSocket)
 
+	// Collaborative Playlists + Google OIDC endpoints
+	ch := collabHandler
+	if ch == nil {
+		var err error
+		ch, err = newCollabHandler(":memory:")
+		if err != nil {
+			log.Fatalf("Failed to initialize in-memory collab handler: %v", err)
+		}
+		collabHandler = ch
+	}
+	ch.RegisterRoutes(mux)
+
+	return mux
+}
+
+func main() {
+	var err error
+	collabHandler, err = newCollabHandler(config.CollabDataPath)
+	if err != nil {
+		log.Fatalf("Failed to initialize collaborative playlist store (%s): %v", config.CollabDataPath, err)
+	}
+
+	go startHeartbeatTicker()
+	go startPresenceSweeper()
+
+	mux := setupMux()
 	handler := corsMiddleware(mux)
 
 	addr := fmt.Sprintf("0.0.0.0:%d", config.Port)
-	log.Printf("BitChord Listen Together (Go) starting on %s...", addr)
+	log.Printf("BitChord Listen Together & Collaborative Playlists (Go) starting on %s...", addr)
 	server := &http.Server{
 		Addr:              addr,
 		Handler:           handler,
@@ -98,7 +142,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 		if origin != "" && config.IsAllowedOrigin(origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Vary", "Origin")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		}
 		if r.Method == "OPTIONS" {

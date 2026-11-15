@@ -287,4 +287,6 @@
     <string name="hide_lyrics_preview_subtitle">Hides the lyrics line on the main player screen</string>
     <string name="search_voice">Search with your voice</string>
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
+    <string name="library_search_hint">Kitaplığında ara</string>
+    <string name="library_no_matches">Kitaplığında “%1$s” ile eşleşen bir şey yok</string>
 </resources>

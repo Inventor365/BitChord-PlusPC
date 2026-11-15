@@ -73,9 +73,18 @@ object EmbeddedLyrics {
                 ?: return@withContext null
             // The same last pass the network sources get, so a downloaded track
             // and a streamed one draw their backing vocals the same way.
-            LrcLib.parseLrc(raw).takeIf { lines -> lines.any { it.text.isNotBlank() } }
-                ?.withBackgroundVocals()
+            linesOf(raw)?.withBackgroundVocals()
         }
+
+    internal fun linesOf(raw: String): List<LyricLine>? {
+        val synced = LrcLib.parseLrc(raw).takeIf { lines -> lines.any { it.text.isNotBlank() } }
+        if (synced != null) return synced
+        return raw.lineSequence().map { it.trim() }
+            .filter { it.isNotEmpty() && !LRC_ID_TAG.matches(it) }
+            .map { LyricLine(0L, it) }.toList().ifEmpty { null }
+    }
+
+    fun isSynced(lines: List<LyricLine>): Boolean = lines.any { it.timeMs > 0L }
 
     /** The raw LRC text for the file, preferring this app's word-timed field. */
     private fun read(context: Context, uri: Uri): String? =
@@ -375,7 +384,7 @@ object EmbeddedLyrics {
                 else -> u32(tag, pos + 4)
             }
             if (size <= 0 || size > tag.size - pos - headLen) break
-            if (id == "USLT" || id == "USL") {
+            if (id == "USLT" || id == "ULT" || id == "USL") {
                 val text = usltPayload(tag.copyOfRange(pos + headLen, pos + headLen + size))
                 if (text != null) return text
             }
@@ -508,6 +517,7 @@ object EmbeddedLyrics {
     private val FLAC_MAGIC = "fLaC".toByteArray(Charsets.US_ASCII)
     private val MATROSKA_MAGIC = byteArrayOf(0x1A, 0x45, 0xDF.toByte(), 0xA3.toByte())
     private val ID3_MAGIC = "ID3".toByteArray(Charsets.US_ASCII)
+    private val LRC_ID_TAG = Regex("""\[[A-Za-z#]+:[^\]]*]""")
     private val DATA_ATOM = "data".toByteArray(Charsets.ISO_8859_1)
     private val LYR_ATOM = byteArrayOf(0xA9.toByte()) + "lyr".toByteArray(Charsets.ISO_8859_1)
     private val ID_TAGNAME = byteArrayOf(0x45, 0xA3.toByte())

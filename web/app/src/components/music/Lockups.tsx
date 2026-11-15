@@ -6,6 +6,7 @@ import { ExplicitBadge } from './ExplicitBadge';
 import { artistHref, hrefFor } from './links';
 import { playTrack, toTrack } from './play';
 import { TrackMenu } from './TrackMenu';
+import { PlaylistMenu } from './PlaylistMenu';
 
 const isPlayable = (item: MusicItem) => item.kind === 'song' || item.kind === 'video';
 
@@ -76,6 +77,15 @@ function LockupArtwork({ item, width, aspect }: { item: MusicItem; width: number
       {isPlayable(item) && (
         <TrackMenu
           track={toTrack(item)}
+          className="absolute top-2 right-2 z-3 grid size-7 place-items-center rounded-full bg-thin-material text-white opacity-0 transition-opacity duration-100 ease-in [backdrop-filter:saturate(180%)_blur(60px)] group-hover/art:opacity-100 focus-visible:opacity-100 hover:bg-key-bg data-open:opacity-100"
+        />
+      )}
+      {(item.kind === 'playlist' || item.kind === 'spotify-playlist') && (
+        <PlaylistMenu
+          playlistId={item.id}
+          sourceType={item.kind === 'spotify-playlist' ? 'spotify' : 'ytm'}
+          title={item.title}
+          artworkUrl={item.thumbnail}
           className="absolute top-2 right-2 z-3 grid size-7 place-items-center rounded-full bg-thin-material text-white opacity-0 transition-opacity duration-100 ease-in [backdrop-filter:saturate(180%)_blur(60px)] group-hover/art:opacity-100 focus-visible:opacity-100 hover:bg-key-bg data-open:opacity-100"
         />
       )}

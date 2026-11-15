@@ -210,4 +210,6 @@
     <string name="search_addons_empty">Search every enabled addon at once. Tracks play straight from the addon.</string>
     <string name="search_addons_no_results">No addon has “%1$s”.</string>
     <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="library_search_hint">Szukaj w bibliotece</string>
+    <string name="library_no_matches">Nic w Twojej bibliotece nie pasuje do „%1$s”</string>
 </resources>

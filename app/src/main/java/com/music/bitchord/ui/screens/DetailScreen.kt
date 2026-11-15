@@ -839,6 +839,7 @@ fun DetailScreen(
                             isPlaying = isCurrent && isPlaying,
                             activeTint = palette.accent,
                             searchPlayingStyle = true,
+                            showPlays = numbered,
                         )
                         if (position < matches.lastIndex) {
                             HorizontalDivider(
@@ -1015,6 +1016,7 @@ private fun ReleaseHeader(
                     }
                     .aspectRatio(1f),
             ) {
+                var canvasCover by remember(canvas) { mutableStateOf(0f) }
                 AsyncImage(
                     model = page.thumbnailUrl.artworkAt(HEADER_ART_PX),
                     contentDescription = null,
@@ -1024,7 +1026,10 @@ private fun ReleaseHeader(
                         .matchParentSize()
                         // The mask below erases part of what this layer drew,
                         // which it can only do in a buffer of its own.
-                        .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                        .graphicsLayer {
+                            compositingStrategy = CompositingStrategy.Offscreen
+                            alpha = 1f - canvasCover
+                        }
                         .drawWithContent {
                             drawContent()
                             // The player banner's dissolve, along smootherstep so
@@ -1050,6 +1055,7 @@ private fun ReleaseHeader(
                         canvas = clip,
                         isPlaying = true,
                         bottomFade = FULL_BLEED_FADE_FRACTION,
+                        onCoverChanged = { canvasCover = it },
                         modifier = Modifier.matchParentSize(),
                     )
                 }
@@ -2120,8 +2126,10 @@ private fun CompactSongRow(
                 style = MaterialTheme.typography.titleMedium,
                 color = if (isCurrent) palette.accent else palette.onBackground,
             )
+            // An artist's Top Songs are ranked by plays, so each says how many.
             Text(
-                text = song.artist,
+                text = listOfNotNull(song.artist.takeIf { it.isNotBlank() }, song.plays)
+                    .joinToString(" · "),
                 style = MaterialTheme.typography.bodyMedium,
                 color = palette.onBackgroundVariant,
                 maxLines = 1,

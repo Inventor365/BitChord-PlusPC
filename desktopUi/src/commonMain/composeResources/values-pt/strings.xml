@@ -282,4 +282,6 @@
     <string name="save_radio_as_playlist">Salvar rádio como playlist</string>
     <string name="switch_to_grid_view">Switch to grid view</string>
     <string name="switch_to_list_view">Switch to list view</string>
+    <string name="library_search_hint">Pesquisar na sua biblioteca</string>
+    <string name="library_no_matches">Nada na sua biblioteca corresponde a “%1$s”</string>
 </resources>

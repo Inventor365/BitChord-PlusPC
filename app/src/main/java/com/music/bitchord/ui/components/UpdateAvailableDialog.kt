@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -172,22 +173,34 @@ fun UpdateAvailableDialog(
                 // part of the card rather than a widget bolted onto it.
                 val downloading = state as? AppUpdateChecker.DownloadState.Downloading
                 if (downloading != null || state is AppUpdateChecker.DownloadState.Failed) {
-                    Box(
-                        Modifier
-                            .padding(top = 12.dp)
-                            .fillMaxWidth()
-                            .height(DOWNLOAD_ROW_HEIGHT)
-                            .clip(RoundedCornerShape(DOWNLOAD_ROW_HEIGHT / 2))
-                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)),
-                    ) {
-                        if (downloading != null && downloading.fraction > 0f) {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth(downloading.fraction)
-                                    .height(DOWNLOAD_ROW_HEIGHT)
-                                    .clip(RoundedCornerShape(DOWNLOAD_ROW_HEIGHT / 2))
-                                    .background(MaterialTheme.colorScheme.primary),
-                            )
+                    if (downloading != null && downloading.indeterminate) {
+                        LinearProgressIndicator(
+                            modifier = Modifier
+                                .padding(top = 12.dp)
+                                .fillMaxWidth()
+                                .height(DOWNLOAD_ROW_HEIGHT)
+                                .clip(RoundedCornerShape(DOWNLOAD_ROW_HEIGHT / 2)),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f),
+                        )
+                    } else {
+                        Box(
+                            Modifier
+                                .padding(top = 12.dp)
+                                .fillMaxWidth()
+                                .height(DOWNLOAD_ROW_HEIGHT)
+                                .clip(RoundedCornerShape(DOWNLOAD_ROW_HEIGHT / 2))
+                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)),
+                        ) {
+                            if (downloading != null && downloading.fraction > 0f) {
+                                Box(
+                                    Modifier
+                                        .fillMaxWidth(downloading.fraction)
+                                        .height(DOWNLOAD_ROW_HEIGHT)
+                                        .clip(RoundedCornerShape(DOWNLOAD_ROW_HEIGHT / 2))
+                                        .background(MaterialTheme.colorScheme.primary),
+                                )
+                            }
                         }
                     }
                 }

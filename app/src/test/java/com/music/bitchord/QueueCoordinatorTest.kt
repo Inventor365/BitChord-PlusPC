@@ -43,6 +43,7 @@ class QueueCoordinatorTest {
         items: MutableList<MediaItem>,
         currentIndex: () -> Int = { 0 },
         onRemoval: () -> Unit = {},
+        repeatMode: Int = Player.REPEAT_MODE_OFF,
     ): Player {
         return Proxy.newProxyInstance(
             Player::class.java.classLoader,
@@ -53,6 +54,7 @@ class QueueCoordinatorTest {
                 "getMediaItemCount" -> items.size
                 "getMediaItemAt" -> items[args[0] as Int]
                 "getCurrentMediaItem" -> items.getOrNull(currentIndex())
+                "getRepeatMode" -> repeatMode
                 "removeMediaItem" -> {
                     onRemoval()
                     val index = args[0] as Int
@@ -339,7 +341,7 @@ class QueueCoordinatorTest {
     }
 
     @Test
-    fun `consumePlayedUserQueue prunes user queue items when entering context`() {
+    fun `consumePlayedUserQueue prunes user queue items when entering context under repeat all`() {
         var currentIndex = 2
         val songs = listOf(
             testSong("u1", tier = QueueTier.USER_QUEUE),
@@ -348,13 +350,30 @@ class QueueCoordinatorTest {
             testSong("c2", tier = QueueTier.CONTEXT),
         )
         val items = songs.map { it.toMediaItem() }.toMutableList()
-        val player = createFakePlayer(items, currentIndex = { currentIndex })
+        val player = createFakePlayer(items, currentIndex = { currentIndex }, repeatMode = Player.REPEAT_MODE_ALL)
 
         QueueCoordinator.consumePlayedUserQueue(player, tierAt(songs, items))
 
         assertEquals(2, items.size)
         assertEquals("c1", items[0].mediaId)
         assertEquals("c2", items[1].mediaId)
+    }
+
+    @Test
+    fun `consumePlayedUserQueue keeps played user queue items for Previous when repeat all is off`() {
+        var currentIndex = 2
+        val songs = listOf(
+            testSong("u1", tier = QueueTier.USER_QUEUE),
+            testSong("u2", tier = QueueTier.USER_QUEUE),
+            testSong("c1", tier = QueueTier.CONTEXT),
+            testSong("c2", tier = QueueTier.CONTEXT),
+        )
+        val items = songs.map { it.toMediaItem() }.toMutableList()
+        val player = createFakePlayer(items, currentIndex = { currentIndex }, repeatMode = Player.REPEAT_MODE_OFF)
+
+        QueueCoordinator.consumePlayedUserQueue(player, tierAt(songs, items))
+
+        assertEquals(listOf("u1", "u2", "c1", "c2"), items.map { it.mediaId })
     }
 
     @Test

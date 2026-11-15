@@ -301,6 +301,7 @@ interface PlayerSettingsSource {
 
     fun setLastPlayerScreen(value: LastPlayerScreen)
     fun setLyricsOffsetMs(value: Int)
+    fun setShowTotalDuration(value: Boolean) = Unit
     /** Whether the mix popup is up, so the host lays out [smartMixPreview] for it. */
     fun setMixViewOpen(open: Boolean)
 }

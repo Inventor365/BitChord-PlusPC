@@ -7,7 +7,7 @@ on:
       version:
         description: "Version to stamp into the packages, without the leading v"
         required: true
-        default: "1.9"
+        default: "1.10.0"
       draft:
         description: "Create as draft (false publishes immediately)"
         type: boolean
@@ -44,63 +44,80 @@ jobs:
           echo "value=$version" >> "$GITHUB_OUTPUT"
           echo "Building $version"
 
-      - name: Setup Secrets & Signing Keystore
+      - name: Setup Secrets & Deterministic Release Keystore
         env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+          LISTEN_TOGETHER_SERVER: ${{ secrets.LISTEN_TOGETHER_SERVER || vars.LISTEN_TOGETHER_SERVER }}
+          COLLAB_SERVER: ${{ secrets.COLLAB_SERVER || vars.COLLAB_SERVER }}
+          COLLAB_GOOGLE_CLIENT_ID: ${{ secrets.COLLAB_GOOGLE_CLIENT_ID || vars.COLLAB_GOOGLE_CLIENT_ID }}
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          echo "LASTFM_API_KEY=${{ secrets.LASTFM_API_KEY }}" > local.properties
-          echo "LASTFM_SECRET=${{ secrets.LASTFM_SECRET }}" >> local.properties
-          echo "LISTEN_TOGETHER_SERVER=${{ secrets.LISTEN_TOGETHER_SERVER }}" >> local.properties
+          : > local.properties
+          [ -n "$LASTFM_API_KEY" ] && echo "LASTFM_API_KEY=$LASTFM_API_KEY" >> local.properties
+          [ -n "$LASTFM_SECRET" ] && echo "LASTFM_SECRET=$LASTFM_SECRET" >> local.properties
+          [ -n "$LISTEN_TOGETHER_SERVER" ] && echo "LISTEN_TOGETHER_SERVER=$LISTEN_TOGETHER_SERVER" >> local.properties
+          [ -n "$COLLAB_SERVER" ] && echo "COLLAB_SERVER=$COLLAB_SERVER" >> local.properties
+          [ -n "$COLLAB_GOOGLE_CLIENT_ID" ] && echo "COLLAB_GOOGLE_CLIENT_ID=$COLLAB_GOOGLE_CLIENT_ID" >> local.properties
 
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > bitchord-release.jks
-            {
-              echo "storeFile=bitchord-release.jks"
-              echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}"
-              echo "keyAlias=${{ secrets.KEY_ALIAS }}"
-              echo "keyPassword=${{ secrets.KEY_PASSWORD }}"
-            } > keystore.properties
-          else
-            keytool -genkeypair -v \
-              -keystore bitchord-release.jks \
-              -storetype PKCS12 \
-              -keyalg RSA -keysize 2048 -validity 10000 \
-              -alias bitchord \
-              -storepass bitchordrelease \
-              -keypass bitchordrelease \
-              -dname "CN=BitChord, OU=Music, O=BitChord, L=Unknown, ST=Unknown, C=US"
-            {
-              echo "storeFile=bitchord-release.jks"
-              echo "storePassword=bitchordrelease"
-              echo "keyAlias=bitchord"
-              echo "keyPassword=bitchordrelease"
-            } > keystore.properties
+          # NEVER generate a random throwaway keystore on release builds: doing so changes
+          # the signing certificate SHA-256 on every tag and causes Android PackageManager
+          # to reject all OTA / sideload upgrades with INSTALL_FAILED_UPDATE_INCOMPATIBLE.
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::Missing required Android release signing secrets (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD). Refusing to generate a random keystore." >&2
+            exit 1
           fi
 
-      - run: chmod +x gradlew
+          printf '%s' "$KEYSTORE_BASE64" | tr -d '[:space:]' | base64 -d > bitchord-release.jks
+          if [ ! -s bitchord-release.jks ]; then
+            echo "::error::Decoded bitchord-release.jks is empty!" >&2
+            exit 1
+          fi
+          keytool -list -keystore bitchord-release.jks -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
 
-      - name: Build Phone, Wear OS & Android TV Prod Release APKs
-        run: ./gradlew :app:assembleProdRelease :tv:assembleProdRelease -Dorg.gradle.workers.max=2
+          {
+            echo "storeFile=bitchord-release.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
 
-      - name: Collect APKs
+      - run: chmod +x gradlew scripts/verify-android-upgrade.sh
+
+      - name: Build Signed Phone, Wear OS & Android TV Prod Release APKs
+        run: |
+          ./gradlew :app:assembleProdRelease :tv:assembleProdRelease \
+            -Pbitchord.requireReleaseSigning=true \
+            -Dorg.gradle.workers.max=2
+
+      - name: Collect & Verify All 9 APKs
+        env:
+          EXPECTED_ANDROID_CERT_SHA256: ${{ secrets.EXPECTED_ANDROID_CERT_SHA256 || vars.EXPECTED_ANDROID_CERT_SHA256 }}
         run: |
           v="${{ steps.version.outputs.value }}"
           mkdir -p dist
           cp app/build/outputs/apk/prod/release/app-prod-universal-release.apk "dist/BitChord-v${v}.apk"
           for abi in arm64-v8a armeabi-v7a x86_64; do
-            if [ -f "app/build/outputs/apk/prod/release/app-prod-${abi}-release.apk" ]; then
-              cp "app/build/outputs/apk/prod/release/app-prod-${abi}-release.apk" "dist/BitChord-v${v}_${abi}.apk"
-            fi
+            cp "app/build/outputs/apk/prod/release/app-prod-${abi}-release.apk" "dist/BitChord-v${v}_${abi}.apk"
           done
           cp tv/build/outputs/apk/prod/release/tv-prod-universal-release.apk "dist/BitChordTV-v${v}.apk"
           for abi in arm64-v8a armeabi-v7a x86_64; do
-            if [ -f "tv/build/outputs/apk/prod/release/tv-prod-${abi}-release.apk" ]; then
-              cp "tv/build/outputs/apk/prod/release/tv-prod-${abi}-release.apk" "dist/BitChordTV-v${v}_${abi}.apk"
-            fi
+            cp "tv/build/outputs/apk/prod/release/tv-prod-${abi}-release.apk" "dist/BitChordTV-v${v}_${abi}.apk"
           done
-          for f in wearos/build/outputs/apk/prod/release/*.apk; do
-            [ -f "$f" ] && cp "$f" "dist/BitChordWear-v${v}.apk"
-          done
+          wear_apk=$(ls wearos/build/outputs/apk/prod/release/*.apk | head -n1)
+          cp "$wear_apk" "dist/BitChordWear-v${v}.apk"
+
+          apk_count=$(find dist -maxdepth 1 -name '*.apk' | wc -l)
+          if [ "$apk_count" -ne 9 ]; then
+            echo "::error::Expected exactly 9 release APKs in dist/, found $apk_count" >&2
+            ls -la dist >&2
+            exit 1
+          fi
+
+          ./scripts/verify-android-upgrade.sh dist
           ls -lh dist
 
       - uses: actions/upload-artifact@v4
@@ -131,9 +148,19 @@ jobs:
           echo "Building $version"
 
       - name: Write local.properties
+        env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+          LISTEN_TOGETHER_SERVER: ${{ secrets.LISTEN_TOGETHER_SERVER || vars.LISTEN_TOGETHER_SERVER }}
+          COLLAB_SERVER: ${{ secrets.COLLAB_SERVER || vars.COLLAB_SERVER }}
+          COLLAB_GOOGLE_CLIENT_ID: ${{ secrets.COLLAB_GOOGLE_CLIENT_ID || vars.COLLAB_GOOGLE_CLIENT_ID }}
         run: |
-          echo "LASTFM_API_KEY=${{ secrets.LASTFM_API_KEY }}" > local.properties
-          echo "LASTFM_SECRET=${{ secrets.LASTFM_SECRET }}" >> local.properties
+          : > local.properties
+          [ -n "$LASTFM_API_KEY" ] && echo "LASTFM_API_KEY=$LASTFM_API_KEY" >> local.properties
+          [ -n "$LASTFM_SECRET" ] && echo "LASTFM_SECRET=$LASTFM_SECRET" >> local.properties
+          [ -n "$LISTEN_TOGETHER_SERVER" ] && echo "LISTEN_TOGETHER_SERVER=$LISTEN_TOGETHER_SERVER" >> local.properties
+          [ -n "$COLLAB_SERVER" ] && echo "COLLAB_SERVER=$COLLAB_SERVER" >> local.properties
+          [ -n "$COLLAB_GOOGLE_CLIENT_ID" ] && echo "COLLAB_GOOGLE_CLIENT_ID=$COLLAB_GOOGLE_CLIENT_ID" >> local.properties
 
       - name: Packaging tools
         run: |
@@ -215,9 +242,19 @@ jobs:
 
       - name: Write local.properties
         shell: bash
+        env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+          LISTEN_TOGETHER_SERVER: ${{ secrets.LISTEN_TOGETHER_SERVER || vars.LISTEN_TOGETHER_SERVER }}
+          COLLAB_SERVER: ${{ secrets.COLLAB_SERVER || vars.COLLAB_SERVER }}
+          COLLAB_GOOGLE_CLIENT_ID: ${{ secrets.COLLAB_GOOGLE_CLIENT_ID || vars.COLLAB_GOOGLE_CLIENT_ID }}
         run: |
-          echo "LASTFM_API_KEY=${{ secrets.LASTFM_API_KEY }}" > local.properties
-          echo "LASTFM_SECRET=${{ secrets.LASTFM_SECRET }}" >> local.properties
+          : > local.properties
+          [ -n "$LASTFM_API_KEY" ] && echo "LASTFM_API_KEY=$LASTFM_API_KEY" >> local.properties
+          [ -n "$LASTFM_SECRET" ] && echo "LASTFM_SECRET=$LASTFM_SECRET" >> local.properties
+          [ -n "$LISTEN_TOGETHER_SERVER" ] && echo "LISTEN_TOGETHER_SERVER=$LISTEN_TOGETHER_SERVER" >> local.properties
+          [ -n "$COLLAB_SERVER" ] && echo "COLLAB_SERVER=$COLLAB_SERVER" >> local.properties
+          [ -n "$COLLAB_GOOGLE_CLIENT_ID" ] && echo "COLLAB_GOOGLE_CLIENT_ID=$COLLAB_GOOGLE_CLIENT_ID" >> local.properties
 
       - name: Tests
         run: .\gradlew.bat :shared:jvmTest :desktopUi:jvmTest :desktopApp:test "-Pbitchord.version=${{ steps.version.outputs.value }}"
@@ -232,7 +269,6 @@ jobs:
           jar=$(ls desktopApp/build/compose/binaries/main/app/BitChord/app/desktopApp*.jar)
           jar tf "$jar" | grep -q 'native/bitchord_analysis.dll'
           jar tf "$jar" | grep -q 'models/.*\.onnx'
-          # WinRT, so only MSVC can build it and only this job ever does.
           jar tf "$jar" | grep -q 'native/bitchord_smtc.dll'
 
       - name: Collect
@@ -259,17 +295,27 @@ jobs:
         include:
           - os: macos-14
             arch: arm64
-          - os: macos-15-intel
+            java_arch: aarch64
+          - os: macos-14
             arch: x64
+            java_arch: x64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Ensure Rosetta 2 for x64 target on Apple Silicon
+        if: matrix.arch == 'x64'
+        run: |
+          if [ "$(uname -m)" = "arm64" ] && ! /usr/bin/pgrep -q oahd; then
+            sudo softwareupdate --install-rosetta --agree-to-license
+          fi
+
+      - name: Set up JDK 21 (${{ matrix.java_arch }})
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
+          architecture: ${{ matrix.java_arch }}
 
       - uses: gradle/actions/setup-gradle@v4
 
@@ -279,40 +325,51 @@ jobs:
           version="${{ inputs.version }}"
           [ -n "$version" ] || version="${GITHUB_REF_NAME#v}"
           echo "value=$version" >> "$GITHUB_OUTPUT"
-          echo "Building $version"
+          echo "Building $version (${{ matrix.arch }})"
 
       - name: Write local.properties
+        env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+          LISTEN_TOGETHER_SERVER: ${{ secrets.LISTEN_TOGETHER_SERVER || vars.LISTEN_TOGETHER_SERVER }}
+          COLLAB_SERVER: ${{ secrets.COLLAB_SERVER || vars.COLLAB_SERVER }}
+          COLLAB_GOOGLE_CLIENT_ID: ${{ secrets.COLLAB_GOOGLE_CLIENT_ID || vars.COLLAB_GOOGLE_CLIENT_ID }}
         run: |
-          echo "LASTFM_API_KEY=${{ secrets.LASTFM_API_KEY }}" > local.properties
-          echo "LASTFM_SECRET=${{ secrets.LASTFM_SECRET }}" >> local.properties
+          : > local.properties
+          [ -n "$LASTFM_API_KEY" ] && echo "LASTFM_API_KEY=$LASTFM_API_KEY" >> local.properties
+          [ -n "$LASTFM_SECRET" ] && echo "LASTFM_SECRET=$LASTFM_SECRET" >> local.properties
+          [ -n "$LISTEN_TOGETHER_SERVER" ] && echo "LISTEN_TOGETHER_SERVER=$LISTEN_TOGETHER_SERVER" >> local.properties
+          [ -n "$COLLAB_SERVER" ] && echo "COLLAB_SERVER=$COLLAB_SERVER" >> local.properties
+          [ -n "$COLLAB_GOOGLE_CLIENT_ID" ] && echo "COLLAB_GOOGLE_CLIENT_ID=$COLLAB_GOOGLE_CLIENT_ID" >> local.properties
 
-      - run: chmod +x gradlew
+      - run: chmod +x gradlew scripts/macos/package-macos.py scripts/macos/verify-macos-artifacts.py
 
       - name: Tests
-        run: ./gradlew :shared:jvmTest :desktopUi:jvmTest :desktopApp:test -Pbitchord.version=${{ steps.version.outputs.value }}
+        run: ./gradlew :shared:jvmTest :desktopUi:jvmTest :desktopApp:test -Pbitchord.version=${{ steps.version.outputs.value }} -Pbitchord.arch=${{ matrix.arch }}
 
-      - name: Build DMG, PKG and the app bundle
+      - name: Package & Verify macOS DMG, PKG, and ZIP
+        env:
+          LISTEN_TOGETHER_SERVER: ${{ secrets.LISTEN_TOGETHER_SERVER || vars.LISTEN_TOGETHER_SERVER }}
+          COLLAB_SERVER: ${{ secrets.COLLAB_SERVER || vars.COLLAB_SERVER }}
+          COLLAB_GOOGLE_CLIENT_ID: ${{ secrets.COLLAB_GOOGLE_CLIENT_ID || vars.COLLAB_GOOGLE_CLIENT_ID }}
+          MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          MACOS_INSTALLER_SIGN_IDENTITY: ${{ secrets.MACOS_INSTALLER_SIGN_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          ./gradlew :desktopApp:packageDmg :desktopApp:packagePkg :desktopApp:createDistributable \
-            -Pbitchord.version=${{ steps.version.outputs.value }}
-
-      - name: The analyser and models are in the jar
-        run: |
+          python3 scripts/macos/package-macos.py \
+            --version "${{ steps.version.outputs.value }}" \
+            --arch "${{ matrix.arch }}" \
+            --output-dir dist
           jar=$(ls desktopApp/build/compose/binaries/main/app/BitChord.app/Contents/app/desktopApp*.jar)
           jar tf "$jar" | grep -q 'models/.*\.onnx'
-
-      - name: Collect
-        run: |
-          v="${{ steps.version.outputs.value }}"
-          arch="${{ matrix.arch }}"
-          mkdir -p dist
-          for f in desktopApp/build/compose/binaries/main/dmg/*.dmg; do
-            [ -f "$f" ] && cp "$f" "dist/BitChord-$v-macos-$arch.dmg"
-          done
-          for f in desktopApp/build/compose/binaries/main/pkg/*.pkg; do
-            [ -f "$f" ] && cp "$f" "dist/BitChord-$v-macos-$arch.pkg"
-          done
-          ditto -c -k --keepParent desktopApp/build/compose/binaries/main/app/BitChord.app "dist/BitChord-$v-macos-$arch.zip"
+          python3 scripts/macos/verify-macos-artifacts.py \
+            --expected-version "${{ steps.version.outputs.value }}" \
+            --expected-arch "${{ matrix.arch }}" \
+            dist
           ls -lh dist
 
       - uses: actions/upload-artifact@v4
@@ -320,9 +377,41 @@ jobs:
           name: macos-${{ matrix.arch }}-artifacts
           path: dist/*
 
+  web:
+    name: Web · player & extension
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Install, Typecheck, Test & Build Web
+        env:
+          COREPACK_INTEGRITY_KEYS: '0'
+          VITE_PARTY_SERVER_URL: ${{ secrets.LISTEN_TOGETHER_SERVER || vars.LISTEN_TOGETHER_SERVER || 'https://bitchord-listen-together.onrender.com' }}
+          VITE_LISTEN_TOGETHER_URL: ${{ secrets.LISTEN_TOGETHER_SERVER || vars.LISTEN_TOGETHER_SERVER || 'https://bitchord-listen-together.onrender.com' }}
+          VITE_COLLAB_SERVER_URL: ${{ secrets.COLLAB_SERVER || vars.COLLAB_SERVER || secrets.LISTEN_TOGETHER_SERVER || vars.LISTEN_TOGETHER_SERVER || 'https://bitchord-listen-together.onrender.com' }}
+          VITE_COLLAB_GOOGLE_CLIENT_ID: ${{ secrets.COLLAB_GOOGLE_CLIENT_ID || vars.COLLAB_GOOGLE_CLIENT_ID || '' }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm -r typecheck
+          pnpm -r test
+          pnpm -r build
+
   release:
     name: Publish
-    needs: [android, linux, windows, macos]
+    needs: [android, linux, windows, macos, web]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -333,20 +422,29 @@ jobs:
           merge-multiple: true
           path: dist
 
-      - run: ls -lh dist
+      - name: Final Cross-Platform Verification Gate
+        env:
+          EXPECTED_ANDROID_CERT_SHA256: ${{ secrets.EXPECTED_ANDROID_CERT_SHA256 || vars.EXPECTED_ANDROID_CERT_SHA256 }}
+        run: |
+          ls -lh dist
+          chmod +x scripts/verify-android-upgrade.sh scripts/macos/verify-macos-artifacts.py
+          ./scripts/verify-android-upgrade.sh dist
+          python3 scripts/macos/verify-macos-artifacts.py dist
 
       - name: Recreate existing release to refresh published timestamp
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
           TAG: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', inputs.version) }}
         run: |
-          gh release delete "$TAG" --yes || true
-          gh api -X PATCH "repos/${{ github.repository }}/git/refs/tags/$TAG" \
+          gh release delete "$TAG" --repo "$REPO" --yes || true
+          gh api -X PATCH "repos/${REPO}/git/refs/tags/$TAG" \
             -f sha="${{ github.sha }}" -F force=true || true
 
       - name: Publish the release
         uses: softprops/action-gh-release@v2
         with:
+          repository: ${{ github.repository }}
           tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', inputs.version) }}
           name: BitChord ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', inputs.version) }}
           body_path: docs/RELEASE_NOTES.md

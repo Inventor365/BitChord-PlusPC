@@ -1,4 +1,4 @@
-import { ArrowUpRight, ListMusic, Settings } from 'lucide-react';
+import { ArrowUpRight, ListMusic, Settings, Users } from 'lucide-react';
 import { MdOutlineExtension } from 'react-icons/md';
 import { PrefetchLink, PrefetchNavLink } from '@/components/PrefetchLink';
 import { LogoMark } from '@/components/icons/LogoMark';
@@ -18,6 +18,8 @@ import { hrefFor } from '@/components/music/links';
 import { config } from '@/config';
 import { LIBRARY_SECTIONS, type LibrarySection } from '@/data/music/library';
 import { useLibraryPlaylists, useSignedIn } from '@/data/music/queries';
+import { useCollabSignedIn } from '@/collab/auth';
+import { useCollabPlaylists } from '@/collab/queries';
 import { useSpotifyPlaylists } from '@/data/spotify/queries';
 import { useExtensionUpdate } from '@/extension/useExtensionUpdate';
 import { useSpotifySignedIn } from '@/extension/useSpotifyAuth';
@@ -75,13 +77,19 @@ function NavList({ items, onNavigate }: { items: NavItem[]; onNavigate: () => vo
   );
 }
 
-/** Library and Playlists (report §1), once YouTube requests are made as the user. */
-function LibraryNav({ onNavigate }: { onNavigate: () => void }) {
+/** Library (when YouTube is signed in) and Playlists (including standalone Collaborative Playlists). */
+function LibraryNav({ ytSignedIn, onNavigate }: { ytSignedIn: boolean; onNavigate: () => void }) {
   const playlists = useLibraryPlaylists();
+  const collabSignedIn = useCollabSignedIn();
+  const collabPlaylists = useCollabPlaylists(true);
   return (
     <>
-      <h2 className={sectionHeader}>Library</h2>
-      <NavList items={LIBRARY} onNavigate={onNavigate} />
+      {ytSignedIn && (
+        <>
+          <h2 className={sectionHeader}>Library</h2>
+          <NavList items={LIBRARY} onNavigate={onNavigate} />
+        </>
+      )}
       <h2 className={sectionHeader}>Playlists</h2>
       <ul className={list}>
         <li>
@@ -90,16 +98,32 @@ function LibraryNav({ onNavigate }: { onNavigate: () => void }) {
             <span className={navLabel}>{LIBRARY_SECTIONS.playlists.title}</span>
           </PrefetchNavLink>
         </li>
-        {playlists.data?.map((playlist) => (
-          <li key={playlist.id}>
-            <PrefetchNavLink to={hrefFor(playlist) ?? '/library/playlists'} className={item} onClick={onNavigate}>
-              <span className={icon}>
-                <ListMusic size={17} strokeWidth={1.8} />
-              </span>
-              <span className={navLabel}>{playlist.title}</span>
-            </PrefetchNavLink>
-          </li>
-        ))}
+        {collabSignedIn &&
+          collabPlaylists.data?.map((playlist) => (
+            <li key={`collab-${playlist.id}`}>
+              <PrefetchNavLink
+                to={`/collab/${encodeURIComponent(playlist.id)}`}
+                className={item}
+                onClick={onNavigate}
+              >
+                <span className={icon} title="Collaborative Playlist">
+                  <Users size={16} strokeWidth={1.9} />
+                </span>
+                <span className={navLabel}>{playlist.title}</span>
+              </PrefetchNavLink>
+            </li>
+          ))}
+        {ytSignedIn &&
+          playlists.data?.map((playlist) => (
+            <li key={playlist.id}>
+              <PrefetchNavLink to={hrefFor(playlist) ?? '/library/playlists'} className={item} onClick={onNavigate}>
+                <span className={icon}>
+                  <ListMusic size={17} strokeWidth={1.8} />
+                </span>
+                <span className={navLabel}>{playlist.title}</span>
+              </PrefetchNavLink>
+            </li>
+          ))}
       </ul>
     </>
   );
@@ -159,7 +183,7 @@ export function Sidebar() {
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto pr-3 pl-5 [scrollbar-width:none]">
           <NavList items={PRIMARY} onNavigate={close} />
-          {signedIn && <LibraryNav onNavigate={close} />}
+          <LibraryNav ytSignedIn={signedIn} onNavigate={close} />
           {spotifySignedIn && <SpotifyNav onNavigate={close} />}
         </div>
         <div className="flex flex-col gap-2 pt-3 pr-3 pb-5 pl-5">

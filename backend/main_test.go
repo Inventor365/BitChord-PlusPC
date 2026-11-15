@@ -22,26 +22,16 @@ import (
 )
 
 func setupTestServer() *httptest.Server {
-	// Each test server starts with its own rate-limit allowances.
+	// Each test server starts with its own rate-limit allowances and isolated in-memory collab store.
 	createLimiter = newIPRateLimiter(time.Minute, config.CreateRatePerMinute, config.RateLimitMaxEntries)
 	joinLimiter = newIPRateLimiter(time.Minute, config.JoinRatePerMinute, config.RateLimitMaxEntries)
 	previewLimiter = newIPRateLimiter(time.Minute, config.PreviewRatePerMinute, config.RateLimitMaxEntries)
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{$}", handleRoot)
-	mux.HandleFunc("GET /healthz", handleHealthz)
-	mux.HandleFunc("GET /api/time", handleTime)
-	mux.HandleFunc("POST /api/parties", handleCreateParty)
-	mux.HandleFunc("POST /api/parties/{code}/join", handleJoinParty)
-	mux.HandleFunc("GET /api/parties/{code}/preview", handlePreviewParty)
-	mux.HandleFunc("GET /api/parties/{code}", handleGetParty)
-	mux.HandleFunc("POST /api/parties/{code}/leave", handleLeaveParty)
-	mux.HandleFunc("POST /api/presence", handlePresence)
-	mux.HandleFunc("GET /api/stats/live", handleLiveStats)
-	mux.HandleFunc("GET /api/stats/live/badge.svg", handleLiveBadge)
-	mux.HandleFunc("GET /invite/{code}", handleInviteLanding)
-	mux.HandleFunc("GET /ws/parties/{code}", handleWebSocket)
-
-	return httptest.NewServer(corsMiddleware(mux))
+	ch, err := newCollabHandler(":memory:")
+	if err != nil {
+		panic(err)
+	}
+	collabHandler = ch
+	return httptest.NewServer(corsMiddleware(setupMux()))
 }
 
 func TestRESTEndpoints(t *testing.T) {
@@ -805,5 +795,48 @@ func TestStalledListenerDoesNotHoldThePartyLock(t *testing.T) {
 	}
 	if waited := time.Since(start); waited > time.Second {
 		t.Fatalf("GET waited %v on the party lock behind a stalled socket", waited)
+	}
+}
+
+func TestCollabCORSAndSetupMuxIntegration(t *testing.T) {
+	ts := setupTestServer()
+	defer ts.Close()
+
+	const allowedOrigin = "https://web.bitchord.test"
+	prevOrigins := config.AllowedOrigins
+	config.AllowedOrigins = []string{allowedOrigin}
+	defer func() { config.AllowedOrigins = prevOrigins }()
+
+	// Preflight OPTIONS to /api/collab/playlists/{id} must advertise PATCH, PUT, DELETE.
+	optReq, _ := http.NewRequest(http.MethodOptions, ts.URL+"/api/collab/playlists/cpl_test", nil)
+	optReq.Header.Set("Origin", allowedOrigin)
+	optRes, err := http.DefaultClient.Do(optReq)
+	if err != nil {
+		t.Fatalf("OPTIONS failed: %v", err)
+	}
+	defer optRes.Body.Close()
+	if optRes.StatusCode != http.StatusNoContent {
+		t.Fatalf("expected 204 No Content, got %d", optRes.StatusCode)
+	}
+	methods := optRes.Header.Get("Access-Control-Allow-Methods")
+	for _, m := range []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"} {
+		if !strings.Contains(methods, m) {
+			t.Errorf("expected Access-Control-Allow-Methods %q to include %s", methods, m)
+		}
+	}
+
+	// Unauthenticated GET /api/collab/playlists returns 401 auth_required.
+	unauthRes, err := http.Get(ts.URL + "/api/collab/playlists")
+	if err != nil {
+		t.Fatalf("GET /api/collab/playlists failed: %v", err)
+	}
+	defer unauthRes.Body.Close()
+	if unauthRes.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for guest collab playlists, got %d", unauthRes.StatusCode)
+	}
+	var errBody map[string]string
+	_ = json.NewDecoder(unauthRes.Body).Decode(&errBody)
+	if errBody["error"] != "auth_required" {
+		t.Fatalf("expected error=auth_required, got %+v", errBody)
 	}
 }

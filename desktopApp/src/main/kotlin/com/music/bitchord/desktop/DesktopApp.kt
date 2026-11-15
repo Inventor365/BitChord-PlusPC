@@ -33,6 +33,12 @@ import com.music.bitchord.ui.screens.LibraryLink
 import com.music.bitchord.ui.screens.LibraryScreen
 import com.music.bitchord.ui.screens.MoodGenrePlaylistsScreen
 import com.music.bitchord.ui.screens.SearchScreen
+import com.music.bitchord.ui.collab.CollabGoogleAuthDialog
+import com.music.bitchord.ui.collab.CollabJoinInviteDialog
+import com.music.bitchord.ui.collab.CollabLibrarySection
+import com.music.bitchord.ui.collab.CollabPlaylistDetailScreen
+import com.music.bitchord.ui.collab.MakeCollaborativeDialog
+import androidx.compose.material.icons.rounded.Group
 import com.music.bitchord.data.NerdStats
 import com.music.bitchord.playback.PlaybackPosition
 import com.music.bitchord.playback.QueueSource
@@ -582,6 +588,15 @@ fun BitChordDesktopApp() {
     /** What the Spotify grid is waiting on, or why it is empty; null once its playlists are in. */
     var spotifyLibraryStatus by remember { mutableStateOf<String?>(null) }
     var spotifyImportOpen by remember { mutableStateOf(false) }
+    var openedCollabPlaylistId by remember { mutableStateOf<String?>(null) }
+    var showCollabAuthDialog by remember { mutableStateOf(false) }
+    var showCollabJoinDialog by remember { mutableStateOf(false) }
+    var showCollabCreateOrConvert by remember { mutableStateOf(false) }
+    var collabConvertSourceId by remember { mutableStateOf<String?>(null) }
+    var collabConvertSourceType by remember { mutableStateOf("desktop") }
+    var collabConvertTitle by remember { mutableStateOf("") }
+    var collabConvertArtwork by remember { mutableStateOf<String?>(null) }
+    var collabConvertSongs by remember { mutableStateOf<List<Song>>(emptyList()) }
     /** Where the one back button in the top bar goes: every place visited, oldest first. */
     val navHistory = remember { mutableStateListOf<DesktopNavEntry>() }
     /** Set while [goBack] puts a place back, so that move is not itself recorded as a visit. */
@@ -2318,6 +2333,7 @@ fun BitChordDesktopApp() {
         }
         openedArtist = null
         openedCollection = null
+        openedCollabPlaylistId = null
         overlays.replay = false
         overlays.settingsPage = null
         selectedMoodGenre = null
@@ -3271,12 +3287,21 @@ fun BitChordDesktopApp() {
                     )
                 },
                 sidebar = {
+                    val sidebarCollab by DesktopCollab.manager.playlists.collectAsState()
                     DesktopSidebar(
                         destination = destination,
                         settingsOpen = overlays.settingsPage != null,
                         accountPlaylists = sidebarAccountPlaylists,
                         localPlaylists = playlists,
                         openedCollectionId = openedCollection?.browseId,
+                        collabPlaylists = sidebarCollab,
+                        openedCollabId = openedCollabPlaylistId,
+                        onOpenCollabPlaylist = { pid ->
+                            openedArtist = null
+                            openedCollection = null
+                            overlays.settingsPage = null
+                            openedCollabPlaylistId = pid
+                        },
                         query = query,
                         onQueryChange = { text ->
                             editQuery(text)
@@ -3594,6 +3619,46 @@ fun BitChordDesktopApp() {
                         )
                     }
 
+                    if (showCollabCreateOrConvert) {
+                        MakeCollaborativeDialog(
+                            manager = DesktopCollab.manager,
+                            sourcePlaylistId = collabConvertSourceId,
+                            sourceType = collabConvertSourceType,
+                            initialTitle = collabConvertTitle,
+                            initialArtworkUrl = collabConvertArtwork,
+                            existingSongs = collabConvertSongs,
+                            onDismiss = { showCollabCreateOrConvert = false },
+                            onOpenAuthDialog = { showCollabAuthDialog = true },
+                            onCreated = { created ->
+                                showCollabCreateOrConvert = false
+                                openedArtist = null
+                                openedCollection = null
+                                openedCollabPlaylistId = created.id
+                            },
+                        )
+                    }
+
+                    if (showCollabJoinDialog) {
+                        CollabJoinInviteDialog(
+                            manager = DesktopCollab.manager,
+                            onDismiss = { showCollabJoinDialog = false },
+                            onOpenAuthDialog = { showCollabAuthDialog = true },
+                            onJoined = { joined ->
+                                showCollabJoinDialog = false
+                                openedArtist = null
+                                openedCollection = null
+                                openedCollabPlaylistId = joined.id
+                            },
+                        )
+                    }
+
+                    if (showCollabAuthDialog) {
+                        CollabGoogleAuthDialog(
+                            manager = DesktopCollab.manager,
+                            onDismiss = { showCollabAuthDialog = false },
+                        )
+                    }
+
                     if (overlays.signIn) {
                         DesktopSignInDialog(
                             busy = signInBusy,
@@ -3648,16 +3713,40 @@ fun BitChordDesktopApp() {
                         )
                     }
                     if (overlays.playlistDialog || playlistTarget != null) {
+                        val collabForDialog by DesktopCollab.manager.playlists.collectAsState()
+                        val collabAsShelf = remember(collabForDialog) {
+                            collabForDialog.filter { it.canEditTracks }.map { cp ->
+                                UserPlaylist(
+                                    playlistId = "collab:${cp.id}",
+                                    title = "${cp.title} (Collab)",
+                                    subtitle = cp.ownerName,
+                                    thumbnailUrl = cp.artworkUrl,
+                                )
+                            }
+                        }
                         DesktopPlaylistDialog(
                             song = playlistTarget,
-                            accountPlaylists = accountPlaylists,
+                            accountPlaylists = collabAsShelf + accountPlaylists,
                             localPlaylists = playlists,
-                            signedIn = youtubeSignedIn,
+                            signedIn = youtubeSignedIn || collabAsShelf.isNotEmpty(),
                             canUseAccount = playlistTarget
                                 ?.let { DesktopSearchClient.isVideoId(it.videoId) } ?: true,
                             busy = playlistBusy,
                             error = playlistError,
-                            onPickAccount = ::addToAccountPlaylist,
+                            onPickAccount = { picked ->
+                                val bid = picked.playlistId
+                                if (bid.startsWith("collab:")) {
+                                    val s = playlistTarget
+                                    if (s != null) {
+                                        scope.launch {
+                                            DesktopCollab.manager.addSongs(bid.removePrefix("collab:"), listOf(s))
+                                            closePlaylistDialogs()
+                                        }
+                                    }
+                                } else {
+                                    addToAccountPlaylist(picked)
+                                }
+                            },
                             onPickLocal = ::addToPlaylist,
                             onCreate = ::createPlaylist,
                             onDismiss = ::closePlaylistDialogs,
@@ -4055,6 +4144,23 @@ fun BitChordDesktopApp() {
                             onOpenArtist = ::openArtistByName,
                             contentPadding = contentPadding,
                         )
+                        openedCollabPlaylistId != null -> DesktopPageScaffold(contentPadding) {
+                            CollabPlaylistDetailScreen(
+                                playlistId = openedCollabPlaylistId!!,
+                                manager = DesktopCollab.manager,
+                                currentPlayingVideoId = selectedSong?.videoId,
+                                onBack = { openedCollabPlaylistId = null },
+                                onPlaySongs = { songs, startIndex, shuffle, playlistTitle ->
+                                    if (songs.isNotEmpty()) {
+                                        val ordered = if (shuffle) songs.shuffled() else songs
+                                        val idx = if (shuffle) 0 else startIndex
+                                        playSongs(ordered, idx, DesktopQueueSource(playlistTitle, PlaybackSourceType.BROWSE, "collab:$openedCollabPlaylistId"))
+                                    }
+                                },
+                                onOpenAuthDialog = { showCollabAuthDialog = true },
+                                contentPadding = sharedPagePadding,
+                            )
+                        }
                         openedArtist != null -> DesktopArtistPage(
                             state = artistState,
                             fallbackName = openedArtist!!.name,
@@ -4100,6 +4206,16 @@ fun BitChordDesktopApp() {
                             },
                             onRemoveFromPlaylist = ::removeFromOpenPlaylist
                                 .takeIf { openedCollection?.owned == true },
+                            onMakeCollaborative = openedCollection?.takeIf { it.type == BrowseType.PLAYLIST }?.let { col ->
+                                {
+                                    collabConvertSourceId = col.browseId
+                                    collabConvertSourceType = if (col.browseId.startsWith("local:") || col.browseId.startsWith("desktop:")) "desktop" else "ytm"
+                                    collabConvertTitle = col.title
+                                    collabConvertArtwork = col.thumbnailUrl
+                                    collabConvertSongs = col.songs
+                                    showCollabCreateOrConvert = true
+                                }
+                            },
                             likedIds = likedIds,
                             onPlaySongs = { songs, index ->
                                 playSongs(songs, index, openedCollection?.let { collectionSource(it) })
@@ -4323,6 +4439,27 @@ fun BitChordDesktopApp() {
                             links = libraryLinks,
                             deviceItems = libraryDeviceItems,
                             showTitle = false,
+                            collabSection = { queryText ->
+                                CollabLibrarySection(
+                                    manager = DesktopCollab.manager,
+                                    query = queryText,
+                                    onOpenPlaylist = { pid ->
+                                        openedArtist = null
+                                        openedCollection = null
+                                        openedCollabPlaylistId = pid
+                                    },
+                                    onNewCollaborative = {
+                                        collabConvertSourceId = null
+                                        collabConvertSourceType = "desktop"
+                                        collabConvertTitle = ""
+                                        collabConvertArtwork = null
+                                        collabConvertSongs = emptyList()
+                                        showCollabCreateOrConvert = true
+                                    },
+                                    onJoinInvite = { showCollabJoinDialog = true },
+                                    onOpenAuthSettings = { showCollabAuthDialog = true },
+                                )
+                            },
                         )
                         destination == DesktopDestination.HISTORY -> DesktopHistoryPage(
                             // The account's history when there is one, and what
@@ -4730,6 +4867,9 @@ private fun DesktopSidebar(
     accountPlaylists: List<ShelfItem>,
     localPlaylists: List<DesktopPlaylist>,
     openedCollectionId: String?,
+    collabPlaylists: List<com.music.bitchord.data.collab.CollabPlaylistSummary> = emptyList(),
+    openedCollabId: String? = null,
+    onOpenCollabPlaylist: (String) -> Unit = {},
     query: String,
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
@@ -4852,6 +4992,14 @@ private fun DesktopSidebar(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 contentPadding = PaddingValues(bottom = 8.dp),
             ) {
+                items(collabPlaylists, key = { "collab:${it.id}" }) { cp ->
+                    DesktopSidebarItem(
+                        Icons.Rounded.Group,
+                        cp.title,
+                        openedCollabId == cp.id,
+                        onClick = { onOpenCollabPlaylist(cp.id) },
+                    )
+                }
                 items(visibleAccount, key = { "account:${it.browseId}" }) { playlist ->
                     DesktopSidebarItem(
                         Icons.AutoMirrored.Rounded.PlaylistPlay,
@@ -6694,7 +6842,7 @@ private fun DesktopSettingsScreen(
 /** The line at the foot of the settings sheet, as Android has it. */
 @Composable
 private fun DesktopSettingsFooter(onLicenses: () -> Unit) {
-    val version = remember { System.getProperty("bitchord.version") ?: "1.9.2" }
+    val version = remember { System.getProperty("bitchord.version") ?: "1.10.0" }
     var easterEggTaps by remember { mutableStateOf(0) }
     val easterEggActive = easterEggTaps > 0
     val linkStyles = TextLinkStyles(
@@ -7036,6 +7184,7 @@ private fun DesktopCollectionPage(
     onReorder: (() -> Unit)?,
     /** Copies the release's own YouTube Music link; null for anything with no link to share. */
     onShare: (() -> Unit)?,
+    onMakeCollaborative: (() -> Unit)? = null,
     onRemoveFromPlaylist: ((Song) -> Unit)?,
     likedIds: Set<String>,
     onPlaySongs: (List<Song>, Int) -> Unit,
@@ -7196,6 +7345,16 @@ private fun DesktopCollectionPage(
                                             onClick = {
                                                 moreOpen = false
                                                 share()
+                                            },
+                                        )
+                                    }
+                                    onMakeCollaborative?.let { makeCollab ->
+                                        DropdownMenuItem(
+                                            text = { Text("Make Collaborative") },
+                                            leadingIcon = { Icon(Icons.Rounded.Group, null) },
+                                            onClick = {
+                                                moreOpen = false
+                                                makeCollab()
                                             },
                                         )
                                     }

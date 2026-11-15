@@ -7,7 +7,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 val appVersion: String = providers.gradleProperty("bitchord.version").orNull
     ?.removePrefix("v")
     ?.takeIf { it.isNotBlank() }
-    ?: "1.9.2"
+    ?: "1.10.0"
 
 /** Which platform this build is *for*, which is the host unless told otherwise. */
 val hostIsWindows = System.getProperty("os.name").contains("Windows", ignoreCase = true)
@@ -20,13 +20,13 @@ val targetOs: String = (providers.gradleProperty("bitchord.target").orNull ?: wh
     else -> error("BitChord desktop supports Linux, Windows, and macOS only")
 }).lowercase()
 
-val hostArch = System.getProperty("os.arch").lowercase()
-val isArm64 = hostArch == "aarch64" || hostArch == "arm64"
+val hostArch = (providers.gradleProperty("bitchord.arch").orNull ?: System.getProperty("os.arch")).lowercase()
+val isArm64 = hostArch == "aarch64" || hostArch == "arm64" || hostArch == "macos-arm64"
 
 // Windows installer metadata requires MAJOR.MINOR.BUILD even though the app's public version is
 // intentionally displayed without a patch number (1.7 rather than 1.7.0).
 // The build number is the desktop version code; it also keeps "-beta1" out of the numeric installer version.
-val desktopVersionCode = 40
+val desktopVersionCode = 41
 val nativePackageVersion = appVersion.substringBefore('-').split('.').take(2).joinToString(".") + ".$desktopVersionCode"
 
 // FFmpeg decodes audio; see DesktopAudioDecoder.
@@ -45,6 +45,7 @@ private fun localProperty(name: String): String = rootProject.file("local.proper
     ?.substringAfter('=')
     ?.trim()
     ?.takeIf { it.isNotBlank() }
+    ?: providers.environmentVariable(name).orNull?.trim()?.takeIf { it.isNotBlank() }
     ?: System.getenv(name).orEmpty().trim()
 
 val desktopModuleIndexUrl = localProperty("MODULE_INDEX_URL")
@@ -54,7 +55,9 @@ val desktopOtaUrl = localProperty("OTA_JSON_URL").ifBlank {
 
 // Last.fm signs every request with these, so signing in from inside the app
 // needs them at hand. Supplied locally and never committed, as on Android.
-val listenTogetherServer = localProperty("LISTEN_TOGETHER_SERVER")
+val listenTogetherServer = localProperty("LISTEN_TOGETHER_SERVER").trimEnd('/')
+val collabServer = localProperty("COLLAB_SERVER").ifBlank { listenTogetherServer }.trimEnd('/')
+val collabGoogleClientId = localProperty("COLLAB_GOOGLE_CLIENT_ID")
 val lastfmApiKey = localProperty("LASTFM_API_KEY")
 val lastfmSecret = localProperty("LASTFM_SECRET")
 
@@ -515,6 +518,12 @@ compose.desktop {
         }
         if (listenTogetherServer.isNotBlank()) {
             jvmArgs("-Dbitchord.listentogether.server=$listenTogetherServer")
+        }
+        if (collabServer.isNotBlank()) {
+            jvmArgs("-Dbitchord.collab.server=$collabServer")
+        }
+        if (collabGoogleClientId.isNotBlank()) {
+            jvmArgs("-Dbitchord.collab.googleClientId=$collabGoogleClientId")
         }
 
         buildTypes.release.proguard {

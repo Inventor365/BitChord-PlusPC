@@ -18,6 +18,8 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Request
 import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 
 /**
  * BitChord ships as a sideloaded APK off GitHub Releases rather than through
@@ -69,7 +71,7 @@ object AppUpdateChecker {
     /** Where this update's APK download currently stands, for the dialog's progress row. */
     sealed interface DownloadState {
         data object Idle : DownloadState
-        data class Downloading(val fraction: Float) : DownloadState
+        data class Downloading(val fraction: Float, val indeterminate: Boolean = false) : DownloadState
         data class Ready(val file: File) : DownloadState
         data class Failed(val message: String) : DownloadState
     }
@@ -264,41 +266,88 @@ object AppUpdateChecker {
         val info = _available.value ?: return@withContext
         val url = info.apkUrl ?: return@withContext
         downloadCancelled = false
-        _download.value = DownloadState.Downloading(0f)
+        _download.value = DownloadState.Downloading(0f, indeterminate = true)
 
         runCatching {
             val dir = File(context.cacheDir, CACHE_SUBDIR).apply { mkdirs() }
-            // Drop anything left over from an earlier attempt.
-            dir.listFiles()?.forEach { it.delete() }
             val target = File(dir, "bitchord-${info.version}.apk")
+            val partial = File(dir, "bitchord-${info.version}.apk.part")
+            // Clean up any stale files for older versions while keeping our own partial resume file.
+            dir.listFiles()?.forEach { file ->
+                if (file != target && file != partial) file.delete()
+            }
+            if (target.exists() && target.length() > 0L) {
+                _download.value = DownloadState.Ready(target)
+                return@withContext
+            }
 
-            val request = Request.Builder().url(url).build()
-            Http.client.newCall(request).execute().use { response ->
-                check(response.isSuccessful) { "Download failed: HTTP ${response.code}" }
-                val body = response.body ?: error("Empty download body")
-                val total = body.contentLength().takeIf { it > 0 }
+            var attempts = 0
+            while (true) {
+                val have = if (partial.exists()) partial.length() else 0L
+                val request = Request.Builder().url(url).apply {
+                    if (have > 0L) header("Range", "bytes=$have-")
+                }.build()
 
-                body.byteStream().use { input ->
-                    target.outputStream().use { output ->
-                        val buffer = ByteArray(64 * 1024)
-                        var readTotal = 0L
-                        while (true) {
-                            if (downloadCancelled) {
-                                _download.value = DownloadState.Idle
-                                return@withContext
-                            }
-                            val read = input.read(buffer)
-                            if (read == -1) break
-                            output.write(buffer, 0, read)
-                            readTotal += read
-                            total?.let {
-                                _download.value =
-                                    DownloadState.Downloading((readTotal.toFloat() / it).coerceIn(0f, 1f))
+                try {
+                    Http.client.newCall(request).execute().use { response ->
+                        if (response.code == 416) {
+                            partial.delete()
+                            throw IOException("Resumable range expired; restarting")
+                        }
+                        if (response.code >= 500) {
+                            throw IOException("Server error HTTP ${response.code}")
+                        }
+                        check(response.isSuccessful) { "Download failed: HTTP ${response.code}" }
+                        val body = response.body ?: error("Empty download body")
+                        val appending = response.code == 206 && have > 0L
+                        val startOffset = if (appending) have else 0L
+                        val remaining = body.contentLength().takeIf { it > 0L }
+                        val total = remaining?.let { startOffset + it }
+
+                        if (total != null && total > 0L) {
+                            _download.value = DownloadState.Downloading(
+                                (startOffset.toFloat() / total).coerceIn(0f, 1f),
+                            )
+                        }
+
+                        body.byteStream().use { input ->
+                            FileOutputStream(partial, appending).use { output ->
+                                val buffer = ByteArray(64 * 1024)
+                                var readTotal = startOffset
+                                while (true) {
+                                    if (downloadCancelled) {
+                                        partial.delete()
+                                        _download.value = DownloadState.Idle
+                                        return@withContext
+                                    }
+                                    val read = input.read(buffer)
+                                    if (read == -1) break
+                                    output.write(buffer, 0, read)
+                                    readTotal += read
+                                    if (total != null && total > 0L) {
+                                        _download.value = DownloadState.Downloading(
+                                            (readTotal.toFloat() / total).coerceIn(0f, 1f),
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
+                    break
+                } catch (e: IOException) {
+                    if (downloadCancelled) {
+                        partial.delete()
+                        _download.value = DownloadState.Idle
+                        return@withContext
+                    }
+                    attempts++
+                    if (attempts >= 3) throw e
+                    kotlinx.coroutines.delay(1_000L * attempts)
                 }
             }
+
+            target.delete()
+            check(partial.renameTo(target)) { "Could not finalize downloaded update" }
             _download.value = DownloadState.Ready(target)
         }.onFailure { error ->
             _download.value = if (downloadCancelled) {

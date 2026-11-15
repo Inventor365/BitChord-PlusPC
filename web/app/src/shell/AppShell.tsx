@@ -1,4 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react';
+import { initCollabAuth } from '@/collab/auth';
+import { CollabSignInModalHost } from '@/components/collab/CollabSignInModal';
 import { resumeSession } from '@/party/listenTogether';
 import { startPartySync } from '@/party/partySync';
 import { useDiscordPresence } from '@/playback/discordPresence';
@@ -34,6 +36,8 @@ export function AppShell() {
     resumeSession();
     return startPartySync();
   }, []);
+  // Collaborative Playlists: verify any stored Google session token in background.
+  useEffect(() => initCollabAuth(), []);
   // Plays into the account's YouTube Music history (Settings › Share Listening Activity).
   useEffect(() => startHistoryReporting(), []);
   // Counts this tab in the "listening now" figure beside the phone and PC apps.
@@ -96,6 +100,7 @@ export function AppShell() {
           <FullScreenPlayer />
         </Suspense>
       )}
+      <CollabSignInModalHost />
     </div>
   );
 }

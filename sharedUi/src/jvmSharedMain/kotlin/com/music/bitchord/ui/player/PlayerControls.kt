@@ -263,6 +263,12 @@ internal fun PlayerScrubber(
                     },
                     style = MaterialTheme.typography.labelMedium,
                     color = timeColor,
+                    modifier = Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) {
+                        PlayerSettings.setShowTotalDuration(!showTotalDuration)
+                    },
                 )
             }
             // Pinned to the box's own centre rather than squeezed into the gap
@@ -1062,6 +1068,7 @@ private fun OutputPartyPill(
             onClick = if (badge.inParty) onOpenMembers else onParty,
             highlighted = badge.inParty,
             trailingLabel = badge.members.takeIf { badge.inParty }?.toString(),
+            vibrant = true,
         )
     }
 }

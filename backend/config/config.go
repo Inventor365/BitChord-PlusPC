@@ -20,6 +20,26 @@ func getInt(key string, fallback int) int {
 	return parsed
 }
 
+func getInt64(key string, fallback int64) int64 {
+	val := os.Getenv(key)
+	if val == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseInt(strings.TrimSpace(val), 10, 64)
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func getString(key string, fallback string) string {
+	val := strings.TrimSpace(os.Getenv(key))
+	if val == "" {
+		return fallback
+	}
+	return val
+}
+
 func getCSV(key string, fallback string) []string {
 	val := os.Getenv(key)
 	if val == "" {
@@ -110,4 +130,20 @@ var (
 	PresenceMaxEntries      = getInt("JAM_PRESENCE_MAX_ENTRIES", 200000)
 	PresencePingsPerMinute  = getInt("JAM_PRESENCE_PINGS_PER_MINUTE", 20)
 	PresenceRateLimitMaxIPs = getInt("JAM_PRESENCE_RATE_LIMIT_MAX_IPS", 100000)
+)
+
+// Collaborative playlists & Google OIDC session configuration.
+var (
+	CollabDataPath               = getString("COLLAB_DATA_PATH", "./data/collab.json")
+	CollabGoogleClientIDs        = getCSV("COLLAB_GOOGLE_CLIENT_IDS", "")
+	CollabGoogleClientSecret     = getString("COLLAB_GOOGLE_CLIENT_SECRET", "")
+	CollabAllowAnyGoogleAudience = getBool("COLLAB_ALLOW_ANY_GOOGLE_AUDIENCE", false)
+	CollabSessionTTLMs           = getInt64("COLLAB_SESSION_TTL_MS", 30*24*60*60*1000) // 2_592_000_000 ms (30 days)
+	CollabMaxPlaylistsPerUser    = getInt("COLLAB_MAX_PLAYLISTS_PER_USER", 200)
+	CollabMaxTracksPerPlaylist   = getInt("COLLAB_MAX_TRACKS_PER_PLAYLIST", 2000)
+	CollabMaxMembersPerPlaylist  = getInt("COLLAB_MAX_MEMBERS_PER_PLAYLIST", 50)
+	CollabRequestMaxBytes        = getInt64("COLLAB_REQUEST_MAX_BYTES", 2*1024*1024)
+	CollabAuthRatePerMinute      = getInt("COLLAB_AUTH_RATE_PER_MINUTE", 30)
+	CollabPreviewRatePerMinute   = getInt("COLLAB_PREVIEW_RATE_PER_MINUTE", 60)
+	CollabMutateRatePerMinute    = getInt("COLLAB_MUTATE_RATE_PER_MINUTE", 120)
 )

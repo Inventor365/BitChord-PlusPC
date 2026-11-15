@@ -1,6 +1,12 @@
-import { ChevronLeft, ChevronRight, ListEnd, ListPlus, ListStart, MoreHorizontal, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ListEnd, ListPlus, ListStart, MoreHorizontal, Star, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { useCollabAuth, useCollabSignedIn } from '@/collab/auth';
+import { addCollabTracks } from '@/collab/client';
+import { collabKeys, useCollabPlaylists } from '@/collab/queries';
+import { createOpId, evaluateCollabPermissions, trackToCollabInput, type CollabPlaylistSummary } from '@/collab/types';
+import { collabSocket } from '@/collab/ws';
 import { Menu, MenuHeader, MenuItem, MenuSeparator, type MenuPlacement } from '@/components/Menu';
+import { queryClient } from '@/lib/queryClient';
 import {
   useAddToPlaylist,
   useLikeStatus,
@@ -51,6 +57,49 @@ function PlaylistChoices({ videoId, onDone, onBack }: { videoId: string; onDone:
   );
 }
 
+function CollabPlaylistChoices({
+  track,
+  playlists,
+  onDone,
+  onBack,
+}: {
+  track: Track;
+  playlists: CollabPlaylistSummary[];
+  onDone: () => void;
+  onBack: () => void;
+}) {
+  const userId = useCollabAuth((s) => s.user?.id ?? null);
+  return (
+    <>
+      <MenuItem icon={<ChevronLeft size={14} />} onSelect={onBack}>
+        Back
+      </MenuItem>
+      <MenuSeparator />
+      <MenuHeader>Add to Collaborative Playlist</MenuHeader>
+      {playlists.map((pl) => (
+        <MenuItem
+          key={pl.id}
+          icon={<Users size={14} />}
+          onSelect={() => {
+            const opId = createOpId('add');
+            collabSocket.registerLocalOpId(pl.id, opId);
+            void addCollabTracks(pl.id, {
+              tracks: [trackToCollabInput(track, 'youtube')],
+              opId,
+            }).then(() => {
+              void queryClient.invalidateQueries({ queryKey: collabKeys.playlists(userId) });
+              void queryClient.invalidateQueries({ queryKey: collabKeys.detail(pl.id, userId) });
+            });
+            onDone();
+          }}
+        >
+          {pl.title}
+        </MenuItem>
+      ))}
+    </>
+  );
+}
+
 /** Favorite and Add to Playlist: the account's actions, signed in only. */
 function AccountItems({ track, onClose, onPlaylists }: { track: Track; onClose: () => void; onPlaylists: () => void }) {
   const status = useLikeStatus(track.videoId);
@@ -77,10 +126,28 @@ function AccountItems({ track, onClose, onPlaylists }: { track: Track; onClose: 
 }
 
 function TrackMenuItems({ track, onClose }: { track: Track; onClose: () => void }) {
-  const [view, setView] = useState<'main' | 'playlists'>('main');
+  const [view, setView] = useState<'main' | 'playlists' | 'collab-playlists'>('main');
   const signedIn = useSignedIn();
+  const collabSignedIn = useCollabSignedIn();
+  const collabUserId = useCollabAuth((s) => s.user?.id ?? null);
+  const collabPlaylists = useCollabPlaylists(false);
+  const editableCollab =
+    collabSignedIn && collabPlaylists.data
+      ? collabPlaylists.data.filter((pl) => evaluateCollabPermissions(pl, collabUserId).canAddTracks)
+      : [];
+
   if (view === 'playlists') {
     return <PlaylistChoices videoId={track.videoId} onDone={onClose} onBack={() => setView('main')} />;
+  }
+  if (view === 'collab-playlists') {
+    return (
+      <CollabPlaylistChoices
+        track={track}
+        playlists={editableCollab}
+        onDone={onClose}
+        onBack={() => setView('main')}
+      />
+    );
   }
   const { playNext, addToQueue } = usePlayer.getState();
   return (
@@ -91,6 +158,18 @@ function TrackMenuItems({ track, onClose }: { track: Track; onClose: () => void 
       <MenuItem icon={<ListEnd size={15} />} onSelect={() => (onClose(), addToQueue([track]))}>
         Add to Queue
       </MenuItem>
+      {editableCollab.length > 0 && (
+        <>
+          <MenuSeparator />
+          <MenuItem
+            icon={<Users size={15} />}
+            trailing={<ChevronRight size={14} />}
+            onSelect={() => setView('collab-playlists')}
+          >
+            Add to collaborative playlist
+          </MenuItem>
+        </>
+      )}
       {signedIn && <AccountItems track={track} onClose={onClose} onPlaylists={() => setView('playlists')} />}
     </>
   );

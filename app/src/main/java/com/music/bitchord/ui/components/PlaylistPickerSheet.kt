@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -128,6 +129,8 @@ fun PlaylistPickerSheet(
     // Find a playlist: narrows the list as it's typed. Ticks on playlists it
     // hides are kept, so a search can't quietly drop one already chosen.
     var query by remember { mutableStateOf("") }
+    val listState = rememberLazyListState()
+    LaunchedEffect(query) { listState.scrollToItem(0) }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
@@ -248,6 +251,7 @@ fun PlaylistPickerSheet(
                             )
                         }
                         LazyColumn(
+                            state = listState,
                             modifier = Modifier.weight(1f),
                             contentPadding = WindowInsets.navigationBars.asPaddingValues(),
                         ) {

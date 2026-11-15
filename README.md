@@ -1,35 +1,28 @@
 <div align="center">
 
 <br/>
-<br/>
 
-<img src="Logo.png" alt="BitChord app icon" width="200" />
+<img src="Logo.png" alt="BitChord app icon" width="180" />
 
-# BitChord PlusPC (`v1.9.2`)
+# BitChord PlusPC (`v1.10.0`)
 
-### Aesthetic YouTube Music Client for Windows, macOS, Linux, Android, Android Auto, Android TV & Wear OS
+### Multiplatform Music Client with Native Desktop, Collaborative Playlists & Lossless Audio
+**Android · Android Auto · Android TV · Wear OS · macOS · Windows · Linux · Web**
 
 <br/>
 
 [![Latest release](https://img.shields.io/github/v/release/Inventor365/BitChord-PlusPC?style=for-the-badge&labelColor=0d1117)](https://github.com/Inventor365/BitChord-PlusPC/releases/latest)
 [![License](https://img.shields.io/github/license/Inventor365/BitChord-PlusPC?style=for-the-badge&labelColor=0d1117)](https://github.com/Inventor365/BitChord-PlusPC/blob/main/LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/Inventor365/BitChord-PlusPC/total?style=for-the-badge&labelColor=0d1117)](https://github.com/Inventor365/BitChord-PlusPC/releases)
-[![Listening now](https://api.bitchord.kushagrasingh.in/api/stats/live/badge.svg)](https://api.bitchord.kushagrasingh.in/api/stats/live)
 
 <br/>
 
-[**Download**](#download) · [**What's New in v1.9.2**](#whats-extra) · [**Features**](#features) · [**Desktop**](#desktop) · [**Contributing**](#contributing) · [**Credits**](#credits) · [**Disclaimer**](#disclaimer)
-
-<br/>
-
-<a href="https://fmhy.net/mobile#youtube-music" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/available/fmhy/cozy.svg" alt="Featured on FMHY" height="55"/></a>
-<a href="https://trendshift.io/repositories/177639?utm_source=trendshift-badge&utm_medium=badge&utm_campaign=badge-trendshift-177639" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/177639/daily?language=Kotlin" alt="kushagrasinghx%2FBitChord | Trendshift" width="250" height="55"/></a>
-<a href="https://trendshift.io/repositories/177639?utm_source=trendshift-badge&utm_medium=badge&utm_campaign=badge-trendshift-177639" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/177639/weekly?language=Kotlin" alt="kushagrasinghx%2FBitChord | Trendshift" width="250" height="55"/></a>
+[**Overview**](#1-project-overview) · [**Why PlusPC**](#2-why-bitchord-pluspc-exists) · [**Install**](#4-installation-instructions) · [**Collaborative Playlists**](#9-collaborative-playlists--contributor-attribution) · [**Build from Source**](#13-building-from-source) · [**Backend**](#15-backend-configuration) · [**Signing & Releases**](#16-release-and-signing-information) · [**Troubleshooting**](#18-troubleshooting) · [**Credits**](#19-credits-and-license)
 
 </div>
 
 > [!IMPORTANT]
-> BitChord is not affiliated with, endorsed by, or connected to YouTube or Google in any way. Use it at your own discretion.
+> BitChord PlusPC is an independent, GPLv3-licensed open-source audio client. It is not affiliated with, endorsed by, or connected to YouTube, Google, Apple, or Spotify.
 
 ---
 
@@ -37,10 +30,8 @@
 
 <img src="Banner.png" alt="BitChord Android UI showcase" width="100%" />
 
-<br/>
-<br/>
+<br/><br/>
 
-<a id="desktop"></a>
 <table>
   <tr>
     <td width="50%" align="center">
@@ -60,162 +51,239 @@
 
 ---
 
-<div align="center">
+## 1. Project Overview
 
-<h1><a id="download"></a>Download (`v1.9.2`)</h1>
+**BitChord PlusPC** is a cross-platform YouTube Music and local/lossless audio player built with Kotlin Multiplatform, Compose Multiplatform, Media3, C++/ONNX DSP, React 19, and Go. It pairs an Apple Music–inspired Liquid Glass interface with word-by-word karaoke lyrics, Beat This! (`final0`) DJ Automix transitions, synchronized **Listen Together** rooms, and first-party **Collaborative Playlists** with verified Google contributor attribution.
 
-<p>
-  <a href="https://github.com/Inventor365/BitChord-PlusPC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/android/cozy.svg" alt="Download for Android" height="56"/></a>
-  &nbsp;
-  <a href="https://github.com/Inventor365/BitChord-PlusPC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/windows/cozy.svg" alt="Download for Windows" height="56"/></a>
-  &nbsp;
-  <a href="https://github.com/Inventor365/BitChord-PlusPC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/macos/cozy.svg" alt="Download for macOS" height="56"/></a>
-  &nbsp;
-  <a href="https://github.com/Inventor365/BitChord-PlusPC/releases/latest" target="_blank" rel="noopener noreferrer"><img src="docs/badges/linux-cozy.svg" alt="Download for Linux" height="56"/></a>
-</p>
+---
 
-</div>
+## 2. Why BitChord PlusPC Exists
 
-| Platform | Architectures | Packages on [Releases (`v1.9.2`)](https://github.com/Inventor365/BitChord-PlusPC/releases/latest) |
+BitChord PlusPC builds upon Kushagra Singh's upstream [`kushagrasinghx/BitChord`](https://github.com/kushagrasinghx/BitChord) while maintaining capabilities that specifically extend or diverge from upstream:
+
+### PlusPC-Specific Capabilities
+- **Native Desktop Applications (`:desktopApp` & `:desktopUi`)**: First-class native installers and portable bundles for **macOS (`arm64` & `x64` `.dmg`, `.pkg`, `.zip`)**, **Windows (`x64` `.exe`, `.msi`, `-portable.zip`)**, and **Linux (`x86_64` `.AppImage`, `.deb`, `.rpm`)** with native OS media integration (`SMTC`, `MPRIS2`, macOS Now Playing), 10-band parametric EQ, Discord IPC Rich Presence, and local ONNX Automix analysis.
+- **First-Party Collaborative Playlists & Contributor Attribution**: Server-authoritative shared playlists across Android, Desktop, and Web with verified Google OpenID Connect (RS256 + OAuth 2.0 PKCE) identity, non-destructive `"Make Collaborative"` personal playlist conversion, granular owner/editor/viewer roles, revocable `bci_...` invite links, live `/ws/collab` WebSocket sync, and Spotify Blend–style per-track contributor avatars.
+- **Curated Upstream & Community PR Integration**: Integrates **85+ verified community pull requests** ahead of upstream releases (including authenticated 256 kbps Premium audio selection, Song Credits, Album/Artist play counts, resumable HTTP `Range` OTA downloads, portable `.csv`/`.m3u`/`.json` playlist exchange, and Web MediaSession/accessibility improvements).
+- **Dedicated PlusPC Release & OTA Pipeline**: Deterministic Android signing (`SHA-256: d6d9c697...`) and verified macOS UDIF/XAR packaging (`scripts/macos/`) served exclusively from [`Inventor365/BitChord-PlusPC`](https://github.com/Inventor365/BitChord-PlusPC) and [`Inventor365/Bitchord-OTA`](https://github.com/Inventor365/Bitchord-OTA).
+
+### Upstream Core Capabilities (from `kushagrasinghx/BitChord`)
+- Liquid Glass UI, 3D gyroscope cover tilt, dynamic artwork mesh gradients, and 19-language localization.
+- Media3/ExoPlayer streaming via InnerTubeX + NewPipe fallback, USB Audio Class 1.0/2.0 bit-perfect DAC output, and Hi-Res FLAC/Dolby Atmos module support.
+- 12 word- and line-synced lyrics providers (`lrc.red`, `BiniLyrics`, `BetterLyrics`, `PaxSenix`, `LyricsPlus`, `SimpMusic`, `Unison`, `Megalobiz`, `KuGou`, `LRCLIB`, `Musixmatch`, `Genius`) with live translation and 18-script romanization.
+- Android Auto, Android TV / Fire TV leanback interface, Wear OS companion remote, and Listen Together party sync.
+
+---
+
+## 3. Supported Platforms
+
+| Platform | Architectures | Artifacts on [GitHub Releases (`v1.10.0`)](https://github.com/Inventor365/BitChord-PlusPC/releases/latest) |
 | :--- | :--- | :--- |
-| **Android (Phone, Tablet & Auto)** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChord-v1.9.2.apk`, `BitChord-v1.9.2_<abi>.apk` |
-| **Android TV / Fire TV** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChordTV-v1.9.2.apk`, `BitChordTV-v1.9.2_<abi>.apk` |
-| **Wear OS** | Universal | `BitChordWear-v1.9.2.apk` (also embedded in the phone APK) |
-| **Windows 10 / 11** | `x64` | `BitChord-1.9.2-windows-x64-setup.exe`, `.msi`, `-portable.zip` |
-| **macOS 12+** | Apple Silicon (`arm64`) & Intel (`x64`) | `BitChord-1.9.2-macos-arm64.dmg` / `.pkg` / `.zip`, `macos-x64.dmg` / `.pkg` / `.zip` |
-| **Linux** | `x86_64` / `amd64` | `BitChord-1.9.2-linux-x86_64.AppImage`, `-linux-amd64.deb`, `-linux-x86_64.rpm` |
-
-For detailed desktop build and packaging instructions, see [DESKTOP.md](DESKTOP.md).
-
----
-
-<h1><a id="whats-extra"></a>What's Extra Over Official (`v1.9.2`)</h1>
-
-This repository syncs [`kushagrasinghx/BitChord`](https://github.com/kushagrasinghx/BitChord) (**`v1.9.1`** + `web-player`) while restoring and hardening the native **Windows, macOS, and Linux** desktop client, integrating **80+ verified community pull requests** ahead of upstream, and shipping a dedicated OTA update channel (`Inventor365/Bitchord-OTA` & `Inventor365/BitChord-PlusPC`):
-
-- **Native Desktop Client Restored & Hardened (`:desktopApp` & `:desktopUi`)**:
-  - Verified native packages for **Windows (`x64` `.exe`, `.msi`, `-portable.zip`)**, **macOS (`arm64` & `x64` `.dmg`, `.pkg`, `.zip`)**, and **Linux (`x86_64` `.AppImage`, `.deb`, `.rpm`)** with full UDIF `koly`/`blkx` CRC-32 validation, XAR raw-`zlib` (`0x78 0xda`) streams, `Bom` verification, and ad-hoc Mach-O `LC_CODE_SIGNATURE` + `_CodeSignature/CodeResources` SHA-256 seals.
-  - Native audio output (`WASAPI`, `CoreAudio`, `ALSA`/`PulseAudio`/`PipeWire`), 10-band parametric EQ, system media integration (`SMTC`, `MPRIS2`, macOS Now Playing), Discord Rich Presence IPC, and local Beat This! (`final0`) ONNX Automix analysis.
-  - **Easy Browser Sign-In Link & Universal Session Paste**: Copyable & one-click browser sign-in links for **YouTube Music (Google)** and **Spotify**, one-click browser profile import across Windows, macOS (Keychain), and Linux, plus a **Universal Smart Paste / Paste from Clipboard** flow that accepts DevTools Cookies table rows (`Ctrl+A`, `Ctrl+C`), *Copy as cURL* (Bash/CMD), *Copy as PowerShell*, *Copy as fetch*, Cookie-Editor JSON, Netscape `cookies.txt`, or raw cookie headers.
-- **Android Auto, 3D Album Cover Tilt & Dynamic Cover App Icon (`v1.9.1`)**:
-  - Full **Android Auto** support with Quick Picks, Listen Again, Favorites, Offline Library, Playlists, Albums, Artists, voice search, and full Automix transitions in the car.
-  - **3D Album Cover Tilt** driven by the device gyroscope, **Dynamic App Icon** that adopts the currently playing song's cover art on the home screen, and **Audio Output Switcher** directly on the Android 13+ media notification.
-  - **Playlist Search & Sort** (Recently Added, Title, Artist, Album, Duration, Custom), **Local Albums / Artists / Artist pages**, **Multi-Select in Local Library & Downloads**, and **Swipe-to-Reply** in Listen Together chat.
-- **58+ Newly Integrated Community PRs (`v1.9.2`)**:
-  - **Parametric EQ Import/Export & Headphone Presets (`#1391`)**, **Separate Pitch & EQ Controls (`#1426`)**, and **Cast Audio Effects Notice (`#1392`, `#1400`)**.
-  - **Auto-Pause on Zero Volume (`#1396`)**, **Bluetooth Reconnect Auto-Resume (`#1395`)**, and **Pocket Hardware Volume Lock (`#1369`)**.
-  - **Remember Song/Video Choice (`#1437`)**, **Cast Queue Sync & Artwork (`#1510`)**, and **Resilient Queue Auto-Skip (`#1446`, `#1484`, `#1487`, `#1489`, `#1491`)**.
-  - **12 Lyrics Providers (`lrc.red`, `LyricsPlus` `#1240`, `SimpMusic` `#1250`, `BiniLyrics`, `BetterLyrics`, `PaxSenix`, `Unison`, `Megalobiz`, `KuGou`, `LRCLIB`, `Musixmatch`, `Genius`)** with **Fullscreen Translation/Romanization (`#1308`–`#1311`)**, **Word-Tap Seek (`#1447`–`#1449`)**, and **18-Script Romanization** (Cyrillic, Devanagari, Bengali, Gurmukhi, Tamil, Telugu, Kannada, Malayalam, Gujarati, Odia, Sinhala, Thai, Lao, Khmer, Myanmar, Japanese, Korean, Chinese).
-  - **M3U / JSON Playlist Export & Import (`#1386`, `#1389`)**, **Duplicate Track Detection (`#1399`)**, **Custom Playlist Cover Art (`#1436`, `#1438`)**, **Smart Offline Mode (`#1359`, `#1361`)**, and **Local Folder Tree & Tag Editing (`#1505`–`#1515`)**.
-  - **Material You Dynamic Accent (`#1478`, `#1480`, `#1482`)**, **Resizable Glance & Turntable Widgets (`#1523`, `#1525`)**, **Android TV D-Pad & Screensaver Polish (`#1554`, `#1558`, `#1560`)**, **Wear OS Standalone Tile & Rotary Crown Volume (`#1570`, `#1573`)**, and **19 Languages** (including Arabic `ar` & Vietnamese `vi`).
+| **Android Phone, Tablet & Auto** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChord-v1.10.0.apk`, `BitChord-v1.10.0_<abi>.apk` |
+| **Android TV / Fire TV** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChordTV-v1.10.0.apk`, `BitChordTV-v1.10.0_<abi>.apk` |
+| **Wear OS 3+** | Universal (`arm64-v8a`, `armeabi-v7a`) | `BitChordWear-v1.10.0.apk` *(also embedded inside the Phone APK)* |
+| **macOS 12+** | Apple Silicon (`arm64`) & Intel (`x64`) | `BitChord-1.10.0-macos-{arm64,x64}.{dmg,pkg,zip}` |
+| **Windows 10 / 11** | `x64` | `BitChord-1.10.0-windows-x64-setup.exe`, `.msi`, `-portable.zip` |
+| **Linux** | `x86_64` / `amd64` | `BitChord-1.10.0-linux-x86_64.AppImage`, `-linux-amd64.deb`, `-linux-x86_64.rpm` |
+| **Web & Extension** | Chrome / Chromium (MV3) & Firefox | `web/app/` SPA + `web/extension/` companion extension |
+| **Backend Server** | Go 1.27+ (`linux/amd64`, `linux/arm64`, Docker) | `backend/` (Listen Together + Presence + Collaborative Playlists) |
 
 ---
 
-<div align="center">
+## 4. Installation Instructions
 
-<h1><a id="features"></a>Features</h1>
+### Android (Phone, Android Auto, Android TV & Wear OS)
+1. Download `BitChord-v1.10.0.apk` (universal) or the matching ABI split (`arm64-v8a` for modern phones) from [Releases](https://github.com/Inventor365/BitChord-PlusPC/releases/latest).
+2. Open the APK and allow installation from your browser/file manager if prompted.
+3. **Android TV**: Install `BitChordTV-v1.10.0.apk` via Downloader, LocalSend, or `adb install -r BitChordTV-v1.10.0.apk`.
+4. **Wear OS**: Open **Settings → Wear OS** in the BitChord phone app to push the bundled watch app over Wi-Fi debugging, or run `adb -s <watch-ip>:<port> install -r BitChordWear-v1.10.0.apk`.
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
+### macOS (`.dmg`, `.pkg`, and `.zip`)
+1. Pick **`arm64`** for Apple Silicon (`M1`/`M2`/`M3`/`M4`) or **`x64`** for Intel Macs:
+   - **`.dmg` (Recommended)**: Open `BitChord-1.10.0-macos-<arch>.dmg` and drag **BitChord** to **Applications**.
+   - **`.pkg` (Installer)**: Open `BitChord-1.10.0-macos-<arch>.pkg` and follow the macOS Installer wizard to install `/Applications/BitChord.app`.
+   - **`.zip` (Portable)**: Extract `BitChord-1.10.0-macos-<arch>.zip` and move `BitChord.app` to `/Applications`.
+2. **First Launch (Unsigned Build Note)**: Community builds are ad-hoc Mach-O signed (`LC_CODE_SIGNATURE`) and not Apple-notarized. If macOS Gatekeeper blocks the first launch, right-click `BitChord.app` → **Open**, or run:
+   ```bash
+   xattr -cr /Applications/BitChord.app
+   ```
 
-#### Playback & Audio Engine
-- **Search, browse and play** anything available on YouTube Music — songs, albums, playlists, podcasts, artists, and full **music videos up to 4K**.
-- **Hi-Res lossless & Bit-Perfect audio** — FLAC/ALAC/Dolby Atmos from configured module/addon/Debrid sources, with Android 14 USB mixer bypass, AAudio exclusive DAP mode, and custom USB Audio Class 1.0/2.0 driver.
-- **Gapless playback with true crossfade**, adjustable 0–12s.
-- **Automix & Loop Mix** — Beat-matched, key-aware, and vocal-aware DJ transitions powered by Beat This! (`final0`) and Signalsmith time-stretching, with an interactive Mix View popup and Android Auto support.
-- **Offline downloads & Offline Player** — Save tracks with embedded metadata/lyrics, assemble DASH/HLS manifests into `.flac`, sync downloaded playlists in the background, and browse local folders, albums, and artists offline.
-- **Open links from other apps** — Spotify, Apple Music, Deezer and SoundCloud track, album and playlist links play here, matched on YouTube Music.
-- **Save queue & radio as playlist** — Turn any queue or radio station into a saved playlist, or export/import playlists as `.m3u` / `.json`.
+### Windows
+- **Installer (`.exe` / `.msi`)**: Run `BitChord-1.10.0-windows-x64-setup.exe` or `BitChord-1.10.0-windows-x64.msi`.
+- **Portable (`.zip`)**: Extract `BitChord-1.10.0-windows-x64-portable.zip` anywhere and launch `BitChord\BitChord.exe`.
 
-#### Connectivity & Accounts
-- **Sign in with your Google account** (including brand channels) for personalized content and library sync.
-- **Android Auto** — Browse and play your library, playlists, and Automix queues directly from your car's head unit.
-- **Listen Together** — Synchronized listening parties with host controls, QR/link invites, swipe-to-reply chat, and live activity feed.
-- **Spotify integration** — Connect your account to play and import your playlists and Liked Songs.
-- **Discord Rich Presence** — Live track, artist, album art, audio quality badge, and seek-accurate progress on Android, Desktop, and Web.
-- **Scrobbling** to Last.fm and ListenBrainz.
+### Linux
+- **AppImage (Universal)**:
+  ```bash
+  chmod +x BitChord-1.10.0-linux-x86_64.AppImage
+  ./BitChord-1.10.0-linux-x86_64.AppImage
+  ```
+- **Debian / Ubuntu (`.deb`)**: `sudo apt install ./BitChord-1.10.0-linux-amd64.deb`
+- **Fedora / RHEL / openSUSE (`.rpm`)**: `sudo dnf install ./BitChord-1.10.0-linux-x86_64.rpm`
 
-    </td>
-    <td width="50%" valign="top">
-
-#### Experience & Design
-- **Liquid Glass UI** — Apple-inspired Liquid Glass bars with edge refraction, adaptive glyph contrast, progressive status-bar blur, 3D gyroscope cover tilt, and squircle segmented tabs.
-- **Animated album canvas** — 3:4 motion artwork on mobile and square motion sleeves on desktop/landscape.
-- **Apple-like word-synced lyrics** — Syllable/word-level sweep, duet alignment, live translation, 18-script Romanization, and Vazirmatn Persian font support. Credit to [binimum](https://github.com/binimum/am-lyrics).
-- **12 Lyrics providers** — [lrc.red](https://lrc.red), [BiniLyrics](https://github.com/binimum), [BetterLyrics](https://github.com/better-lyrics/better-lyrics), [PaxSenix](https://lyrics.paxsenix.org), [LyricsPlus](https://github.com/ibratabian17/YouLyPlus), [SimpMusic](https://github.com/maxrave-dev/SimpMusic), [Unison](https://unison.boidu.dev), [Megalobiz](https://www.megalobiz.com), [KuGou](https://www.kugou.com), [LRCLIB](https://lrclib.net), [Musixmatch](https://www.musixmatch.com), and [Genius](https://genius.com), plus embedded ID3/FLAC tags.
-- **Dynamic artwork-driven theming** — Real-time mesh gradient backdrops extracted from cover art, optional Material You accent, and Dynamic Now Playing app icon.
-- **19 Languages** — Arabic, Vietnamese, English, German, Spanish, French, Hebrew, Hindi, Indonesian, Italian, Japanese, Korean, Polish, Portuguese, Russian, Thai, Turkish, Simplified Chinese, and Traditional Chinese.
-
-#### Controls, Hardware & Tweaks
-- **Galaxy Buds & Hi-Res Bluetooth** — Built-in Galaxy Buds noise/EQ/battery panel, 24-bit float Bluetooth preservation, Bluetooth reconnect auto-resume, and USB DAC bit-perfect mode.
-- **Per-network audio quality** — Separate quality ceilings for Wi-Fi and mobile data, plus Direct Source Stream mode.
-- **Playback speed & pitch control** (0.5×–2.0×), **skip silence**, **zero-volume auto-pause**, and **pocket volume lock**.
-- **Custom sleep timer** — 5 minutes to 12 hours, or "stop after this track".
-- **Parametric Equalizer & Limiter** — System & built-in multiband/parametric EQ with preset import/export and peak limiting.
-- **Stats for nerds** — Live codec, bit depth, sample rate, source name, and waveform alignment offset on the player.
-
-    </td>
-  </tr>
-</table>
-
-</div>
+### Web App & Companion Browser Extension
+```bash
+cd web
+corepack pnpm install --frozen-lockfile
+corepack pnpm --filter @bitchord/extension build   # Load web/extension/.output/chrome-mv3 as unpacked extension
+corepack pnpm --filter @bitchord/app dev           # Launch Web player at http://localhost:5173
+```
 
 ---
 
-<div align="center">
+## 5. Updating Safely Without Losing Data
 
-<h1><a id="contributing"></a>Contributing</h1>
-
-We welcome contributions to BitChord! Please review our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting a Pull Request.
-
-[**Contributing Guide**](CONTRIBUTING.md) · [**Code of Conduct**](CODE_OF_CONDUCT.md) · [**Maintainers**](MAINTAINERS.md) · [**Additional Docs**](ADDITIONAL.md)
-
-</div>
+- **In-App OTA Updates**: Android Phone, Android TV, and Desktop check `Inventor365/Bitchord-OTA` / GitHub Releases on launch. Android downloads updates with **HTTP `Range` resume support** and hands the verified APK directly to the system installer.
+- **Permanent Release Signing Identity (`v1.10.0+`)**: Starting with `v1.10.0`, all `Inventor365/BitChord-PlusPC` releases are signed with one permanent RSA-4096 certificate (`SHA-256: d6d9c697c070a5ca5f4e172a13b6263fe2f3a35fff5d110596509126320c3bb2`) persisted in GitHub Actions Secrets (`KEYSTORE_BASE64`), so all future updates install seamlessly in place (`adb install -r` / in-app OTA) while preserving playlists, downloads, EQ presets, and sessions.
+- **One-Time Migration Note**: Earlier pre-`v1.10.0` builds (`v1.8.1`, `v1.9`, `v1.9.2`) and upstream `kushagrasinghx/BitChord` builds used distinct signing keys (see [`docs/SIGNING.md`](docs/SIGNING.md)). Export any local playlists (`.m3u` / `.json`) before performing the one-time clean install to `v1.10.0`.
 
 ---
 
-<div align="center">
+## 6. Feature Highlights
 
-<h1><a id="credits"></a>Credits & Acknowledgements</h1>
-
-</div>
-
-- **Meticulously Crafted & Maintained (`BitChord-PlusPC`)**: **Pranav x [`@Inventor365`](https://github.com/Inventor365)** — restoring, engineering, and maintaining the native Windows, macOS, and Linux desktop client (`:desktopApp` & `:desktopUi`), cross-platform packaging pipeline, and 80+ curated community enhancements.
-- **Credits to Original Author**: **[Kushagra Singh (`@kushagrasinghx`)](https://bitchord.kushagrasingh.in/)** and the upstream **[kushagrasinghx/BitChord](https://github.com/kushagrasinghx/BitChord)** project for creating BitChord, its Apple Music-inspired Liquid Glass design system, Automix DSP engine, and mobile/TV/Wear OS foundations.
-- **Lyrics & Visual Inspiration**: **[binimum (`am-lyrics`)](https://github.com/binimum/am-lyrics)** for Apple-style word-by-word synced lyrics design, and the open lyrics ecosystem ([lrc.red](https://lrc.red), [LRCLIB](https://lrclib.net), [BetterLyrics](https://github.com/better-lyrics/better-lyrics), [PaxSenix](https://lyrics.paxsenix.org), [BiniLyrics](https://github.com/binimum), [LyricsPlus](https://github.com/ibratabian17/YouLyPlus), [SimpMusic](https://github.com/maxrave-dev/SimpMusic), [Unison](https://unison.boidu.dev)).
-
-<div align="center">
-
-### Thanks to all contributors ❤
-
-<a href="https://github.com/kushagrasinghx/BitChord/graphs/contributors">
-  <img src="https://raw.githubusercontent.com/kushagrasinghx/BitChord/contributors/contributors.svg" />
-</a>
-
-</div>
+- **Lossless & Bit-Perfect Playback**: YouTube Music (`256 kbps` authenticated Premium AAC/Opus + NewPipe fallback), FLAC/ALAC/Dolby Atmos module sources, USB DAC exclusive mode on Android, and native desktop audio pipelines.
+- **Automix & Loop Mix**: Beat-grid, phrase, vocal, and harmonic key transitions powered by Beat This! (`final0`) ONNX + Signalsmith stretch.
+- **Word-Synced Lyrics**: 12 providers, syllable glow sweep, duet alignment, live translation, 18-script romanization, and local MP3 (`USLT`) / FLAC / M4A / WebM embedded tag support.
+- **Animated Album Canvas**: Apple Music editorial motion artwork and Spotify Canvas with smooth swipe crossfades.
+- **Scrobbling & Presence**: Last.fm, ListenBrainz, and Discord Rich Presence across Android, Desktop, and Web.
 
 ---
 
-<div align="center">
+## 7. Playlist Management
 
-<h1><a id="disclaimer"></a>Disclaimer & Legal Notice</h1>
-
-BitChord is an independent, community-driven third-party audio player and client. It is **not** associated with Google LLC, YouTube Music, Deezer, Telegram, or any of their parent companies.
-
-* **No Media Hosting:** BitChord does not host, upload, or store copyrighted music files. It operates strictly as an interface to scan local device storage or stream media directly from public, public-facing, or user-authenticated APIs.
-* **Fair Use & API Usage:** This software is created solely for personal research, educational, and fair-use purposes. The user is entirely responsible for ensuring their usage aligns with their local copyright laws and YouTube Terms of Service.
-* **No Ad-Blocking Guarantee:** While BitChord focuses on providing a clean listening environment, it does not guarantee permanent bypasses or modifications to commercial third-party platform conditions.
-* **Copyleft:** BitChord is free software under the GPLv3. The license does not let anyone forbid others from selling or redistributing copies, but any distribution must come with the Corresponding Source under the same license.
-
-</div>
+BitChord PlusPC organizes playlists cleanly inside **Library** across Android, Desktop, and Web:
+- **Collaborative Playlists**: Playlists you created or converted for shared editing.
+- **Shared with Me**: Collaborative playlists you joined via invite link as an **Editor** or **Viewer**.
+- **My Playlists & On Device**: Your personal YouTube Music, local/offline, and imported Spotify playlists, with pinning, custom cover upload, drag-to-reorder, duplicate detection, inline library search, and portable `.csv` / `.m3u` / `.json` exchange.
 
 ---
 
-<div align="center">
+## 8. Google Authentication & Guest Mode
 
-<h1><a id="license"></a>License</h1>
+- **Guest Mode Works Out of the Box**: You can search, stream, manage local playlists, download offline tracks, and use Listen Together without signing into any account.
+- **YouTube Music Account Sign-In**: Optional browser/WebView/cookie sign-in unlocks personal YouTube Music library shelves, Liked Music sync, and 256 kbps Premium streams.
+- **Verified Google OIDC for Collaborative Playlists**: Collaborative features authenticate via **Google OpenID Connect** (Google Identity Services ID tokens on Web; OAuth 2.0 Authorization Code + **PKCE S256** browser/loopback flow on Android & Desktop). BitChord never asks for or stores Google passwords, and never accepts unverified self-declared identities.
 
-This project is licensed under the **GNU General Public License v3.0 (GPLv3)**. See the [LICENSE](LICENSE) file for details.
+---
 
-</div>
+## 9. Collaborative Playlists & Contributor Attribution
+
+See **[`docs/COLLABORATIVE_PLAYLISTS.md`](docs/COLLABORATIVE_PLAYLISTS.md)** for full protocol and API documentation:
+- **Convert Any Personal Playlist ("Make Collaborative")**: Open the menu (`•••`) on any YouTube Music, local, Desktop, or Spotify playlist and choose **Make Collaborative**. Your original personal playlist remains untouched while a live collaborative playlist is created with all existing songs attributed to you.
+- **Shareable, Revocable Invitations**: Generate `bci_<token>` links granting **Editor** or **Viewer** access with configurable expiration (`24h`, `7 days`, `Never`) and optional max uses. Preview invites while logged out; revoke any link immediately.
+- **Granular Permissions & "Stop Sharing"**: Restrict editors to removing only songs they added (`editorCanRemove = "own"`), toggle track reordering or invite privileges, transfer ownership, or choose **Stop Sharing (Make Private)** to revoke collaborator access while preserving your playlist and historical contributor attribution.
+
+---
+
+## 10. Contributor Attribution
+
+Every track added to a collaborative playlist is stamped **server-side** from the authenticated user's verified Google profile:
+- Displays a circular contributor avatar (or initials badge) beside the artist credit (`"Added by you"` or `"Added by <Display Name>"`).
+- Filter any collaborative playlist by contributor in one tap, and inspect the lightweight **Recent Activity** feed (`"Saksham added Midnight City"`, role updates, joins).
+
+---
+
+## 11. Listen Together
+
+**Listen Together** provides real-time synchronized playback rooms (`party/` on `backend/`) with 6-character room codes, QR/link invites, host playback lock or open guest queue contributions, live latency-compensated clock sync, and swipe-to-reply room chat — completely independent of Collaborative Playlists so either feature works with or without the other.
+
+---
+
+## 12. Upstream Project & Attribution
+
+BitChord PlusPC is an actively maintained fork of **[`kushagrasinghx/BitChord`](https://github.com/kushagrasinghx/BitChord)** created by **[Kushagra Singh](https://bitchord.kushagrasingh.in/)**. Every integrated upstream commit and community pull request preserves original contributor credit — see **[`CHANGELOG.md`](CHANGELOG.md)** for PR-by-PR attribution.
+
+---
+
+## 13. Building from Source
+
+```bash
+git clone https://github.com/Inventor365/BitChord-PlusPC.git
+cd BitChord-PlusPC
+
+# 1. Run shared KMP, Desktop, Android Phone, and Android TV unit tests
+./gradlew :shared:jvmTest :sharedUi:jvmTest :desktopUi:jvmTest :desktopApp:test :app:testDevDebugUnitTest :tv:testDevDebugUnitTest
+
+# 2. Build Android debug APKs
+./gradlew :app:assembleDevDebug :tv:assembleDebug :wearos:assembleDevDebug
+
+# 3. Run or package Desktop app (Linux / macOS / Windows)
+./gradlew :desktopApp:run
+./gradlew :desktopApp:createDistributable
+
+# 4. Build & test Web app + Extension
+(cd web && corepack pnpm install --frozen-lockfile && corepack pnpm -r typecheck && corepack pnpm -r test && corepack pnpm --filter @bitchord/app build)
+
+# 5. Build & test Go Backend
+(cd backend && go vet ./... && go test -race ./... && go build -o bitchord-backend .)
+```
+
+---
+
+## 14. Development Environment
+
+- **JDK**: Eclipse Temurin **21** (required for Gradle + `jpackage`; targets JVM 17 bytecode).
+- **Android SDK / NDK**: `compileSdk 37`, `targetSdk 36`, `minSdk 26`, CMake `3.22.1+`, Android NDK.
+- **Node / pnpm**: Node.js `22+` with `corepack enable` (`pnpm 12.x`).
+- **Go**: Go `1.27+` (`backend/`).
+
+Optional `local.properties` keys (never committed):
+```properties
+LISTEN_TOGETHER_SERVER=https://your-backend.example.com
+COLLAB_SERVER=https://your-backend.example.com
+COLLAB_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+LASTFM_API_KEY=...
+LASTFM_SECRET=...
+```
+
+---
+
+## 15. Backend Configuration
+
+`backend/` is a single self-contained Go binary serving Listen Together (`/ws`, `/invite/`), Presence (`/api/stats/`), and Collaborative Playlists (`/api/collab/*`, `/ws/collab`, `/collab/invite/`):
+
+```bash
+cd backend
+COLLAB_DATA_PATH=./data/collab.json \
+COLLAB_GOOGLE_CLIENT_IDS="your-web-or-desktop-client-id.apps.googleusercontent.com" \
+ALLOWED_ORIGINS="https://your-web-origin.example.com" \
+PORT=8080 \
+go run .
+```
+
+See [`docs/COLLABORATIVE_PLAYLISTS.md`](docs/COLLABORATIVE_PLAYLISTS.md) and [`backend/README.md`](backend/README.md) for reverse-proxy (`Caddyfile`), TLS, and systemd deployment (`bitchord-party.service`).
+
+---
+
+## 16. Release and Signing Information
+
+- **Android Signing & Upgrade Verification**: Documented in **[`docs/SIGNING.md`](docs/SIGNING.md)** and enforced by `scripts/verify-android-upgrade.sh`.
+- **macOS DMG & PKG Packaging**: Documented in **[`docs/MACOS_PACKAGING.md`](docs/MACOS_PACKAGING.md)** and verified by `scripts/macos/verify-macos-artifacts.py`.
+- **Cross-Platform Release Checklist**: Documented in **[`docs/RELEASE_PROCESS.md`](docs/RELEASE_PROCESS.md)**.
+
+---
+
+## 17. Known Limitations
+
+- **macOS Notarization**: Without paid Apple Developer ID credentials configured in CI secrets, macOS `.dmg` / `.pkg` / `.zip` builds use ad-hoc Mach-O code signatures and require a one-time right-click → **Open** (or `xattr -cr /Applications/BitChord.app`) on first launch.
+- **Collaborative Playlists Server Requirement**: Collaborative Playlists require a reachable BitChord backend instance (`COLLAB_SERVER` / Settings → Collaboration Server URL) and a Google OAuth 2.0 Client ID configured on both server and client.
+- **Upstream APK Key Difference**: Switching between `kushagrasinghx/BitChord` and `Inventor365/BitChord-PlusPC` on Android requires a one-time clean install due to distinct author signing certificates.
+
+---
+
+## 18. Troubleshooting
+
+- **Android says `"App not installed as package conflicts with an existing package"`**: You have an APK signed with a different key installed (e.g. upstream `kushagrasinghx/BitChord` or a local debug build). Export any local playlists, uninstall the conflicting package once, and install the PlusPC release APK — future PlusPC updates will install in place cleanly.
+- **macOS says `"BitChord is damaged and can't be opened"` or `"unidentified developer"`**: Run `xattr -cr /Applications/BitChord.app` in Terminal after dragging `BitChord.app` to `/Applications`.
+- **Collaborative Sign-In says `"Configure Collaboration Server URL / Google Client ID"`**: Open **Library → Collab Account** (or **Settings → Collaborative Playlists** on Web) and enter your backend HTTPS URL and Google OAuth Client ID.
+- **Linux AppImage does not launch on Ubuntu 24.04+**: Install FUSE2 (`sudo apt install libfuse2t64`) or run with `--appimage-extract-and-run`, or install the native `.deb` package instead.
+
+---
+
+## 19. Credits and License
+
+- **BitChord PlusPC Engineering & Maintenance**: **Pranav × [`@Inventor365`](https://github.com/Inventor365)** — native Desktop restoration & packaging (`macOS`, `Windows`, `Linux`), Collaborative Playlists & Google OIDC architecture, deterministic signing/verification pipeline, and upstream PR curation.
+- **Original Author & Upstream Creator**: **[Kushagra Singh (`@kushagrasinghx`)](https://bitchord.kushagrasingh.in/)** — creator of [`kushagrasinghx/BitChord`](https://github.com/kushagrasinghx/BitChord), Liquid Glass UI, Automix engine, and Android/TV/Wear/Web foundations.
+- **Lyrics & Ecosystem Acknowledgements**: **[binimum (`am-lyrics`)](https://github.com/binimum/am-lyrics)** and all upstream open-source contributors credited in [`CHANGELOG.md`](CHANGELOG.md).
+
+Licensed under the **GNU General Public License v3.0 (GPLv3)** — see [`LICENSE`](LICENSE).

@@ -3,8 +3,10 @@ import {
   best,
   foldLatin,
   hasConflictingAlbums,
+  isTranslationMatch,
   matches,
   normalize,
+  parseTitle,
   queries,
   romajiOf,
   uniquelyMostCreditedCloseMatch,
@@ -185,5 +187,14 @@ describe('Latin accents (TrackMatcherAccentsTest)', () => {
 
   it('keeps the marks of other scripts', () => {
     expect(foldLatin('दिल')).not.toBe(foldLatin('दल'));
+  });
+
+  it("a CJK title's accented romanization still files the upload", () => {
+    // The bracketed romaji is compared with the other title's (folded) core.
+    const cjk = parseTitle('東京 (Tōkyō)');
+    const latin = parseTitle('Tōkyō');
+    expect(isTranslationMatch(cjk, latin)).toBe(true);
+    expect(isTranslationMatch(latin, cjk)).toBe(true);
+    expect(matches(song('Tōkyō', 'Singer'), '東京 (Tōkyō)', 'Singer')).toBe(true);
   });
 });

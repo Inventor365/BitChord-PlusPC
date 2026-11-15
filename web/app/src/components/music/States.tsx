@@ -35,11 +35,12 @@ export function LoadError({ error, onRetry }: { error: unknown; onRetry: () => v
   );
 }
 
-export function EmptyState({ title, detail }: { title: string; detail?: string }) {
+export function EmptyState({ title, detail, action }: { title: string; detail?: string; action?: React.ReactNode }) {
   return (
     <div className={stateStyles.state}>
       <p className={stateStyles.title}>{title}</p>
       {detail && <p className={stateStyles.detail}>{detail}</p>}
+      {action && <div className="mt-2">{action}</div>}
     </div>
   );
 }

@@ -200,9 +200,11 @@ interface PlayerSettingsSource {
     val syncedLyrics: StateFlow<Boolean>
     val translationLanguage: StateFlow<String>
     val versionAlignmentInProgress: StateFlow<Boolean>
+    val showTotalDuration: StateFlow<Boolean>
 
     fun setLastPlayerScreen(value: LastPlayerScreen)
     fun setLyricsOffsetMs(value: Int)
+    fun setShowTotalDuration(value: Boolean)
 }
 
 /** The player's name for the installed host's settings, read where AppSettings used to be. */

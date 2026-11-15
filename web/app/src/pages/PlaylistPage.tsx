@@ -1,6 +1,9 @@
-import { useCallback } from 'react';
+import { Users } from 'lucide-react';
+import { useCallback, useState } from 'react';
 import { useParams } from 'react-router';
-import { DetailHeader } from '@/components/music/DetailHeader';
+import { MakeCollaborativeModal } from '@/components/collab/CollabModals';
+import { DetailHeader, detailButton } from '@/components/music/DetailHeader';
+import { PlaylistMenu } from '@/components/music/PlaylistMenu';
 import { playList, shuffleList } from '@/components/music/play';
 import { LoadError, LoadMoreError, NeedsExtension } from '@/components/music/States';
 import { TrackList } from '@/components/music/TrackList';
@@ -18,6 +21,7 @@ export default function PlaylistPage() {
   const header = playlist.data?.pages[0]?.header ?? null;
   usePageTint(useArtworkColor(header?.thumbnail));
 
+  const [makingCollab, setMakingCollab] = useState(false);
   const { hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage } = playlist;
   const onNearEnd = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) void fetchNextPage();
@@ -36,6 +40,30 @@ export default function PlaylistPage() {
         canPlay={tracks.length > 0}
         onPlay={() => playList(tracks, 0, context)}
         onShuffle={() => shuffleList(tracks, context)}
+        extra={
+          <>
+            <button
+              type="button"
+              onClick={() => setMakingCollab(true)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-pill border-[0.75px] border-quaternary bg-quinary px-3.5 type-body-emphasized text-primary hover:bg-quaternary"
+              title="Share as a live Collaborative Playlist"
+            >
+              <Users size={16} strokeWidth={2.1} />
+              <span>Make Collaborative</span>
+            </button>
+            <PlaylistMenu
+              playlistId={id}
+              sourceType="ytm"
+              title={header.title}
+              description={header.description}
+              artworkUrl={header.thumbnail}
+              tracks={hasNextPage ? undefined : tracks}
+              onPlay={tracks.length > 0 ? () => playList(tracks, 0, context) : undefined}
+              onShuffle={tracks.length > 0 ? () => shuffleList(tracks, context) : undefined}
+              className={detailButton.circle}
+            />
+          </>
+        }
       />
       <TrackList tracks={tracks} variant="playlist" onNearEnd={onNearEnd} source={context.source} />
       {isFetchingNextPage && <div className="flex justify-center py-5 type-callout text-secondary">Loading more songs…</div>}
@@ -43,6 +71,19 @@ export default function PlaylistPage() {
       <footer className={detailFooter}>
         <p>{header.meta}</p>
       </footer>
+      {makingCollab && (
+        <MakeCollaborativeModal
+          source={{
+            sourcePlaylistId: id,
+            sourceType: 'ytm',
+            title: header.title,
+            description: header.description,
+            artworkUrl: header.thumbnail,
+            tracks,
+          }}
+          onClose={() => setMakingCollab(false)}
+        />
+      )}
     </>
   );
 }

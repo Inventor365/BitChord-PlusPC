@@ -134,7 +134,7 @@ object ListeningStats {
         if (song.videoId.isBlank()) return
         val now = System.currentTimeMillis()
         val at = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault())
-        val dayKey = "${at.year}-${"%02d".format(at.monthValue)}-${"%02d".format(at.dayOfMonth)}"
+        val dayKey = dayKey(YearMonth.from(at).toString(), at.dayOfMonth)
         synchronized(lock) {
             val bucket = bucketFor(YearMonth.from(at))
             val track = bucket.tracks.getOrPut(song.videoId) {
@@ -518,6 +518,8 @@ object ListeningStats {
     }
 
     /** Several months added together, on the way to a [ReplaySummary]. */
+    internal fun dayKey(month: String, day: Int): String = "$month-${day.toString().padStart(2, '0')}"
+
     private class MergedBucket {
         val tracks = HashMap<String, TrackEntry>()
         val artists = HashMap<String, NameEntry>()
@@ -546,7 +548,7 @@ object ListeningStats {
             }
             repeat(24) { hours[it] += bucket.hours.getOrElse(it) { 0L } }
             bucket.days.forEach { (day, ms) ->
-                val date = "${bucket.month}-%02d".format(day)
+                val date = dayKey(bucket.month, day)
                 days[date] = (days[date] ?: 0L) + ms
             }
             if (earliest == null || bucket.month < earliest!!) earliest = bucket.month

@@ -134,6 +134,13 @@ import com.music.bitchord.auth.SpotifyLoginScreen
 import com.music.bitchord.auth.WebSessionMode
 import com.music.bitchord.auth.YtMusicLoginScreen
 import com.music.bitchord.data.AppUpdateChecker
+import com.music.bitchord.collab.AndroidCollab
+import com.music.bitchord.collab.CollabInviteIntent
+import com.music.bitchord.ui.collab.CollabGoogleAuthDialog
+import com.music.bitchord.ui.collab.CollabJoinInviteDialog
+import com.music.bitchord.ui.collab.CollabLibrarySection
+import com.music.bitchord.ui.collab.CollabPlaylistDetailScreen
+import com.music.bitchord.ui.collab.MakeCollaborativeDialog
 import com.music.bitchord.data.LocalMediaRepository
 import com.music.bitchord.data.listentogether.JamInviteLink
 import com.music.bitchord.data.listentogether.ListenTogether
@@ -443,6 +450,7 @@ class MainActivity : AppCompatActivity() {
         // the request already standing by the time BitChordApp first reads it.
         PlayerDeepLink.consume(intent)
         JamInviteLink.consume(intent)
+        CollabInviteIntent.consume(intent)
         // Likewise for a link tapped or shared from another app — see [MusicLink].
         MusicLink.consume(intent)
         if (RecognitionNotificationActions.consume(intent)) {
@@ -554,6 +562,7 @@ class MainActivity : AppCompatActivity() {
         setIntent(intent)
         PlayerDeepLink.consume(intent)
         JamInviteLink.consume(intent)
+        CollabInviteIntent.consume(intent)
         MusicLink.consume(intent)
         if (RecognitionNotificationActions.consume(intent)) {
             RecognitionNotifications.cancel(this)
@@ -1008,6 +1017,23 @@ private fun BitChordApp(
     val incomingJamInvite by JamInviteLink.pending.collectAsStateWithLifecycle()
     var activeJamInviteCode by rememberSaveable { mutableStateOf<String?>(null) }
     var activeJamInviteServer by rememberSaveable { mutableStateOf<String?>(null) }
+    val incomingCollabInvite by CollabInviteIntent.pending.collectAsStateWithLifecycle()
+    var showCollabAuthDialog by remember { mutableStateOf(false) }
+    var showCollabJoinDialog by remember { mutableStateOf(false) }
+    var collabJoinInitialInput by remember { mutableStateOf("") }
+    var showCollabCreateOrConvert by remember { mutableStateOf(false) }
+    var collabConvertSourceId by remember { mutableStateOf<String?>(null) }
+    var collabConvertSourceType by remember { mutableStateOf("ytm") }
+    var collabConvertTitle by remember { mutableStateOf("") }
+    var collabConvertArtwork by remember { mutableStateOf<String?>(null) }
+    var collabConvertSongs by remember { mutableStateOf<List<Song>>(emptyList()) }
+
+    LaunchedEffect(incomingCollabInvite) {
+        val inv = incomingCollabInvite ?: return@LaunchedEffect
+        collabJoinInitialInput = inv.token
+        showCollabJoinDialog = true
+        CollabInviteIntent.handled()
+    }
 
     // An invite is navigation and an action: reveal the Jam settings page now,
     // then let that page join once an account is available. Keeping the code
@@ -1266,6 +1292,11 @@ private fun BitChordApp(
         val shown = queueNotice ?: return@LaunchedEffect
         delay(3_000)
         if (queueNotice?.id == shown.id) queueNotice = null
+    }
+    LaunchedEffect(Unit) {
+        AndroidCollab.manager.notices.collect { msg ->
+            showQueueNotice(msg)
+        }
     }
     // Why a control did nothing, on the same strip above the mini player that
     // already answers "added to queue". Reached from every surface that had a
@@ -3250,6 +3281,25 @@ private fun BitChordApp(
                                 onOpenTokenSetup = { showSpotifyCanvasAuth = true },
                                 contentPadding = listPadding,
                             )
+                        } else if (pageRoute is AppRoute.CollabPlaylist) {
+                            CollabPlaylistDetailScreen(
+                                playlistId = pageRoute.playlistId,
+                                manager = AndroidCollab.manager,
+                                currentPlayingVideoId = player.song?.videoId,
+                                onBack = { navigator.pop() },
+                                onPlaySongs = { songs, startIndex, shuffle, playlistTitle ->
+                                    if (songs.isNotEmpty()) {
+                                        if (shuffle) QueueShuffle.enableForNextQueue() else QueueShuffle.disableForNextQueue()
+                                        playFrom(
+                                            allSongs = songs,
+                                            allIndex = startIndex,
+                                            source = QueueSource(playlistTitle, PlaybackSourceType.BROWSE, "collab:${pageRoute.playlistId}"),
+                                        )
+                                    }
+                                },
+                                onOpenAuthDialog = { showCollabAuthDialog = true },
+                                contentPadding = listPadding,
+                            )
                         } else if (pageRoute == AppRoute.Discord) {
                             DiscordScreen(
                                 song = player.song,
@@ -3981,6 +4031,26 @@ private fun BitChordApp(
                                 contentPadding = listPadding,
                                 links = libraryLinks(),
                                 deviceItems = libraryDeviceItems(downloadedReleases) + localPlaylistItems,
+                                collabSection = { queryText ->
+                                    CollabLibrarySection(
+                                        manager = AndroidCollab.manager,
+                                        query = queryText,
+                                        onOpenPlaylist = { pid -> navigator.push(AppRoute.CollabPlaylist(pid)) },
+                                        onNewCollaborative = {
+                                            collabConvertSourceId = null
+                                            collabConvertSourceType = "ytm"
+                                            collabConvertTitle = ""
+                                            collabConvertArtwork = null
+                                            collabConvertSongs = emptyList()
+                                            showCollabCreateOrConvert = true
+                                        },
+                                        onJoinInvite = {
+                                            collabJoinInitialInput = ""
+                                            showCollabJoinDialog = true
+                                        },
+                                        onOpenAuthSettings = { showCollabAuthDialog = true },
+                                    )
+                                },
                             )
                         }
                     }
@@ -4075,6 +4145,7 @@ private fun BitChordApp(
                         AppRoute.Discord -> "Discord"
                         AppRoute.History -> stringResource(R.string.history)
                         is AppRoute.LibraryShowAll -> route.shelf.title
+                        is AppRoute.CollabPlaylist -> "Collaborative Playlist"
                         is AppRoute.ArtistShelf -> route.shelf.title
                         AppRoute.Moods -> stringResource(R.string.find_your_mood)
                         AppRoute.AccountScrobbling -> stringResource(R.string.account_scrobbling)
@@ -5250,25 +5321,48 @@ private fun BitChordApp(
         // playlists with a way to make another. `creatingPlaylist` opens it
         // straight onto the form, which is what the Library tile means.
         Isolated {
+        val collabEditable by AndroidCollab.manager.playlists.collectAsStateWithLifecycle()
+        val collabPickerPlaylists = remember(collabEditable) {
+            collabEditable.filter { it.canEditTracks }.map { cp ->
+                UserPlaylist(
+                    playlistId = "collab:${cp.id}",
+                    title = cp.title,
+                    subtitle = "Collaborative · ${cp.ownerName}",
+                    thumbnailUrl = cp.artworkUrl,
+                )
+            }
+        }
         playlistTargets?.let { targets ->
             PlaylistPickerSheet(
-                playlists = playlists,
+                playlists = collabPickerPlaylists + playlists,
                 loading = playlistsLoading,
                 song = targets.firstOrNull(),
                 songCount = targets.size,
                 onDismiss = { playlistTargets = null },
                 onAdd = { picked ->
-                    viewModel.addSongsToPlaylists(picked, targets) { added, alreadyThere, failed ->
-                        showQueueNotice(
-                            when {
-                                added > 1 -> context.resources.getQuantityString(
-                                    R.plurals.added_to_playlists_notice, added, added,
-                                )
-                                added == 1 -> context.getString(R.string.song_added_to_playlist)
-                                alreadyThere > 0 && failed == 0 -> context.getString(R.string.song_already_in_playlist)
-                                else -> context.getString(R.string.failed)
-                            },
-                        )
+                    val (collabPicked, ytmPicked) = picked.partition { it.playlistId.startsWith("collab:") }
+                    if (collabPicked.isNotEmpty()) {
+                        scope.launch {
+                            var ok = 0
+                            collabPicked.forEach { cp ->
+                                if (AndroidCollab.manager.addSongs(cp.playlistId.removePrefix("collab:"), targets).isSuccess) ok++
+                            }
+                            if (ok > 0 && ytmPicked.isEmpty()) showQueueNotice(context.getString(R.string.song_added_to_playlist))
+                        }
+                    }
+                    if (ytmPicked.isNotEmpty()) {
+                        viewModel.addSongsToPlaylists(ytmPicked, targets) { added, alreadyThere, failed ->
+                            showQueueNotice(
+                                when {
+                                    added > 1 -> context.resources.getQuantityString(
+                                        R.plurals.added_to_playlists_notice, added, added,
+                                    )
+                                    added == 1 -> context.getString(R.string.song_added_to_playlist)
+                                    alreadyThere > 0 && failed == 0 -> context.getString(R.string.song_already_in_playlist)
+                                    else -> context.getString(R.string.failed)
+                                },
+                            )
+                        }
                     }
                     viewModel.clearSelection()
                 },
@@ -5289,7 +5383,7 @@ private fun BitChordApp(
                 creatingPlaylist = false
             }
             PlaylistPickerSheet(
-                playlists = playlists,
+                playlists = collabPickerPlaylists + playlists,
                 loading = playlistsLoading,
                 song = target,
                 songs = targetSongs,
@@ -5297,8 +5391,20 @@ private fun BitChordApp(
                 startCreating = target == null && targetSongs == null,
                 onDismiss = dismiss,
                 onAdd = { picked ->
+                    val (collabPicked, ytmPicked) = picked.partition { it.playlistId.startsWith("collab:") }
+                    if (collabPicked.isNotEmpty()) {
+                        val songsToAdd = targetSongs ?: listOfNotNull(target)
+                        scope.launch {
+                            var ok = 0
+                            collabPicked.forEach { cp ->
+                                if (AndroidCollab.manager.addSongs(cp.playlistId.removePrefix("collab:"), songsToAdd).isSuccess) ok++
+                            }
+                            if (ok > 0 && ytmPicked.isEmpty()) showQueueNotice(context.getString(R.string.song_added_to_playlist))
+                        }
+                    }
+                    if (ytmPicked.isEmpty()) return@PlaylistPickerSheet
                     if (targetSongs != null) {
-                        viewModel.addSongsToPlaylists(picked, targetSongs) { added, alreadyThere, failed ->
+                        viewModel.addSongsToPlaylists(ytmPicked, targetSongs) { added, alreadyThere, failed ->
                             showQueueNotice(
                                 when {
                                     added > 0 -> context.resources.getQuantityString(
@@ -5311,7 +5417,7 @@ private fun BitChordApp(
                             )
                         }
                     } else if (target != null) {
-                        viewModel.addToPlaylists(picked, target) { added, alreadyThere, failed ->
+                        viewModel.addToPlaylists(ytmPicked, target) { added, alreadyThere, failed ->
                             // One line for the whole batch, saying the outcome
                             // that matters most: what went in, else that it was
                             // all there already, else that it didn't work.
@@ -5671,6 +5777,23 @@ private fun BitChordApp(
                         coverArtPlaylistId = p.playlistId
                     }
                 },
+                onMakeCollaborative = target.browseId?.takeIf { target.type == BrowseType.PLAYLIST }?.let { bid ->
+                    {
+                        browseActions = null
+                        withBrowseSongs(target) { loadedSongs ->
+                            collabConvertSourceId = bid
+                            collabConvertSourceType = when {
+                                bid.startsWith(SPOTIFY_PAGE_PREFIX) || bid.startsWith("local:playlist:sp_") -> "spotify"
+                                bid.startsWith("local:") -> "local"
+                                else -> "ytm"
+                            }
+                            collabConvertTitle = target.title
+                            collabConvertArtwork = target.thumbnailUrl
+                            collabConvertSongs = loadedSongs
+                            showCollabCreateOrConvert = true
+                        }
+                    }
+                },
                 onReorder = playlist?.let { p ->
                     {
                         browseActions = null
@@ -5989,6 +6112,41 @@ private fun BitChordApp(
                     },
                 )
             }
+        }
+
+        if (showCollabCreateOrConvert) {
+            MakeCollaborativeDialog(
+                manager = AndroidCollab.manager,
+                sourcePlaylistId = collabConvertSourceId,
+                sourceType = collabConvertSourceType,
+                initialTitle = collabConvertTitle,
+                initialArtworkUrl = collabConvertArtwork,
+                existingSongs = collabConvertSongs,
+                onDismiss = { showCollabCreateOrConvert = false },
+                onOpenAuthDialog = { showCollabAuthDialog = true },
+                onCreated = { created ->
+                    showCollabCreateOrConvert = false
+                    navigator.push(AppRoute.CollabPlaylist(created.id))
+                },
+            )
+        }
+        if (showCollabJoinDialog) {
+            CollabJoinInviteDialog(
+                manager = AndroidCollab.manager,
+                initialInviteInput = collabJoinInitialInput,
+                onDismiss = { showCollabJoinDialog = false },
+                onOpenAuthDialog = { showCollabAuthDialog = true },
+                onJoined = { joined ->
+                    showCollabJoinDialog = false
+                    navigator.push(AppRoute.CollabPlaylist(joined.id))
+                },
+            )
+        }
+        if (showCollabAuthDialog) {
+            CollabGoogleAuthDialog(
+                manager = AndroidCollab.manager,
+                onDismiss = { showCollabAuthDialog = false },
+            )
         }
 
         var widgetRecognitionMode by remember { mutableStateOf(false) }

@@ -62,15 +62,53 @@ android {
         }
     }
 
+    fun envProp(name: String): String? =
+        providers.environmentVariable(name).orNull?.trim()?.takeIf { it.isNotEmpty() }
+            ?: System.getenv(name)?.trim()?.takeIf { it.isNotEmpty() }
+
+    val requireReleaseSigning = providers.gradleProperty("bitchord.requireReleaseSigning")
+        .orNull?.equals("true", ignoreCase = true) == true
+    val releaseStorePath = signing.getProperty("storeFile")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: providers.gradleProperty("BitchordReleaseStoreFile").orNull?.trim()?.takeIf { it.isNotEmpty() }
+        ?: envProp("BitchordReleaseStoreFile")
+        ?: envProp("KEYSTORE_FILE")
+    val releaseStore = releaseStorePath?.let { path ->
+        val candidate = File(path)
+        if (candidate.isAbsolute) candidate else rootProject.file(path)
+    }
+    val releaseStorePassword = signing.getProperty("storePassword")?.takeIf { it.isNotEmpty() }
+        ?: providers.environmentVariable("KEYSTORE_PASSWORD").orNull?.takeIf { it.isNotEmpty() }
+        ?: System.getenv("KEYSTORE_PASSWORD")?.takeIf { it.isNotEmpty() }
+    val releaseKeyAlias = signing.getProperty("keyAlias")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: envProp("KEY_ALIAS")
+    val releaseKeyPassword = signing.getProperty("keyPassword")?.takeIf { it.isNotEmpty() }
+        ?: providers.environmentVariable("KEY_PASSWORD").orNull?.takeIf { it.isNotEmpty() }
+        ?: System.getenv("KEY_PASSWORD")?.takeIf { it.isNotEmpty() }
+        ?: releaseStorePassword
+    val hasValidReleaseKeystore = releaseStore != null &&
+        releaseStore.isFile &&
+        releaseStore.length() > 0L &&
+        !releaseStorePassword.isNullOrEmpty() &&
+        !releaseKeyAlias.isNullOrEmpty() &&
+        !releaseKeyPassword.isNullOrEmpty()
+
+    if (requireReleaseSigning && !hasValidReleaseKeystore) {
+        throw GradleException(
+            "Release signing is required (-Pbitchord.requireReleaseSigning=true), but no valid release " +
+                "keystore was configured via keystore.properties or BitchordReleaseStoreFile/KEYSTORE_FILE, " +
+                "KEYSTORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD.",
+        )
+    }
+
     signingConfigs {
-        // The phone's keystore, found the same way app/build.gradle.kts finds it.
-        val store = signing.getProperty("storeFile")?.let { rootProject.file(it) }
-        if (store != null && store.exists()) {
+        if (hasValidReleaseKeystore) {
             create("release") {
-                storeFile = store
-                storePassword = signing.getProperty("storePassword")
-                keyAlias = signing.getProperty("keyAlias")
-                keyPassword = signing.getProperty("keyPassword")
+                storeFile = releaseStore
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+                enableV2Signing = true
+                enableV3Signing = true
             }
         }
     }

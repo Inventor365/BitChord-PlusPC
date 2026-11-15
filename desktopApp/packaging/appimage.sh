@@ -45,6 +45,8 @@ DESKTOP
 cp "$ROOT/desktopApp/packaging/icons/AppIcon.png" "$APPDIR/bitchord.png"
 cp "$ROOT/desktopApp/packaging/icons/AppIcon.png" "$APPDIR/.DirIcon"
 
+chmod -R a+rX "$APPDIR"
+chmod a+rx "$APPDIR/AppRun"
 mkdir -p "$(dirname "$OUT")"
 # APPIMAGE_EXTRACT_AND_RUN rather than the flag of the same name: it is read by the AppImage
 # runtime, so it covers a CI runner with no FUSE, and a natively built appimagetool — which has

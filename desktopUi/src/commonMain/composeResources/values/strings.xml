@@ -210,4 +210,6 @@
     <string name="save_as_playlist">Save as playlist</string>
     <string name="save_queue_as_playlist">Save queue as playlist</string>
     <string name="save_radio_as_playlist">Save radio as playlist</string>
+    <string name="library_search_hint">Search your library</string>
+    <string name="library_no_matches">Nothing in your library matches “%1$s”</string>
 </resources>

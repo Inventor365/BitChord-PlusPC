@@ -52,11 +52,26 @@ val otaJsonUrl: String = (
  * builds and runs, and simply asks for an address the first time somebody opens
  * the screen. See ListenTogether.DEFAULT_SERVER.
  */
+fun envProp(name: String): String? =
+    providers.environmentVariable(name).orNull?.trim()?.takeIf { it.isNotEmpty() }
+        ?: System.getenv(name)?.trim()?.takeIf { it.isNotEmpty() }
+
 val listenTogetherServer: String = (
-    localProps.getProperty("LISTEN_TOGETHER_SERVER")
-        ?: System.getenv("LISTEN_TOGETHER_SERVER")
+    localProps.getProperty("LISTEN_TOGETHER_SERVER")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: envProp("LISTEN_TOGETHER_SERVER")
         ?: "https://bitchord-listen-together.onrender.com"
     ).trim().trimEnd('/')
+
+val collabServer: String = (
+    localProps.getProperty("COLLAB_SERVER")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: envProp("COLLAB_SERVER")
+        ?: listenTogetherServer
+    ).trim().trimEnd('/')
+
+val collabGoogleClientId: String = (
+    localProps.getProperty("COLLAB_GOOGLE_CLIENT_ID")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: envProp("COLLAB_GOOGLE_CLIENT_ID").orEmpty()
+    )
 
 /*
  * Bump this by hand before cutting each sideloaded test build ("beta2",
@@ -88,8 +103,8 @@ android {
         // Haze falls back to a translucent scrim below that.
         minSdk = 26
         targetSdk = 36
-        versionCode = 40
-        versionName = "1.9.2"
+        versionCode = 41
+        versionName = "1.10.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -100,6 +115,16 @@ android {
             "String",
             "LISTEN_TOGETHER_SERVER",
             "\"${listenTogetherServer.replace("\\", "\\\\").replace("\"", "\\\"")}\"",
+        )
+        buildConfigField(
+            "String",
+            "COLLAB_SERVER",
+            "\"${collabServer.replace("\\", "\\\\").replace("\"", "\\\"")}\"",
+        )
+        buildConfigField(
+            "String",
+            "COLLAB_GOOGLE_CLIENT_ID",
+            "\"${collabGoogleClientId.replace("\\", "\\\\").replace("\"", "\\\"")}\"",
         )
         // TV has no addons; AddonAuth only reaches the compiler through the
         // shared phone sources, so it gets no server.
@@ -166,21 +191,49 @@ android {
         }
     }
 
+    val requireReleaseSigning = providers.gradleProperty("bitchord.requireReleaseSigning")
+        .orNull?.equals("true", ignoreCase = true) == true
+    val releaseStorePath = signing.getProperty("storeFile")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: providers.gradleProperty("BitchordReleaseStoreFile").orNull?.trim()?.takeIf { it.isNotEmpty() }
+        ?: envProp("BitchordReleaseStoreFile")
+        ?: envProp("KEYSTORE_FILE")
+    val releaseStore = releaseStorePath?.let { path ->
+        val candidate = File(path)
+        if (candidate.isAbsolute) candidate else rootProject.file(path)
+    }
+    val releaseStorePassword = signing.getProperty("storePassword")?.takeIf { it.isNotEmpty() }
+        ?: providers.environmentVariable("KEYSTORE_PASSWORD").orNull?.takeIf { it.isNotEmpty() }
+        ?: System.getenv("KEYSTORE_PASSWORD")?.takeIf { it.isNotEmpty() }
+    val releaseKeyAlias = signing.getProperty("keyAlias")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: envProp("KEY_ALIAS")
+    val releaseKeyPassword = signing.getProperty("keyPassword")?.takeIf { it.isNotEmpty() }
+        ?: providers.environmentVariable("KEY_PASSWORD").orNull?.takeIf { it.isNotEmpty() }
+        ?: System.getenv("KEY_PASSWORD")?.takeIf { it.isNotEmpty() }
+        ?: releaseStorePassword
+    val hasValidReleaseKeystore = releaseStore != null &&
+        releaseStore.isFile &&
+        releaseStore.length() > 0L &&
+        !releaseStorePassword.isNullOrEmpty() &&
+        !releaseKeyAlias.isNullOrEmpty() &&
+        !releaseKeyPassword.isNullOrEmpty()
+
+    if (requireReleaseSigning && !hasValidReleaseKeystore) {
+        throw GradleException(
+            "Release signing is required (-Pbitchord.requireReleaseSigning=true), but no valid release " +
+                "keystore was configured via keystore.properties or BitchordReleaseStoreFile/KEYSTORE_FILE, " +
+                "KEYSTORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD.",
+        )
+    }
+
     signingConfigs {
-        // Both halves have to be there, not just the properties file: it *names*
-        // the keystore rather than containing it, and both are gitignored
-        // separately, so a checkout can easily end up with the one and not the
-        // other. A signing config pointing at a keystore that is not on disk
-        // fails the release build outright at validateSigningRelease — which is
-        // exactly the failure the unsigned fallback above exists to avoid, so
-        // the keystore has to be looked for rather than assumed.
-        val store = signing.getProperty("storeFile")?.let { rootProject.file(it) }
-        if (store != null && store.exists()) {
+        if (hasValidReleaseKeystore) {
             create("release") {
-                storeFile = store
-                storePassword = signing.getProperty("storePassword")
-                keyAlias = signing.getProperty("keyAlias")
-                keyPassword = signing.getProperty("keyPassword")
+                storeFile = releaseStore
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+                enableV2Signing = true
+                enableV3Signing = true
             }
         }
     }
@@ -212,9 +265,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "../app/proguard-rules.pro"
             )
-            // Null without a keystore to sign with: fallback to debug signing
-            // so the release build is fully R8 optimized and directly installable.
-            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+            // Null without a release keystore, matching :app and :wearos: never fall
+            // back to a machine-local debug key on release APKs, which would break
+            // in-place upgrades with INSTALL_FAILED_UPDATE_INCOMPATIBLE.
+            signingConfig = signingConfigs.findByName("release")
         }
         /*
          * The release build, installable next to the dev and prod apps: same R8,

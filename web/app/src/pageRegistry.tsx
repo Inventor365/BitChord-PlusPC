@@ -30,6 +30,13 @@ export const pages: PageRoute[] = [
   { path: '/album/:id', load: () => import('@/pages/AlbumPage'), skeleton: <AlbumSkeleton /> },
   { path: '/artist/:id', load: () => import('@/pages/ArtistPage'), skeleton: <ArtistSkeleton /> },
   { path: '/playlist/:id', load: () => import('@/pages/PlaylistPage'), skeleton: <PlaylistSkeleton /> },
+  { path: '/collab/invite/:token', load: () => import('@/pages/CollabInvitePage'), skeleton: <PlainSkeleton /> },
+  {
+    path: '/collab/auth/callback',
+    load: () => import('@/pages/CollabInvitePage').then((m) => ({ default: m.CollabAuthCallbackPage })),
+    skeleton: <PlainSkeleton />,
+  },
+  { path: '/collab/:id', load: () => import('@/pages/CollabPlaylistPage'), skeleton: <PlaylistSkeleton /> },
   { path: '/browse/:id', load: () => import('@/pages/BrowsePage'), skeleton: <PlainSkeleton /> },
   { path: '/library/:section', load: () => import('@/pages/LibraryPage'), skeleton: <PlainSkeleton /> },
   { path: '/spotify', load: () => import('@/pages/SpotifyPage'), skeleton: <PlainSkeleton /> },

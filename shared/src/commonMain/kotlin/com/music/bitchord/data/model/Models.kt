@@ -49,6 +49,12 @@ data class Song(
     /** A music-video upload rather than the catalogue track. */
     val isVideo: Boolean = false,
     /**
+     * YouTube Music's tally for the track as its row states it — "12M plays",
+     * or "1.4M views" for a video. Album pages and an artist's Top songs carry
+     * one; search, playlist and queue rows don't, so this is null there.
+     */
+    val plays: String? = null,
+    /**
      * True for a video upload and for its manually selected catalogue match.
      * The latter remains video-origin so playback policies such as AutoMix do
      * not mistake a converted video for a normal music track.
@@ -338,16 +344,38 @@ internal fun isYouTubeThumbnailHost(url: String): Boolean {
         host == "img.youtube.com" || host.endsWith(".youtube.com")
 }
 
-private val YT_THUMB_NAME_REGEX = Regex("/(default|mqdefault|hqdefault|sddefault)\\.([a-zA-Z0-9]+)")
+/** YouTube's thumbnail renditions, smallest to largest. Every video has `hqdefault`. */
+private val YT_THUMB_NAME_REGEX = Regex("/(default|mqdefault|hqdefault|sddefault|hq720|maxresdefault)\\.([a-zA-Z0-9]+)")
 
-internal fun upgradeYouTubeThumbnail(url: String, px: Int): String {
-    val targetRendition = when {
+/** The renditions an old or low-resolution upload doesn't have: each answers 404 for it. */
+private val YT_UPGRADED_RENDITIONS = setOf("sddefault", "hq720", "maxresdefault")
+
+fun upgradeYouTubeThumbnail(url: String, px: Int): String {
+    val match = YT_THUMB_NAME_REGEX.find(url) ?: return url
+    val current = match.groupValues[1]
+    val target = when {
         px >= 480 -> "maxresdefault"
         px >= 240 -> "sddefault"
-        else -> null
-    } ?: return url
-    return url.replace(YT_THUMB_NAME_REGEX, "/$targetRendition.$2")
+        current in YT_UPGRADED_RENDITIONS -> "hqdefault"
+        else -> return url
+    }
+    return if (target == current) url else withRendition(url, match, target)
 }
+
+/**
+ * The copy every YouTube video has, for a thumbnail [artworkAt] asked a larger
+ * rendition of; null when [url] is no such thumbnail.
+ */
+fun youTubeThumbnailFallback(url: String): String? {
+    if (!isYouTubeThumbnailHost(url)) return null
+    val match = YT_THUMB_NAME_REGEX.find(url) ?: return null
+    if (match.groupValues[1] !in YT_UPGRADED_RENDITIONS) return null
+    return withRendition(url, match, "hqdefault")
+}
+
+private fun withRendition(url: String, match: MatchResult, rendition: String): String =
+    (url.substring(0, match.range.first) + "/$rendition.${match.groupValues[2]}" + url.substring(match.range.last + 1))
+        .substringBefore('?')
 
 private val SIZE_HINT = Regex("""w\d+-h\d+""")
 private val PARAM_SIZE_HINT = Regex("""=s\d+""")

@@ -128,6 +128,7 @@ fun BrowseActionsMenu(
      */
     isPinned: Boolean = false,
     onTogglePin: (() -> Unit)? = null,
+    onMakeCollaborative: (() -> Unit)? = null,
     onRename: ((String) -> Unit)? = null,
     onChangeCover: (() -> Unit)? = null,
     /**
@@ -254,6 +255,13 @@ fun BrowseActionsMenu(
             }
             onShare?.let {
                 ActionRow(SfIcons.Share, stringResource(R.string.share), onClick = it)
+            }
+            onMakeCollaborative?.let {
+                ActionRow(
+                    SfIcons.Groups,
+                    "Make Collaborative",
+                    onClick = it,
+                )
             }
             onTogglePin?.let {
                 ActionRow(

@@ -1,6 +1,7 @@
 package com.music.bitchord.desktop
 
 import com.music.bitchord.data.model.artworkAt
+import com.music.bitchord.data.model.youTubeThumbnailFallback
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -50,13 +51,21 @@ internal object DesktopArtworkCache {
     suspend fun load(url: String?): ImageBitmap? {
         if (url.isNullOrBlank()) return null
         images.get(url)?.let { return it }
-        return runCatching {
-            URI(url).toURL().openConnection().apply {
-                connectTimeout = 10_000
-                readTimeout = 10_000
-            }.getInputStream().use { stream -> stream.readBytes().decodeToImageBitmap() }
-        }.getOrNull()?.also { images.put(url, it) }
+        val primary = fetchBitmap(url)
+        if (primary != null) {
+            images.put(url, primary)
+            return primary
+        }
+        val fallback = youTubeThumbnailFallback(url) ?: return null
+        return fetchBitmap(fallback)?.also { images.put(url, it) }
     }
+
+    private fun fetchBitmap(url: String): ImageBitmap? = runCatching {
+        URI(url).toURL().openConnection().apply {
+            connectTimeout = 10_000
+            readTimeout = 10_000
+        }.getInputStream().use { stream -> stream.readBytes().decodeToImageBitmap() }
+    }.getOrNull()
 }
 
 /** Artwork, fetched at the size the surface drawing it actually needs. */

@@ -1,7 +1,10 @@
 import { ChevronRight, Users } from 'lucide-react';
 import { lazy, Suspense, useState, type ComponentType, type ReactNode } from 'react';
 import { MdOutlineExtension } from 'react-icons/md';
-import { SiApplemusic, SiDiscord, SiSpotify, SiYoutubemusic } from 'react-icons/si';
+import { SiApplemusic, SiDiscord, SiGoogle, SiSpotify, SiYoutubemusic } from 'react-icons/si';
+import { signOutCollab, useCollabAuth, useCollabSignInPrompt } from '@/collab/auth';
+import { DEFAULT_COLLAB_SERVER_URL, DEFAULT_GOOGLE_CLIENT_ID, useCollabConfig } from '@/collab/config';
+import { CollabAvatar } from '@/components/collab/CollabAvatars';
 import { PageHeader } from '@/components/PageHeader';
 import { PrefetchLink } from '@/components/PrefetchLink';
 import { useDiscord } from '@/extension/useDiscord';
@@ -59,6 +62,9 @@ export default function SettingsPage() {
   const discord = useDiscord();
   const party = useParty();
   const autoplay = usePlayer((s) => s.autoplay);
+  const collabUser = useCollabAuth((s) => s.user);
+  const requestCollabSignIn = useCollabSignInPrompt((s) => s.requestSignIn);
+  const collabConfig = useCollabConfig();
   const crossfadeSec = usePlayer((s) => s.crossfadeSec);
   const automix = usePlayer((s) => s.automix);
   const automixBars = usePlayer((s) => s.automixBars);
@@ -138,6 +144,61 @@ export default function SettingsPage() {
           />
         </section>
 
+
+        <h2 className={settingsUi.sectionHeader}>Collaborative Playlists</h2>
+        <section className={settingsUi.group}>
+          <div className={settingsUi.integration}>
+            {collabUser ? (
+              <CollabAvatar src={collabUser.avatarUrl} name={collabUser.displayName} seed={collabUser.id} size={24} />
+            ) : (
+              <Glyph Icon={SiGoogle} color="#4285f4" />
+            )}
+            <div className="min-w-0">
+              <span className={settingsUi.integrationName}>
+                {collabUser ? collabUser.displayName : 'Google Collaborator Account'}
+              </span>
+              {collabUser?.email && <p className="truncate type-callout text-secondary">{collabUser.email}</p>}
+            </div>
+            {collabUser ? (
+              <button
+                type="button"
+                className={settingsUi.inlineButton}
+                onClick={() => void signOutCollab()}
+              >
+                Sign Out
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={settingsUi.inlineButton}
+                onClick={() => requestCollabSignIn()}
+              >
+                Sign In
+              </button>
+            )}
+          </div>
+          <label className={settingsUi.controlRow}>
+            <span>Collaboration Server</span>
+            <input
+              className={settingsUi.input}
+              placeholder={DEFAULT_COLLAB_SERVER_URL || 'https://collab.example.com'}
+              value={collabConfig.serverUrl}
+              onChange={(e) => collabConfig.setServerUrl(e.currentTarget.value)}
+            />
+          </label>
+          <label className={settingsUi.controlRow}>
+            <span>Google OAuth Client ID</span>
+            <input
+              className={settingsUi.input}
+              placeholder={DEFAULT_GOOGLE_CLIENT_ID || '…apps.googleusercontent.com'}
+              value={collabConfig.googleClientId}
+              onChange={(e) => collabConfig.setGoogleClientId(e.currentTarget.value)}
+            />
+          </label>
+        </section>
+        <p className={settingsUi.footer}>
+          Google sign-in verifies contributor identity on Collaborative Playlists. Browsing, playback, and Listen Together work without signing in.
+        </p>
         <h2 className={settingsUi.sectionHeader}>Playback</h2>
         <section className={settingsUi.group}>
           <Toggle

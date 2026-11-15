@@ -42,11 +42,14 @@ class BoundedContextPersistenceTest {
                 localPath = "/music/$index",
                 localDateAddedSeconds = 10L,
                 localDateModifiedSeconds = 20L,
+                trackNumber = index + 1,
                 sourceQuality = "LOSSLESS",
+                sourceHiRes = index % 2 == 0,
                 isExplicit = true,
                 playbackSource = source.title,
                 playbackSourceType = source.type,
                 playbackSourceId = source.id,
+                feedbackToken = "fb-$index",
             )
         }
         val window = QueueWindow(4, shuffleSeed = 1234L).startAt(2, shuffle = true)

@@ -4,6 +4,7 @@ import android.content.Context
 import com.music.bitchord.R
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.model.artworkAt
+import com.music.bitchord.data.model.upgradeYouTubeThumbnail
 import com.my.kizzy.rpc.KizzyRPC
 import com.my.kizzy.rpc.RpcImage
 import java.util.Locale
@@ -113,7 +114,7 @@ class DiscordRPC(
             // A track with no artwork — or with artwork Discord can't reach,
             // which is anything that isn't an http URL — sends none, and Discord
             // draws the BitChord application's own icon in its place.
-            largeImage = song.artworkAt(ART_PX)
+            largeImage = song.artworkAt(ART_PX)?.let { upgradeYouTubeThumbnail(it, ART_PX) }
                 ?.takeIf { it.startsWith("http") }
                 ?.let(RpcImage::ExternalImage),
             smallImage = null,

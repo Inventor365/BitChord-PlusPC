@@ -53,6 +53,10 @@ fun main() {
     StreamResolver.maxKbps = {
         DesktopStreamClient.ceiling.get() ?: DesktopSourceRegistry.ceiling(null).maxKbps
     }
+    StreamResolver.preferPremiumQuality = {
+        val max = DesktopStreamClient.ceiling.get() ?: DesktopSourceRegistry.ceiling(null).maxKbps
+        max > 128
+    }
     InnerTubeXResolver.init(
         filesDir = DesktopMediaCache.directory.toFile(),
         store = DesktopInnerTubeXStore,
@@ -63,6 +67,7 @@ fun main() {
     )
     // The public "apps open right now" count; see Presence.
     DesktopPresence.install()
+    DesktopCollab.init()
     desktopMain()
 }
 

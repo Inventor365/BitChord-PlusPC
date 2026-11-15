@@ -106,3 +106,28 @@ func TestIsAllowedOrigin(t *testing.T) {
 		t.Errorf("empty origin allowed")
 	}
 }
+
+func TestCollabDefaultsAndHelpers(t *testing.T) {
+	if CollabDataPath == "" {
+		t.Errorf("expected non-empty CollabDataPath default")
+	}
+	if CollabSessionTTLMs != 2_592_000_000 {
+		t.Errorf("CollabSessionTTLMs = %d, want 2592000000", CollabSessionTTLMs)
+	}
+	if CollabMaxPlaylistsPerUser != 200 || CollabMaxTracksPerPlaylist != 2000 || CollabMaxMembersPerPlaylist != 50 {
+		t.Errorf("unexpected collab limits: %d/%d/%d", CollabMaxPlaylistsPerUser, CollabMaxTracksPerPlaylist, CollabMaxMembersPerPlaylist)
+	}
+
+	t.Setenv("BITCHORD_TEST_INT64", "2592000000")
+	if got := getInt64("BITCHORD_TEST_INT64", 10); got != 2592000000 {
+		t.Errorf("getInt64 = %d, want 2592000000", got)
+	}
+	t.Setenv("BITCHORD_TEST_INT64", "invalid")
+	if got := getInt64("BITCHORD_TEST_INT64", 42); got != 42 {
+		t.Errorf("getInt64 fallback = %d, want 42", got)
+	}
+	t.Setenv("BITCHORD_TEST_STR", "  ./custom/state.json  ")
+	if got := getString("BITCHORD_TEST_STR", "./default.json"); got != "./custom/state.json" {
+		t.Errorf("getString = %q, want ./custom/state.json", got)
+	}
+}

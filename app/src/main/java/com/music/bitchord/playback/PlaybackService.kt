@@ -44,6 +44,7 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.Renderer
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.ShuffleOrder
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioRendererEventListener
 import androidx.media3.exoplayer.audio.AudioSink
@@ -1406,9 +1407,10 @@ class PlaybackService : MediaLibraryService() {
         // edit once that single service-side transaction has completed.
         scope.launch {
             QueueShuffle.enabled
-                .collectLatest {
+                .collectLatest { enabled ->
                     refreshCustomLayouts()
                     publishWidgetState()
+                    (mediaSession?.player as? SessionPlayer)?.onShuffleChanged(enabled)
                 }
         }
         // While the watch is the speaker this process serves its audio, and a
@@ -2099,7 +2101,9 @@ class PlaybackService : MediaLibraryService() {
         if (!AppSettings.syncedLyrics.value) return null
         val song = item.toSong()
         return kotlinx.coroutines.withTimeoutOrNull(LOOP_MIX_LYRICS_TIMEOUT_MS) {
+            // Only timed lines say when a loop is sung; the file's plain words can't.
             song.localUri?.let { EmbeddedLyrics.forUri(this@PlaybackService, it) }
+                ?.takeIf(EmbeddedLyrics::isSynced)
                 ?: LyricsRepository.lyrics(
                     videoId = song.videoId,
                     title = song.title,
@@ -6793,6 +6797,8 @@ class PlaybackService : MediaLibraryService() {
      */
     private fun reportProgress() {
         scope.launch {
+            // Whether the last tick counted listening on a remote speaker: see below.
+            var remoteSampling = false
             while (isActive) {
                 // Re-read every tick rather than captured once: the session
                 // moves between two players, and a sampler pinned to the one
@@ -6826,6 +6832,21 @@ class PlaybackService : MediaLibraryService() {
                     // repeat: it returns immediately unless the track is
                     // pending and nothing is already looking.
                     lookForBetterCopy(player)
+                } else if (speakers.active) {
+                    val playingRemotely = speakers.isPlaying
+                    if (playingRemotely) {
+                        player?.currentMediaItem?.toSong()?.let {
+                            val length = speakers.durationMs.takeIf { d -> d != C.TIME_UNSET && d > 0 }
+                                ?: (player?.duration ?: 0L)
+                            ListeningRecorder.onSample(it, length)
+                        }
+                    } else if (remoteSampling) {
+                        ListeningRecorder.onStopped()
+                    }
+                    remoteSampling = playingRemotely
+                } else if (remoteSampling) {
+                    remoteSampling = false
+                    ListeningRecorder.onStopped()
                 }
                 delay(PROGRESS_SAMPLE_MS)
             }
@@ -6841,10 +6862,8 @@ class PlaybackService : MediaLibraryService() {
     private fun watchSleepTimer() {
         scope.launch {
             SleepTimer.deadline.collectLatest { deadline ->
-                if (deadline == null) {
-                    player?.volume = 1f
-                    return@collectLatest
-                }
+                if (deadline == null) return@collectLatest
+                var faded: ExoPlayer? = null
                 try {
                     val fadeDurationMs = if (AppSettings.sleepTimerFadeOut.value) SleepTimer.FADE_OUT_DURATION_MS else 0L
                     val totalRemaining = deadline - SystemClock.elapsedRealtime()
@@ -6858,7 +6877,10 @@ class PlaybackService : MediaLibraryService() {
                         while (true) {
                             val elapsed = SystemClock.elapsedRealtime() - fadeStart
                             val remaining = (actualDuration - elapsed).coerceAtLeast(0L)
-                            player?.volume = SleepTimer.calculateFadeVolume(remaining, actualDuration, true)
+                            player?.let {
+                                it.volume = SleepTimer.calculateFadeVolume(remaining, actualDuration, true)
+                                faded = it
+                            }
                             if (elapsed >= actualDuration) break
                             delay(100L)
                         }
@@ -6867,7 +6889,7 @@ class PlaybackService : MediaLibraryService() {
                     player?.pause()
                     SleepTimer.cancel()
                 } finally {
-                    player?.volume = 1f
+                    faded?.volume = 1f
                 }
             }
         }
@@ -7058,6 +7080,7 @@ class PlaybackService : MediaLibraryService() {
         // ExoPlayer's own shuffle stays off: the app shuffles by reordering the
         // queue, and this mode would play that queue in a hidden random order.
         player.shuffleModeEnabled = false
+        player.setShuffleOrder(ShuffleOrder.UnshuffledShuffleOrder(player.mediaItemCount))
         player.repeatMode = AppSettings.repeatMode.value
     }
 
@@ -8088,10 +8111,8 @@ class PlaybackService : MediaLibraryService() {
         serviceLyricsJob?.cancel()
         serviceLyricsJob = scope.launch(Dispatchers.IO) {
             val localUri = currentSong.localUri
-            var lines: List<LyricLine>? = null
-            if (localUri != null) {
-                lines = EmbeddedLyrics.forUri(this@PlaybackService, localUri)
-            }
+            val embedded = localUri?.let { EmbeddedLyrics.forUri(this@PlaybackService, it) }
+            var lines: List<LyricLine>? = embedded?.takeIf(EmbeddedLyrics::isSynced)
             if (lines == null) {
                 val found = LyricsRepository.lyrics(
                     videoId = currentSong.videoId,
@@ -8103,7 +8124,7 @@ class PlaybackService : MediaLibraryService() {
                     order = AppSettings.lyricsSourceOrder.value,
                     prioritizeSyllableSync = AppSettings.prioritizeSyllableSync.value,
                 )
-                lines = found?.lines
+                lines = found?.lines?.takeIf(EmbeddedLyrics::isSynced) ?: embedded ?: found?.lines
             }
             withContext(Dispatchers.Main) {
                 serviceLyrics = lines
@@ -8610,6 +8631,14 @@ class PlaybackService : MediaLibraryService() {
          */
         override fun setShuffleModeEnabled(shuffleModeEnabled: Boolean) {
             if (shuffleModeEnabled != QueueShuffle.enabled.value) onShuffleRequest()
+        }
+
+        override fun getShuffleModeEnabled(): Boolean = QueueShuffle.enabled.value
+
+        fun onShuffleChanged(enabled: Boolean) {
+            listeners.forEach { it.onShuffleModeEnabledChanged(enabled) }
+            val events = Player.Events(FlagSet.Builder().add(Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED).build())
+            listeners.forEach { it.onEvents(this, events) }
         }
 
         override fun setPlayWhenReady(playWhenReady: Boolean) {

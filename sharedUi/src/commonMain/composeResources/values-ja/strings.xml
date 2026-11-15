@@ -285,4 +285,6 @@
     <string name="hide_lyrics_preview_subtitle">Hides the lyrics line on the main player screen</string>
     <string name="search_voice">Search with your voice</string>
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
+    <string name="library_search_hint">ライブラリを検索</string>
+    <string name="library_no_matches">ライブラリに「%1$s」と一致するものはありません</string>
 </resources>

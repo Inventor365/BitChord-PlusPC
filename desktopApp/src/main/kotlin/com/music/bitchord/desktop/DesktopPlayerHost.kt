@@ -207,6 +207,7 @@ internal object DesktopPlayerSettings : PlayerSettingsSource {
     override val reduceAnimation = MutableStateFlow(false)
     override val reduceDynamicBlur = MutableStateFlow(false)
     override val showNerdStats = MutableStateFlow(false)
+    override val showTotalDuration = MutableStateFlow(persistence.boolean(KEY_SHOW_TOTAL_DURATION, false))
     override val smartAnalysis = MutableStateFlow(SmartAnalysis())
     override val smartFadeEnabled = MutableStateFlow(false)
     override val smartMixInProgress = MutableStateFlow(false)
@@ -228,8 +229,14 @@ internal object DesktopPlayerSettings : PlayerSettingsSource {
         persistence.saveInt(KEY_LYRICS_OFFSET, clamped)
     }
 
+    override fun setShowTotalDuration(value: Boolean) {
+        showTotalDuration.value = value
+        persistence.saveBoolean(KEY_SHOW_TOTAL_DURATION, value)
+    }
+
     private const val KEY_LAST_SCREEN = "last_player_screen"
     private const val KEY_LYRICS_OFFSET = "lyrics_offset_ms"
+    private const val KEY_SHOW_TOTAL_DURATION = "show_total_duration"
 }
 
 /** Which glyph a mixer gets, from the only thing Java Sound says about it: its name. */

@@ -1,8 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
-import { ListPlus } from 'lucide-react';
+import { ListPlus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { MakeCollaborativeModal } from '@/components/collab/CollabModals';
 import { DetailHeader, detailButton } from '@/components/music/DetailHeader';
+import { PlaylistMenu } from '@/components/music/PlaylistMenu';
 import { playList, shuffleList } from '@/components/music/play';
 import { EmptyState, LoadError, NeedsExtension } from '@/components/music/States';
 import { TrackList } from '@/components/music/TrackList';
@@ -30,6 +32,7 @@ export default function SpotifyPlaylistPage() {
   const info = useSpotifyPlaylistInfo(id);
   const rows = useSpotifyRows(id);
   usePageTint(useArtworkColor(info.data?.imageUrl));
+  const [makingCollab, setMakingCollab] = useState(false);
 
   if (extension.state === 'missing') return <NeedsExtension what="your Spotify playlists" />;
   if (!signedIn) return <EmptyState title="Sign in to Spotify" detail="Open Spotify in the sidebar to connect your account." />;
@@ -65,12 +68,47 @@ export default function SpotifyPlaylistPage() {
         canPlay={playable.length > 0}
         onPlay={() => playList(playable, 0, context)}
         onShuffle={() => shuffleList(playable, context)}
-        extra={<ImportButton title={info.data.name} videoIds={playable.map((t) => t.videoId)} ready={rows.matching === 0} />}
+        extra={
+          <>
+            <ImportButton title={info.data.name} videoIds={playable.map((t) => t.videoId)} ready={rows.matching === 0} />
+            <button
+              type="button"
+              onClick={() => setMakingCollab(true)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-pill border-[0.75px] border-quaternary bg-quinary px-3.5 type-body-emphasized text-primary hover:bg-quaternary"
+              title="Share as a live Collaborative Playlist"
+            >
+              <Users size={16} strokeWidth={2.1} />
+              <span>Make Collaborative</span>
+            </button>
+            <PlaylistMenu
+              playlistId={id}
+              sourceType="spotify"
+              title={info.data.name}
+              artworkUrl={info.data.imageUrl}
+              tracks={rows.rows}
+              onPlay={playable.length > 0 ? () => playList(playable, 0, context) : undefined}
+              onShuffle={playable.length > 0 ? () => shuffleList(playable, context) : undefined}
+              className={detailButton.circle}
+            />
+          </>
+        }
       />
       <TrackList tracks={rows.rows} variant="playlist" source={context.source} />
       <footer className={detailFooter}>
         <p>From Spotify. Songs are matched to YouTube Music by title, artist and length.</p>
       </footer>
+      {makingCollab && (
+        <MakeCollaborativeModal
+          source={{
+            sourcePlaylistId: id,
+            sourceType: 'spotify',
+            title: info.data.name,
+            artworkUrl: info.data.imageUrl,
+            tracks: rows.rows,
+          }}
+          onClose={() => setMakingCollab(false)}
+        />
+      )}
     </>
   );
 }
