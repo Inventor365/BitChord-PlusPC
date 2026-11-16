@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -113,6 +115,8 @@ class CollabManager(
     private val ytmInviteLinks = LinkedHashMap<String, String>()
     private val ytmConvertedSources = LinkedHashMap<String, String>()
     private val ytmStoppedIds = LinkedHashSet<String>()
+    private val diskMutex = Mutex()
+    @Volatile private var diskLoaded = false
     private val localTrackStamps = LinkedHashMap<String, LocalTrackStamp>()
     private val localActivities = LinkedHashMap<String, List<CollabActivity>>()
 
@@ -209,6 +213,7 @@ class CollabManager(
 
         if (isNativeYouTubeMode && (becameSignedIn || _playlists.value.isEmpty())) {
             scope.launch {
+                ensureDiskLoaded()
                 // Enrich profile from YouTube Music account menu if name was generic
                 if (cleanName == "You" || cleanName == "Google Account") {
                     YtMusicRepository.account().getOrNull()?.let { info ->
@@ -230,7 +235,7 @@ class CollabManager(
         if (initialized) return
         initialized = true
         scope.launch {
-            loadFromDisk()
+            ensureDiskLoaded()
             recomputeEffectiveSession()
             if (isNativeYouTubeMode && Innertube.hasSession && _appGoogleUser.value == null) {
                 YtMusicRepository.account().getOrNull()?.let { info ->
@@ -353,6 +358,7 @@ class CollabManager(
     }
 
     suspend fun refreshPlaylists(): Result<List<CollabPlaylistSummary>> = runCatching {
+        ensureDiskLoaded()
         if (isNativeYouTubeMode) {
             requireNativeGoogleSignIn()
             _loading.value = true
@@ -403,27 +409,45 @@ class CollabManager(
     ): Result<CollabPlaylistDetail> = runCatching {
         if (isNativeYouTubeMode) {
             val me = requireNativeGoogleSignIn()
-            val videoIds = initialSongs.mapNotNull { it.videoId.takeIf(String::isNotBlank) }
+            val cleanTitle = title.trim().ifBlank { "Collaborative Playlist" }
+            val cleanDesc = description.trim()
+            val resolvedSongs = resolveYouTubeSongs(initialSongs)
+            val seedVideoIds = resolvedSongs.map { it.videoId }.take(50)
+            // Create directly as UNLISTED so collaboration invite links mint without waiting ~18s for
+            // PRIVATE -> UNLISTED propagation (Innertube.createPlaylist auto-falls back to PRIVATE if gated).
             val rawId = Innertube.createPlaylist(
-                title = title.trim(),
+                title = cleanTitle,
                 privacy = PlaylistPrivacy.UNLISTED,
-                description = description.trim(),
-                videoIds = videoIds,
+                description = cleanDesc,
+                videoIds = seedVideoIds,
             ).removePrefix("VL")
-            val inviteUrl = runCatching { Innertube.enablePlaylistCollaboration(rawId) }
+            resolvedSongs.map { it.videoId }.drop(50).chunked(100).forEach { chunk ->
+                runCatching { Innertube.addToPlaylist(rawId, chunk, allowDuplicates = true, retryCollaboratorAcl = true) }
+            }
+            val inviteUrl = runCatching { Innertube.enablePlaylistCollaboration(rawId, ensureUnlisted = false) }
+                .recoverCatching { Innertube.enablePlaylistCollaboration(rawId, ensureUnlisted = true) }
                 .getOrDefault("https://music.youtube.com/playlist?list=$rawId")
-            val cplId = "$YTM_PREFIX$rawId"
             synchronized(ytmCollabIds) {
                 ytmCollabIds.add(rawId)
                 ytmStoppedIds.remove(rawId)
                 ytmInviteLinks[rawId] = inviteUrl
             }
-            val now = System.currentTimeMillis()
-            videoIds.forEach { vid ->
-                localTrackStamps["$rawId:$vid"] = LocalTrackStamp(me.id, me.displayName, me.avatarUrl, now)
+            if (!inviteUrl.contains("jct=")) {
+                scheduleDeferredInviteLinkFetch(rawId)
             }
-            recordLocalActivity(rawId, me, "playlist.create", "${me.displayName} created collaborative playlist \"${title.trim()}\"")
-            val detail = fetchNativeYtmPlaylistDetail(rawId, fallbackTitle = title.trim(), fallbackArtwork = artworkUrl, initialSongs = initialSongs)
+            val now = System.currentTimeMillis()
+            resolvedSongs.forEach { s ->
+                localTrackStamps["$rawId:${s.videoId}"] = LocalTrackStamp(me.id, me.displayName, me.avatarUrl, now)
+            }
+            recordLocalActivity(rawId, me, "playlist.create", "${me.displayName} created collaborative playlist \"$cleanTitle\"")
+            val detail = fetchNativeYtmPlaylistDetail(
+                rawId = rawId,
+                fallbackTitle = cleanTitle,
+                fallbackDescription = cleanDesc,
+                fallbackArtwork = artworkUrl,
+                initialSongs = resolvedSongs,
+                fallbackPermissions = permissions,
+            )
             storeDetailSnapshot(detail)
             detail
         } else {
@@ -469,35 +493,47 @@ class CollabManager(
                 }
             }
 
-            val videoIds = songs.mapNotNull { it.videoId.takeIf(String::isNotBlank) }
+            val cleanTitle = title.trim().ifBlank { "Collaborative Playlist" }
+            val cleanDesc = description.trim()
+            val resolvedSongs = resolveYouTubeSongs(songs)
+            val allVideoIds = resolvedSongs.map { it.videoId }
             val rawId = Innertube.createPlaylist(
-                title = title.trim(),
+                title = cleanTitle,
                 privacy = PlaylistPrivacy.UNLISTED,
-                description = description.trim(),
-                videoIds = emptyList(),
+                description = cleanDesc,
+                videoIds = allVideoIds.take(50),
             ).removePrefix("VL")
-            // Add in chunks of 100 so even large personal playlists convert reliably
-            videoIds.chunked(100).forEach { chunk ->
-                runCatching { Innertube.addToPlaylist(rawId, chunk) }
+            // Add remaining tracks in chunks of 100 so large personal playlists convert reliably
+            allVideoIds.drop(50).chunked(100).forEach { chunk ->
+                runCatching { Innertube.addToPlaylist(rawId, chunk, allowDuplicates = true, retryCollaboratorAcl = true) }
             }
-            val inviteUrl = runCatching { Innertube.enablePlaylistCollaboration(rawId) }
+            val inviteUrl = runCatching { Innertube.enablePlaylistCollaboration(rawId, ensureUnlisted = false) }
+                .recoverCatching { Innertube.enablePlaylistCollaboration(rawId, ensureUnlisted = true) }
                 .getOrDefault("https://music.youtube.com/playlist?list=$rawId")
-
             synchronized(ytmCollabIds) {
                 ytmCollabIds.add(rawId)
                 ytmStoppedIds.remove(rawId)
                 ytmInviteLinks[rawId] = inviteUrl
                 ytmConvertedSources[sourceKey] = rawId
             }
+            if (!inviteUrl.contains("jct=")) {
+                scheduleDeferredInviteLinkFetch(rawId)
+            }
             if (attributeExistingTracksToOwner) {
                 val now = System.currentTimeMillis()
-                videoIds.forEach { vid ->
+                allVideoIds.forEach { vid ->
                     localTrackStamps["$rawId:$vid"] = LocalTrackStamp(me.id, me.displayName, me.avatarUrl, now)
                 }
             }
-            recordLocalActivity(rawId, me, "playlist.convert", "${me.displayName} made \"${title.trim()}\" collaborative (${videoIds.size} songs)")
-            val detail = fetchNativeYtmPlaylistDetail(rawId, fallbackTitle = title.trim(), fallbackArtwork = artworkUrl, initialSongs = songs)
-                .copy(sourceType = sourceType, sourcePlaylistId = sourcePlaylistId)
+            recordLocalActivity(rawId, me, "playlist.convert", "${me.displayName} made \"$cleanTitle\" collaborative (${allVideoIds.size} songs)")
+            val detail = fetchNativeYtmPlaylistDetail(
+                rawId = rawId,
+                fallbackTitle = cleanTitle,
+                fallbackDescription = cleanDesc,
+                fallbackArtwork = artworkUrl,
+                initialSongs = resolvedSongs,
+                fallbackPermissions = permissions,
+            ).copy(sourceType = sourceType, sourcePlaylistId = sourcePlaylistId)
             storeDetailSnapshot(detail)
             CollabConvertResult(playlist = detail, alreadyConverted = false)
         } else {
@@ -530,8 +566,10 @@ class CollabManager(
         if (isNativeYouTubeMode || playlistId.startsWith(YTM_PREFIX)) {
             requireNativeGoogleSignIn()
             val rawId = playlistId.removePrefix(YTM_PREFIX).removePrefix("VL")
-            if (!title.isNullOrBlank()) Innertube.renamePlaylist(rawId, title.trim())
-            if (description != null) Innertube.setPlaylistDescription(rawId, description.trim())
+            val cleanTitle = title?.trim()?.takeIf { it.isNotBlank() }
+            val cleanDesc = description?.trim()
+            if (cleanTitle != null) Innertube.renamePlaylist(rawId, cleanTitle)
+            if (cleanDesc != null) Innertube.setPlaylistDescription(rawId, cleanDesc)
             val cur = _details.value[playlistId]
             val mergedPerms = if (permissions != null && cur != null) {
                 cur.permissions.copy(
@@ -540,7 +578,18 @@ class CollabManager(
                     editorCanInvite = permissions.editorCanInvite ?: cur.permissions.editorCanInvite,
                 )
             } else cur?.permissions ?: CollabPermissions()
-            val detail = fetchNativeYtmPlaylistDetail(rawId).copy(permissions = mergedPerms)
+            val fetched = fetchNativeYtmPlaylistDetail(
+                rawId = rawId,
+                fallbackTitle = cleanTitle ?: cur?.title ?: "Collaborative Playlist",
+                fallbackDescription = cleanDesc ?: cur?.description.orEmpty(),
+                fallbackArtwork = artworkUrl ?: cur?.artworkUrl,
+                fallbackPermissions = mergedPerms,
+            )
+            val detail = fetched.copy(
+                title = cleanTitle ?: fetched.title,
+                description = cleanDesc ?: fetched.description,
+                permissions = mergedPerms,
+            )
             storeDetailSnapshot(detail)
             detail
         } else {
@@ -598,19 +647,56 @@ class CollabManager(
         if (isNativeYouTubeMode || playlistId.startsWith(YTM_PREFIX)) {
             val me = requireNativeGoogleSignIn()
             val rawId = playlistId.removePrefix(YTM_PREFIX).removePrefix("VL")
-            val videoIds = songs.mapNotNull { it.videoId.takeIf(String::isNotBlank) }
-            require(videoIds.isNotEmpty()) { "Select YouTube Music tracks with valid video IDs to add." }
-            val setMap = Innertube.addToPlaylist(rawId, videoIds)
-            val now = System.currentTimeMillis()
-            songs.forEach { s ->
-                if (s.videoId.isNotBlank()) {
-                    val stamp = LocalTrackStamp(me.id, me.displayName, me.avatarUrl, now)
-                    localTrackStamps["$rawId:${s.videoId}"] = stamp
-                    setMap[s.videoId]?.let { svid -> localTrackStamps["$rawId:$svid"] = stamp }
-                    recordLocalActivity(rawId, me, "track.add", "${me.displayName} added ${s.title}")
-                }
+            val cplId = "$YTM_PREFIX$rawId"
+            val resolvedSongs = resolveYouTubeSongs(songs)
+            require(resolvedSongs.isNotEmpty()) { "Select playable songs to add to this collaborative playlist." }
+            val videoIds = resolvedSongs.map { it.videoId }
+            val setMap = HashMap<String, String>()
+            videoIds.chunked(100).forEach { chunk ->
+                setMap.putAll(
+                    Innertube.addToPlaylist(
+                        playlistId = rawId,
+                        videoIds = chunk,
+                        allowDuplicates = true,
+                        retryCollaboratorAcl = true,
+                    ),
+                )
             }
-            val detail = fetchNativeYtmPlaylistDetail(rawId)
+            val now = System.currentTimeMillis()
+            resolvedSongs.forEach { s ->
+                val stamp = LocalTrackStamp(me.id, me.displayName, me.avatarUrl, now)
+                localTrackStamps["$rawId:${s.videoId}"] = stamp
+                setMap[s.videoId]?.let { svid -> localTrackStamps["$rawId:$svid"] = stamp }
+                recordLocalActivity(rawId, me, "track.add", "${me.displayName} added ${s.title}")
+            }
+            var detail = fetchNativeYtmPlaylistDetail(rawId)
+            // Reconcile read-after-write lag if YouTube's browse replica hasn't shown the newly added rows yet
+            val existingKeys = detail.tracks.flatMap { listOf(it.entryId, it.trackId) }.toHashSet()
+            val missingOptimistic = resolvedSongs.mapNotNull { s ->
+                val svid = setMap[s.videoId] ?: s.videoId
+                if (svid in existingKeys || s.videoId in existingKeys) null
+                else CollabTrackEntry(
+                    entryId = svid,
+                    playlistId = cplId,
+                    position = detail.tracks.size,
+                    trackId = s.videoId,
+                    provider = "youtube",
+                    title = s.title,
+                    artist = s.artist,
+                    albumName = s.albumName,
+                    thumbnailUrl = s.thumbnailUrl,
+                    durationMs = s.toCollabTrackInput()?.durationMs,
+                    isExplicit = s.isExplicit == true,
+                    contributorId = me.id,
+                    contributorName = me.displayName,
+                    contributorAvatarUrl = me.avatarUrl,
+                    addedAtMs = now,
+                )
+            }
+            if (missingOptimistic.isNotEmpty()) {
+                val combined = (detail.tracks + missingOptimistic).mapIndexed { idx, e -> e.copy(position = idx) }
+                detail = detail.copy(tracks = combined, trackCount = combined.size)
+            }
             storeDetailSnapshot(detail)
             detail
         } else {
@@ -629,12 +715,28 @@ class CollabManager(
         if (isNativeYouTubeMode || playlistId.startsWith(YTM_PREFIX)) {
             val me = requireNativeGoogleSignIn()
             val rawId = playlistId.removePrefix(YTM_PREFIX).removePrefix("VL")
-            val current = _details.value[playlistId]
-            val targetEntry = current?.tracks?.firstOrNull { it.entryId == entryId }
-                ?: error("Track entry not found in playlist.")
-            Innertube.removeFromPlaylist(rawId, listOf(entryId to targetEntry.trackId))
-            recordLocalActivity(rawId, me, "track.remove", "${me.displayName} removed ${targetEntry.title}")
-            val detail = fetchNativeYtmPlaylistDetail(rawId)
+            var current = _details.value[playlistId]
+            var targetEntry = current?.tracks?.firstOrNull { it.entryId == entryId }
+            // If entryId was an optimistic videoId before YouTube minted setVideoId, refresh once to resolve setVideoId
+            if (targetEntry == null || targetEntry.entryId == targetEntry.trackId) {
+                val refreshed = runCatching { fetchNativeYtmPlaylistDetail(rawId) }.getOrNull()
+                if (refreshed != null) {
+                    current = refreshed
+                    targetEntry = refreshed.tracks.firstOrNull {
+                        it.entryId == entryId || it.trackId == (targetEntry?.trackId ?: entryId)
+                    } ?: targetEntry
+                }
+            }
+            val resolvedTarget = targetEntry ?: error("Track entry not found in playlist.")
+            Innertube.removeFromPlaylist(rawId, listOf(resolvedTarget.entryId to resolvedTarget.trackId))
+            recordLocalActivity(rawId, me, "track.remove", "${me.displayName} removed ${resolvedTarget.title}")
+            var detail = fetchNativeYtmPlaylistDetail(rawId)
+            if (detail.tracks.any { it.entryId == resolvedTarget.entryId }) {
+                val filtered = detail.tracks
+                    .filterNot { it.entryId == resolvedTarget.entryId }
+                    .mapIndexed { idx, e -> e.copy(position = idx) }
+                detail = detail.copy(tracks = filtered, trackCount = filtered.size)
+            }
             storeDetailSnapshot(detail)
             detail
         } else {
@@ -651,13 +753,30 @@ class CollabManager(
         if (isNativeYouTubeMode || playlistId.startsWith(YTM_PREFIX)) {
             val me = requireNativeGoogleSignIn()
             val rawId = playlistId.removePrefix(YTM_PREFIX).removePrefix("VL")
-            val currentIds = _details.value[playlistId]?.tracks?.map { it.entryId }.orEmpty()
-            val moves = playlistMoves(currentIds, orderedEntryIds)
+            var currentTracks = _details.value[playlistId]?.tracks.orEmpty()
+            var effectiveOrderedIds = orderedEntryIds
+            if (currentTracks.any { it.entryId == it.trackId }) {
+                val refreshed = runCatching { fetchNativeYtmPlaylistDetail(rawId) }.getOrNull()
+                if (refreshed != null && refreshed.tracks.size == currentTracks.size) {
+                    val oldToNew = currentTracks.zip(refreshed.tracks).associate { (o, n) -> o.entryId to n.entryId }
+                    effectiveOrderedIds = orderedEntryIds.map { oldToNew[it] ?: it }
+                    currentTracks = refreshed.tracks
+                }
+            }
+            val currentIds = currentTracks.map { it.entryId }
+            val moves = playlistMoves(currentIds, effectiveOrderedIds)
             if (moves.isNotEmpty()) {
-                Innertube.movePlaylistItems(rawId, moves)
+                moves.chunked(50).forEach { batch ->
+                    Innertube.movePlaylistItems(rawId, batch)
+                }
                 recordLocalActivity(rawId, me, "track.reorder", "${me.displayName} reordered the playlist")
             }
-            val detail = fetchNativeYtmPlaylistDetail(rawId)
+            var detail = fetchNativeYtmPlaylistDetail(rawId)
+            val byId = detail.tracks.associateBy { it.entryId }
+            if (effectiveOrderedIds.size == detail.tracks.size && effectiveOrderedIds.all { it in byId }) {
+                val reordered = effectiveOrderedIds.mapIndexedNotNull { idx, id -> byId[id]?.copy(position = idx) }
+                detail = detail.copy(tracks = reordered)
+            }
             storeDetailSnapshot(detail)
             detail
         } else {
@@ -711,7 +830,15 @@ class CollabManager(
     suspend fun listInvites(playlistId: String): Result<List<CollabInviteView>> = runCatching {
         if (isNativeYouTubeMode || playlistId.startsWith(YTM_PREFIX)) {
             val rawId = playlistId.removePrefix(YTM_PREFIX).removePrefix("VL")
-            val url = synchronized(ytmCollabIds) { ytmInviteLinks[rawId] }
+            var url = synchronized(ytmCollabIds) { ytmInviteLinks[rawId] }
+            if ((url.isNullOrBlank() || !url.contains("jct=")) && rawId !in ytmStoppedIds && Innertube.hasSession) {
+                val fetchedUrl = runCatching { Innertube.enablePlaylistCollaboration(rawId) }.getOrNull()
+                if (!fetchedUrl.isNullOrBlank()) {
+                    url = fetchedUrl
+                    synchronized(ytmCollabIds) { ytmInviteLinks[rawId] = fetchedUrl }
+                    saveToDiskAsync()
+                }
+            }
             if (url.isNullOrBlank()) emptyList()
             else listOf(
                 CollabInviteView(
@@ -749,15 +876,15 @@ class CollabManager(
             ?: error("Paste a YouTube Music collaboration link (https://music.youtube.com/playlist?list=…&jct=…) or bci_… invite link.")
         if (parsed.isYouTubeMusicInvite) {
             val rawId = parsed.ytmPlaylistId!!
-            val browse = Innertube.browse("VL$rawId")
-            val meta = InnertubeParser.parseYtmCollabHeader(browse, rawId)
-            val shelf = InnertubeParser.parsePlaylistShelf(browse)
+            val browse = runCatching { Innertube.browse("VL$rawId") }.getOrNull()
+            val meta = browse?.let { InnertubeParser.parseYtmCollabHeader(it, rawId) }
+            val shelf = browse?.let { InnertubeParser.parsePlaylistShelf(it) }
             val preview = CollabInvitePreview(
                 playlistId = "$YTM_PREFIX$rawId",
-                title = meta?.title ?: "Collaborative Playlist",
+                title = meta?.title?.takeIf { it.isNotBlank() } ?: "Collaborative Playlist",
                 description = meta?.description.orEmpty(),
-                artworkUrl = meta?.thumbnailUrl,
-                ownerName = meta?.ownerName ?: "YouTube Music",
+                artworkUrl = meta?.thumbnailUrl ?: shelf?.songs?.firstOrNull()?.thumbnailUrl,
+                ownerName = meta?.ownerName?.takeIf { it.isNotBlank() } ?: "YouTube Music",
                 ownerAvatarUrl = meta?.facepileAvatars?.firstOrNull(),
                 memberCount = (meta?.facepileAvatars?.size ?: 1).coerceAtLeast(1),
                 trackCount = shelf?.songs?.size ?: 0,
@@ -781,16 +908,19 @@ class CollabManager(
             val me = requireNativeGoogleSignIn()
             val rawId = parsed.ytmPlaylistId!!
             val jct = parsed.ytmJoinToken!!
+            val wasAlreadyTracked = synchronized(ytmCollabIds) { rawId in ytmCollabIds }
             Innertube.joinCollaborativePlaylist(rawId, jct)
             synchronized(ytmCollabIds) {
                 ytmCollabIds.add(rawId)
                 ytmStoppedIds.remove(rawId)
                 ytmInviteLinks[rawId] = "https://music.youtube.com/playlist?list=$rawId&jct=$jct"
             }
-            recordLocalActivity(rawId, me, "member.join", "${me.displayName} joined via invite link")
+            if (!wasAlreadyTracked) {
+                recordLocalActivity(rawId, me, "member.join", "${me.displayName} joined via invite link")
+            }
             val detail = fetchNativeYtmPlaylistDetail(rawId)
             storeDetailSnapshot(detail)
-            CollabAcceptInviteResult(playlist = detail, alreadyMember = false)
+            CollabAcceptInviteResult(playlist = detail, alreadyMember = wasAlreadyTracked)
         } else {
             adoptServerOriginIfUnset(parsed.serverOrigin)
             val server = parsed.serverOrigin ?: requireServerUrl()
@@ -838,7 +968,7 @@ class CollabManager(
         if (isNativeYouTubeMode || playlistId.startsWith(YTM_PREFIX)) {
             requireNativeGoogleSignIn()
             val rawId = playlistId.removePrefix(YTM_PREFIX).removePrefix("VL")
-            Innertube.ratePlaylist(rawId, saved = false)
+            Innertube.leaveCollaborativePlaylist(rawId)
             synchronized(ytmCollabIds) { ytmCollabIds.remove(rawId) }
             removeLocalPlaylist(playlistId)
         } else {
@@ -887,6 +1017,7 @@ class CollabManager(
 
     private suspend fun discoverNativeYouTubeCollabPlaylists(): List<CollabPlaylistSummary> = coroutineScope {
         val libraryItems = YtMusicRepository.libraryPlaylists().getOrNull().orEmpty()
+        val editableIds = Innertube.getEditablePlaylistIdsForCurrentUser()
         val trackedIds = synchronized(ytmCollabIds) { ytmCollabIds.toSet() }
         val candidateRawIds = LinkedHashSet<String>()
         candidateRawIds.addAll(trackedIds)
@@ -909,6 +1040,19 @@ class CollabManager(
                         if (!meta.isCollaborative && !isKnown) return@runCatching null
                         synchronized(ytmCollabIds) { ytmCollabIds.add(rawId) }
                         val shelf = InnertubeParser.parsePlaylistShelf(browse)
+                        val rowContribs = InnertubeParser.parsePlaylistTrackContributors(browse)
+                        val distinctContribCount = (
+                            setOf(meta.ownerName.lowercase()) +
+                                rowContribs.values.map { it.name.lowercase() }
+                            ).filter { it.isNotBlank() }.size
+                        val summaryCount = parseSummaryCollaboratorCount(meta.collaboratorSummary)
+                        val effectiveMemberCount = maxOf(
+                            1,
+                            meta.facepileAvatars.size,
+                            distinctContribCount,
+                            summaryCount,
+                            _details.value["$YTM_PREFIX$rawId"]?.memberCount ?: 1,
+                        )
                         val me = currentUser
                         val stopped = rawId in ytmStoppedIds
                         CollabPlaylistSummary(
@@ -918,10 +1062,17 @@ class CollabManager(
                             artworkUrl = meta.thumbnailUrl ?: shelf?.songs?.firstOrNull()?.thumbnailUrl,
                             ownerUserId = if (meta.owned) (me?.id ?: "ytm:self") else "ytm:owner:$rawId",
                             ownerName = if (meta.owned) (me?.displayName ?: meta.ownerName) else meta.ownerName,
-                            ownerAvatarUrl = if (meta.owned) me?.avatarUrl else meta.facepileAvatars.firstOrNull(),
-                            myRole = if (meta.owned) CollabRole.OWNER.name else CollabRole.EDITOR.name,
+                            ownerAvatarUrl = if (meta.owned) (me?.avatarUrl ?: meta.facepileAvatars.firstOrNull()) else meta.facepileAvatars.firstOrNull(),
+                            myRole = when {
+                                meta.owned -> CollabRole.OWNER.name
+                                rawId in editableIds || isKnown -> CollabRole.EDITOR.name
+                                else -> CollabRole.VIEWER.name
+                            },
                             sharingEnabled = !stopped,
-                            memberCount = meta.facepileAvatars.size.coerceAtLeast(1),
+                            memberCount = effectiveMemberCount,
+                            memberAvatars = meta.facepileAvatars.ifEmpty {
+                                listOfNotNull(me?.avatarUrl)
+                            }.distinct().take(5),
                             trackCount = shelf?.songs?.size ?: 0,
                             revision = (_details.value["$YTM_PREFIX$rawId"]?.revision ?: 1L),
                             updatedAtMs = System.currentTimeMillis(),
@@ -937,62 +1088,132 @@ class CollabManager(
     private suspend fun fetchNativeYtmPlaylistDetail(
         rawId: String,
         fallbackTitle: String = "Collaborative Playlist",
+        fallbackDescription: String = "",
         fallbackArtwork: String? = null,
         initialSongs: List<Song> = emptyList(),
+        fallbackPermissions: CollabPermissions? = null,
     ): CollabPlaylistDetail {
         val cplId = "$YTM_PREFIX$rawId"
+        val prev = _details.value[cplId]
         val me = currentUser
-        val browse = Innertube.browse("VL$rawId")
-        val meta = InnertubeParser.parseYtmCollabHeader(browse, rawId)
-        val shelf = InnertubeParser.parsePlaylistShelf(browse)
-        val rowContribMap = InnertubeParser.parsePlaylistTrackContributors(browse)
+        val browse = runCatching { Innertube.browse("VL$rawId") }.getOrNull()
+        val meta = browse?.let { InnertubeParser.parseYtmCollabHeader(it, rawId) }
+        val shelf = browse?.let { InnertubeParser.parsePlaylistShelf(it) }
+        val rowContribMap = browse?.let { InnertubeParser.parsePlaylistTrackContributors(it) }.orEmpty()
 
-        val panelMembers = if (!meta?.panelParams.isNullOrBlank()) {
+        // 1. Fetch collaborator roster from PAplaylist_collaborate panel (WEB_REMIX + WEB fallback)
+        //    and any inline panel inside browse.
+        val inlinePanelMembers = browse?.let { InnertubeParser.parseCollaboratorsPanel(it) }.orEmpty()
+        val fetchedPanelMembers = if (meta?.isCollaborative == true || !meta?.panelParams.isNullOrBlank()) {
             runCatching {
-                InnertubeParser.parseCollaboratorsPanel(Innertube.getCollaboratorsPanel(meta?.panelParams))
+                InnertubeParser.parseCollaboratorsPanel(
+                    Innertube.getCollaboratorsPanel(meta?.panelParams, rawId),
+                )
             }.getOrDefault(emptyList())
         } else {
             emptyList()
         }
+        val panelMembers = (fetchedPanelMembers + inlinePanelMembers)
+            .distinctBy { (_, name, _) -> name.lowercase() }
 
-        val owned = meta?.owned ?: true
+        val owned = meta?.owned ?: prev?.let { it.myRole == CollabRole.OWNER.name } ?: true
         val ownerUserId = if (owned) (me?.id ?: "ytm:self") else (panelMembers.firstOrNull()?.first ?: "ytm:owner:$rawId")
         val ownerName = if (owned) (me?.displayName ?: meta?.ownerName ?: "You") else (meta?.ownerName ?: "Owner")
         val ownerAvatar = if (owned) (me?.avatarUrl ?: meta?.facepileAvatars?.firstOrNull()) else meta?.facepileAvatars?.firstOrNull()
 
+        // 2. Merge panel members + track contributors + current user (if collaborator) + facepile avatars
         val members = ArrayList<CollabMember>()
-        if (panelMembers.isNotEmpty()) {
-            panelMembers.forEachIndexed { idx, (cid, name, av) ->
-                val isMe = me != null && name.equals(me.displayName, ignoreCase = true)
-                members.add(
-                    CollabMember(
-                        playlistId = cplId,
-                        userId = if (isMe) me!!.id else cid,
-                        role = if (idx == 0) CollabRole.OWNER.name else CollabRole.EDITOR.name,
-                        displayName = name,
-                        avatarUrl = av ?: (if (isMe) me?.avatarUrl else null),
-                    ),
-                )
+        fun addOrMergeMember(userId: String, role: CollabRole, displayName: String, avatarUrl: String?) {
+            val cleanName = displayName.trim().ifBlank { "Collaborator" }
+            val existingIdx = members.indexOfFirst {
+                it.userId == userId || it.displayName.equals(cleanName, ignoreCase = true)
             }
-        } else {
+            if (existingIdx >= 0) {
+                val cur = members[existingIdx]
+                if (cur.avatarUrl == null && avatarUrl != null) {
+                    members[existingIdx] = cur.copy(avatarUrl = avatarUrl)
+                }
+                return
+            }
             members.add(
                 CollabMember(
                     playlistId = cplId,
-                    userId = ownerUserId,
-                    role = CollabRole.OWNER.name,
-                    displayName = ownerName,
-                    avatarUrl = ownerAvatar,
+                    userId = userId,
+                    role = role.name,
+                    displayName = cleanName,
+                    avatarUrl = avatarUrl,
                 ),
             )
-            if (!owned && me != null) {
-                members.add(
-                    CollabMember(
-                        playlistId = cplId,
-                        userId = me.id,
-                        role = CollabRole.EDITOR.name,
-                        displayName = me.displayName,
-                        avatarUrl = me.avatarUrl,
+        }
+
+        if (panelMembers.isNotEmpty()) {
+            panelMembers.forEachIndexed { idx, (cid, name, av) ->
+                val isMe = me != null && name.equals(me.displayName, ignoreCase = true)
+                val resolvedId = when {
+                    isMe -> me.id
+                    idx == 0 && owned -> ownerUserId
+                    cid.isNotBlank() -> cid
+                    else -> "ytm:${name.lowercase()}"
+                }
+                val role = if (idx == 0) CollabRole.OWNER else CollabRole.EDITOR
+                addOrMergeMember(resolvedId, role, name, av ?: (if (isMe) me.avatarUrl else null))
+            }
+        } else {
+            addOrMergeMember(ownerUserId, CollabRole.OWNER, ownerName, ownerAvatar)
+        }
+
+        if (!owned && me != null) {
+            addOrMergeMember(me.id, CollabRole.EDITOR, me.displayName, me.avatarUrl)
+        }
+
+        // Include every track contributor discovered in browse rows
+        rowContribMap.values.forEach { info ->
+            val isMe = me != null && info.name.equals(me.displayName, ignoreCase = true)
+            val isOwner = info.name.equals(ownerName, ignoreCase = true)
+            val uid = when {
+                isMe -> me.id
+                isOwner -> ownerUserId
+                !info.channelId.isNullOrBlank() -> info.channelId
+                else -> "ytm:${info.name.lowercase()}"
+            }
+            addOrMergeMember(uid, if (isOwner) CollabRole.OWNER else CollabRole.EDITOR, info.name, info.avatarUrl)
+        }
+
+        // If YouTube's header facepile or "by Owner and <Name / N others>" reports collaborators
+        // who haven't added a track yet and weren't returned by get_panel, surface them immediately!
+        val facepileAvatars = meta?.facepileAvatars.orEmpty()
+        val summaryTotal = maxOf(facepileAvatars.size, parseSummaryCollaboratorCount(meta?.collaboratorSummary))
+        if (summaryTotal > members.size) {
+            val usedAvatars = members.mapNotNull { it.avatarUrl }.toHashSet()
+            val unusedAvatars = facepileAvatars.filterNot { it in usedAvatars }
+            val missingCount = summaryTotal - members.size
+            for (idx in 0 until missingCount) {
+                val av = unusedAvatars.getOrNull(idx) ?: facepileAvatars.getOrNull(members.size)
+                addOrMergeMember(
+                    userId = "ytm:facepile:${rawId}_${members.size}",
+                    role = CollabRole.EDITOR,
+                    displayName = "Collaborator ${members.size}",
+                    avatarUrl = av,
+                )
+            }
+        }
+
+        // Record live activity when collaborator count grows on the owner's/member's open playlist
+        if (prev != null && members.size > prev.members.size) {
+            val prevNames = prev.members.map { it.displayName.lowercase() }.toHashSet()
+            val newlyJoined = members.filterNot { it.displayName.lowercase() in prevNames }
+            newlyJoined.forEach { joinedMember ->
+                recordLocalActivity(
+                    rawId = rawId,
+                    actor = CollabUser(
+                        id = joinedMember.userId,
+                        email = "",
+                        emailVerified = true,
+                        displayName = joinedMember.displayName,
+                        avatarUrl = joinedMember.avatarUrl,
                     ),
+                    action = "member.join",
+                    summary = "${joinedMember.displayName} joined the collaborative playlist",
                 )
             }
         }
@@ -1003,9 +1224,10 @@ class CollabManager(
             val rowFromYtm = rowContribMap[setVid] ?: rowContribMap[song.videoId]
             val localStamp = localTrackStamps["$rawId:$setVid"] ?: localTrackStamps["$rawId:${song.videoId}"]
 
-            val contribName = rowFromYtm?.first ?: localStamp?.displayName ?: ownerName
-            val contribAvatar = rowFromYtm?.second ?: localStamp?.avatarUrl ?: ownerAvatar
+            val contribName = rowFromYtm?.name ?: localStamp?.displayName ?: ownerName
+            val contribAvatar = rowFromYtm?.avatarUrl ?: localStamp?.avatarUrl ?: ownerAvatar
             val contribId = when {
+                !rowFromYtm?.channelId.isNullOrBlank() && (me == null || !contribName.equals(me.displayName, ignoreCase = true)) -> rowFromYtm!!.channelId!!
                 localStamp != null -> localStamp.userId
                 me != null && contribName.equals(me.displayName, ignoreCase = true) -> me.id
                 contribName.equals(ownerName, ignoreCase = true) -> ownerUserId
@@ -1031,24 +1253,25 @@ class CollabManager(
             )
         }
 
-        val prevRev = _details.value[cplId]?.revision ?: 0L
+        val prevRev = prev?.revision ?: 0L
         val stopped = rawId in ytmStoppedIds
         return CollabPlaylistDetail(
             id = cplId,
-            title = meta?.title ?: fallbackTitle,
-            description = meta?.description.orEmpty(),
-            artworkUrl = meta?.thumbnailUrl ?: fallbackArtwork ?: entries.firstOrNull()?.thumbnailUrl,
+            title = meta?.title?.takeIf { it.isNotBlank() } ?: prev?.title ?: fallbackTitle,
+            description = meta?.description?.takeIf { it.isNotBlank() } ?: prev?.description?.takeIf { it.isNotBlank() } ?: fallbackDescription,
+            artworkUrl = meta?.thumbnailUrl ?: prev?.artworkUrl ?: fallbackArtwork ?: entries.firstOrNull()?.thumbnailUrl,
             ownerUserId = ownerUserId,
             ownerName = ownerName,
             ownerAvatarUrl = ownerAvatar,
             myRole = if (owned) CollabRole.OWNER.name else CollabRole.EDITOR.name,
             sharingEnabled = !stopped,
-            permissions = _details.value[cplId]?.permissions ?: CollabPermissions(
+            permissions = fallbackPermissions ?: prev?.permissions ?: CollabPermissions(
                 editorCanRemove = "any",
                 editorCanReorder = true,
                 editorCanInvite = true,
             ),
-            memberCount = members.size.coerceAtLeast(meta?.facepileAvatars?.size ?: 1),
+            memberCount = maxOf(members.size, summaryTotal, 1),
+            memberAvatars = (facepileAvatars + members.mapNotNull { it.avatarUrl }).distinct().take(5),
             trackCount = entries.size,
             revision = prevRev + 1L,
             updatedAtMs = System.currentTimeMillis(),
@@ -1056,6 +1279,66 @@ class CollabManager(
             tracks = entries,
             activities = synchronized(localActivities) { localActivities[rawId].orEmpty() },
         )
+    }
+
+    private fun parseSummaryCollaboratorCount(summary: String?): Int {
+        val text = summary?.trim()?.takeIf { it.isNotEmpty() } ?: return 0
+        val othersMatch = OTHERS_COUNT_REGEX.find(text)
+        if (othersMatch != null) {
+            val others = othersMatch.groupValues[1].toIntOrNull() ?: 0
+            return 1 + others
+        }
+        return 1
+    }
+
+    /**
+     * Resolves songs to playable YouTube Music tracks with valid 11-character `videoId`s so
+     * converting or adding local/Spotify songs never sends `local:…` IDs to YouTube's playlist API.
+     */
+    private suspend fun resolveYouTubeSongs(songs: List<Song>): List<Song> {
+        if (songs.isEmpty()) return emptyList()
+        val out = ArrayList<Song>(songs.size)
+        for (song in songs) {
+            val vid = song.videoId.trim()
+            if (YT_VIDEO_ID_PATTERN.matches(vid)) {
+                out.add(if (vid == song.videoId) song else song.copy(videoId = vid))
+            } else if (song.title.isNotBlank()) {
+                val matched: Song? = runCatching {
+                    val query = listOf(song.title, song.artist).filter(String::isNotBlank).joinToString(" ")
+                    val sr = Innertube.search(query)
+                    InnertubeParser.parseSearchSongs(sr).firstOrNull { YT_VIDEO_ID_PATTERN.matches(it.videoId) }
+                        ?: InnertubeParser.parseSearch(sr).firstNotNullOfOrNull { item ->
+                            when (item) {
+                                is com.music.bitchord.data.model.SearchResult.TopTrack -> item.song
+                                is com.music.bitchord.data.model.SearchResult.Track -> item.song
+                                else -> null
+                            }?.takeIf { YT_VIDEO_ID_PATTERN.matches(it.videoId) }
+                        }
+                }.getOrNull()
+                if (matched != null) {
+                    out.add(song.copy(videoId = matched.videoId, thumbnailUrl = song.thumbnailUrl ?: matched.thumbnailUrl))
+                }
+            }
+        }
+        return out
+    }
+
+    /** Background retry when YouTube Music's newly created playlist takes a few seconds to settle before minting `jct=`. */
+    private fun scheduleDeferredInviteLinkFetch(rawId: String) {
+        scope.launch {
+            for (waitMs in listOf(2_500L, 5_000L)) {
+                delay(if (Innertube.settleRetryDelayMs < 100L) 20L else waitMs)
+                if (rawId in ytmStoppedIds || !Innertube.hasSession) return@launch
+                val currentUrl = synchronized(ytmCollabIds) { ytmInviteLinks[rawId] }
+                if (!currentUrl.isNullOrBlank() && currentUrl.contains("jct=")) return@launch
+                val url = runCatching { Innertube.enablePlaylistCollaboration(rawId, ensureUnlisted = true) }.getOrNull()
+                if (!url.isNullOrBlank() && url.contains("jct=")) {
+                    synchronized(ytmCollabIds) { ytmInviteLinks[rawId] = url }
+                    saveToDiskAsync()
+                    return@launch
+                }
+            }
+        }
     }
 
     private fun recordLocalActivity(rawId: String, actor: CollabUser, action: String, summary: String) {
@@ -1080,7 +1363,7 @@ class CollabManager(
             _realtimeConnected.value = true
             try {
                 while (isActive) {
-                    delay(12_000L)
+                    delay(if (Innertube.settleRetryDelayMs < 100L) 60L else 5_000L)
                     val subs = synchronized(activeSubscriptions) { activeSubscriptions.toList() }
                     if (subs.isEmpty()) break
                     if (!Innertube.hasSession) continue
@@ -1333,72 +1616,92 @@ class CollabManager(
         scope.launch { saveToDisk() }
     }
 
+    internal suspend fun flushToDisk() = saveToDisk()
+
+    private suspend fun ensureDiskLoaded() {
+        if (diskLoaded) return
+        diskMutex.withLock {
+            if (diskLoaded) return
+            loadFromDiskLocked()
+            diskLoaded = true
+        }
+    }
+
     private suspend fun saveToDisk() = withContext(Dispatchers.IO) {
+        ensureDiskLoaded()
         val target = storageFileProvider() ?: return@withContext
-        runCatching {
-            target.parentFile?.mkdirs()
-            val snapshot = PersistedState(
-                serverUrlOverride = _serverUrlOverride.value,
-                googleClientIdOverride = _googleClientIdOverride.value,
-                customServerSession = _customServerSession.value,
-                playlists = _playlists.value,
-                details = _details.value,
-                ytmCollabIds = synchronized(ytmCollabIds) { ytmCollabIds.toSet() },
-                ytmInviteLinks = synchronized(ytmCollabIds) { LinkedHashMap(ytmInviteLinks) },
-                ytmConvertedSources = synchronized(ytmCollabIds) { LinkedHashMap(ytmConvertedSources) },
-                ytmStoppedIds = synchronized(ytmCollabIds) { ytmStoppedIds.toSet() },
-                localTrackStamps = LinkedHashMap(localTrackStamps),
-                localActivities = synchronized(localActivities) { LinkedHashMap(localActivities) },
-            )
-            val tmp = File(target.parentFile, "${target.name}.tmp")
-            tmp.writeText(diskJson.encodeToString(snapshot))
-            if (!tmp.renameTo(target)) {
-                target.writeText(tmp.readText())
-                tmp.delete()
+        diskMutex.withLock {
+            runCatching {
+                target.parentFile?.mkdirs()
+                val snapshot = PersistedState(
+                    serverUrlOverride = _serverUrlOverride.value,
+                    googleClientIdOverride = _googleClientIdOverride.value,
+                    customServerSession = _customServerSession.value,
+                    playlists = _playlists.value,
+                    details = _details.value,
+                    ytmCollabIds = synchronized(ytmCollabIds) { ytmCollabIds.toSet() },
+                    ytmInviteLinks = synchronized(ytmCollabIds) { LinkedHashMap(ytmInviteLinks) },
+                    ytmConvertedSources = synchronized(ytmCollabIds) { LinkedHashMap(ytmConvertedSources) },
+                    ytmStoppedIds = synchronized(ytmCollabIds) { ytmStoppedIds.toSet() },
+                    localTrackStamps = LinkedHashMap(localTrackStamps),
+                    localActivities = synchronized(localActivities) { LinkedHashMap(localActivities) },
+                )
+                val tmp = File(target.parentFile, "${target.name}.tmp")
+                tmp.writeText(diskJson.encodeToString(snapshot))
+                if (!tmp.renameTo(target)) {
+                    target.writeText(tmp.readText())
+                    tmp.delete()
+                }
             }
         }
     }
 
-    private suspend fun loadFromDisk() = withContext(Dispatchers.IO) {
+    private suspend fun loadFromDiskLocked() = withContext(Dispatchers.IO) {
         val target = storageFileProvider() ?: return@withContext
         if (!target.isFile) return@withContext
         runCatching {
             val loaded = diskJson.decodeFromString<PersistedState>(target.readText())
-            // Migrate any accidental v1.10.0 fallback to upstream Render Listen Together URL
             val cleanedOverride = loaded.serverUrlOverride.takeUnless {
                 it.contains("bitchord-listen-together.onrender.com", ignoreCase = true) ||
                     it.contains("bitchord.kushagrasingh.in", ignoreCase = true)
             }.orEmpty()
-            _serverUrlOverride.value = cleanedOverride
-            _googleClientIdOverride.value = loaded.googleClientIdOverride
-            if (loaded.customServerSession != null &&
+            if (_serverUrlOverride.value.isBlank()) _serverUrlOverride.value = cleanedOverride
+            if (_googleClientIdOverride.value.isBlank()) _googleClientIdOverride.value = loaded.googleClientIdOverride
+            if (_customServerSession.value == null &&
+                loaded.customServerSession != null &&
                 (loaded.customServerSession.expiresAtMs <= 0L || loaded.customServerSession.expiresAtMs > System.currentTimeMillis())
             ) {
                 _customServerSession.value = loaded.customServerSession
             }
             synchronized(ytmCollabIds) {
-                ytmCollabIds.clear()
                 ytmCollabIds.addAll(loaded.ytmCollabIds)
-                ytmInviteLinks.clear()
-                ytmInviteLinks.putAll(loaded.ytmInviteLinks)
-                ytmConvertedSources.clear()
-                ytmConvertedSources.putAll(loaded.ytmConvertedSources)
-                ytmStoppedIds.clear()
+                loaded.ytmInviteLinks.forEach { (k, v) -> ytmInviteLinks.putIfAbsent(k, v) }
+                loaded.ytmConvertedSources.forEach { (k, v) -> ytmConvertedSources.putIfAbsent(k, v) }
                 ytmStoppedIds.addAll(loaded.ytmStoppedIds)
             }
-            localTrackStamps.clear()
-            localTrackStamps.putAll(loaded.localTrackStamps)
+            loaded.localTrackStamps.forEach { (k, v) -> localTrackStamps.putIfAbsent(k, v) }
             synchronized(localActivities) {
-                localActivities.clear()
-                localActivities.putAll(loaded.localActivities)
+                loaded.localActivities.forEach { (k, v) -> localActivities.putIfAbsent(k, v) }
             }
-            _playlists.value = loaded.playlists
-            _details.value = loaded.details
+            if (_playlists.value.isEmpty()) {
+                _playlists.value = loaded.playlists
+            } else {
+                val currentIds = _playlists.value.map { it.id }.toHashSet()
+                _playlists.value = (_playlists.value + loaded.playlists.filterNot { it.id in currentIds })
+                    .sortedByDescending { it.updatedAtMs }
+            }
+            if (_details.value.isEmpty()) {
+                _details.value = loaded.details
+            } else {
+                _details.value = loaded.details + _details.value
+            }
         }
     }
 
     companion object {
         const val YTM_PREFIX = "ytm:"
         const val YTM_NATIVE_SESSION_TOKEN = "ytm_native_google_session"
+        private val YT_VIDEO_ID_PATTERN = Regex("^[A-Za-z0-9_-]{11}$")
+        private val OTHERS_COUNT_REGEX = Regex("""\band\s+(\d+)\s+other""", RegexOption.IGNORE_CASE)
     }
 }

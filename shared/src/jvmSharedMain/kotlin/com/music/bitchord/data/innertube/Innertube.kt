@@ -89,6 +89,15 @@ object Innertube {
     private const val MUSIC_ORIGIN = "https://music.youtube.com"
     private const val YOUTUBE_ORIGIN = "https://www.youtube.com"
 
+    /** Test-only endpoint overrides so simulated Innertube servers can exercise every request path. */
+    @Volatile internal var musicBaseUrlForTesting: String? = null
+    @Volatile internal var musicOriginForTesting: String? = null
+    @Volatile internal var settleRetryDelayMs: Long = 2_500L
+
+    private val musicBaseUrl: String get() = musicBaseUrlForTesting ?: MUSIC_BASE
+    private val musicOriginUrl: String get() = musicOriginForTesting ?: MUSIC_ORIGIN
+    private val youtubeWebBaseUrl: String get() = musicBaseUrlForTesting ?: "$YOUTUBE_ORIGIN/youtubei/v1"
+    private val youtubeWebOriginUrl: String get() = musicOriginForTesting ?: YOUTUBE_ORIGIN
     /**
      * Fallback WEB_REMIX version, used until [SessionScope] reads the live one
      * out of the music.youtube.com shell. Only a starting point: the real
@@ -176,7 +185,7 @@ object Innertube {
      * so the id is found by shape rather than by a path that would rot.
      */
     private suspend fun fetchVisitorData(): String? {
-        val body = client.get("https://www.youtube.com/sw.js_data") {
+        val body = client.get("${musicOriginForTesting ?: YOUTUBE_ORIGIN}/sw.js_data") {
             header("User-Agent", WEB_USER_AGENT)
         }.bodyAsText()
         val payload = Json.parseToJsonElement(body.substringAfter("\n", body.drop(5)))
@@ -412,7 +421,7 @@ object Innertube {
      * which is the same as not having asked.
      */
     private suspend fun fetchSessionScope(session: String): SessionScope? {
-        val html = client.get("$MUSIC_ORIGIN/") {
+        val html = client.get("$musicOriginUrl/") {
             header("User-Agent", WEB_USER_AGENT)
             header("Accept-Language", acceptLanguageHeader)
             header("Cookie", session)
@@ -992,20 +1001,111 @@ object Innertube {
         videoIds: List<String> = emptyList(),
     ): String {
         requireSession()
-        val response = postMusic("playlist/create") {
-            put("title", title)
-            put("description", description.orEmpty())
-            put("privacyStatus", privacy.apiValue)
-            if (videoIds.isNotEmpty()) {
-                putJsonArray("videoIds") { videoIds.forEach { add(it) } }
+        val cleanTitle = sanitizePlaylistTitle(title)
+        val cleanDesc = sanitizePlaylistDescription(description)
+        val validVideos = videoIds.map(String::trim).filter { YT_VIDEO_ID.matches(it) }
+
+        suspend fun sendCreate(
+            targetPrivacy: PlaylistPrivacy,
+            includeOnBehalf: Boolean = true,
+        ): JsonObject = postMusic("playlist/create", includeOnBehalfOfUser = includeOnBehalf) {
+            put("title", cleanTitle)
+            if (!cleanDesc.isNullOrEmpty()) {
+                put("description", cleanDesc)
+            }
+            put("privacyStatus", targetPrivacy.apiValue)
+            if (validVideos.isNotEmpty()) {
+                putJsonArray("videoIds") { validVideos.forEach { add(it) } }
             }
         }
-        // Normally a bare top-level id; occasionally only inside the command
-        // that would navigate the web client to the new page, so fall back to
-        // finding it by name rather than by a path that would rot.
-        return response["playlistId"]?.jsonPrimitive?.contentOrNull
-            ?: findString(response, "playlistId")
-            ?: error("playlist created but no id came back")
+
+        // 1. Primary attempt with requested privacy and omitted blank description.
+        var lastResponse = sendCreate(privacy)
+        extractCreatedPlaylistId(lastResponse)?.let { return it }
+
+        // 2. If YouTube returned a channel-creation token (bare Google account without a channel),
+        //    provision the personal channel automatically when a token is provided, then retry.
+        val channelToken = findString(lastResponse, "channelCreationToken")
+            ?: runCatching {
+                if (hasAnyKey(lastResponse, CHANNEL_CREATION_KEYS)) {
+                    val acctResp = postMusic("account/accounts_list") {
+                        put("triggerChannelCreation", true)
+                    }
+                    findString(acctResp, "channelCreationToken")
+                } else null
+            }.getOrNull()
+        if (!channelToken.isNullOrBlank()) {
+            runCatching {
+                postMusic("channel/create_channel") {
+                    put("channelCreationToken", channelToken)
+                }
+                refreshSessionScope()
+            }
+            lastResponse = sendCreate(privacy)
+            extractCreatedPlaylistId(lastResponse)?.let { return it }
+        }
+
+        // 3. Refresh session scope & visitorData once, and if UNLISTED/PUBLIC was gated
+        //    (e.g. PAfeature_enablement on accounts where PRIVATE succeeds), fall back to PRIVATE
+        //    and promote privacy afterward.
+        runCatching {
+            refreshSessionScope()
+            ensureVisitorData()
+        }
+        if (privacy != PlaylistPrivacy.PRIVATE) {
+            val privateResp = runCatching { sendCreate(PlaylistPrivacy.PRIVATE) }.getOrNull()
+            if (privateResp != null) {
+                lastResponse = privateResp
+                extractCreatedPlaylistId(privateResp)?.let { createdId ->
+                    runCatching { setPlaylistPrivacy(createdId, privacy) }
+                    return createdId
+                }
+            }
+        } else {
+            val retryResp = runCatching { sendCreate(PlaylistPrivacy.PRIVATE) }.getOrNull()
+            if (retryResp != null) {
+                lastResponse = retryResp
+                extractCreatedPlaylistId(retryResp)?.let { return it }
+            }
+        }
+
+        // 4. If an active onBehalfOfUser (raw Gaia DATASYNC_ID on a channel-less personal account)
+        //    prevented playlist/create from returning an ID, try once with Cookie+SAPISIDHASH alone.
+        if (channelOverride != null || scope?.dataSyncId != null) {
+            val bareResp = runCatching {
+                sendCreate(PlaylistPrivacy.PRIVATE, includeOnBehalf = false)
+            }.getOrNull()
+            if (bareResp != null) {
+                lastResponse = bareResp
+                extractCreatedPlaylistId(bareResp)?.let { createdId ->
+                    if (privacy != PlaylistPrivacy.PRIVATE) {
+                        runCatching { setPlaylistPrivacy(createdId, privacy) }
+                    }
+                    return createdId
+                }
+            }
+        }
+
+        // 5. Read-after-write verification: if YouTube returned HTTP 200 without an error/gate dialog,
+        //    check the user's library playlists once in case the server created it without echoing the ID.
+        if (lastResponse["error"] == null && !hasAnyKey(lastResponse, GATED_OR_POPUP_KEYS)) {
+            val fromLibrary = runCatching {
+                val lib = browse("FEmusic_liked_playlists")
+                InnertubeParser.parseLibraryItems(lib)
+                    .firstOrNull { it.title.equals(cleanTitle, ignoreCase = false) && !it.browseId.isNullOrBlank() }
+                    ?.browseId
+                    ?.removePrefix("VL")
+                    ?.takeIf { it.isNotBlank() && it != "LM" && it != "SE" }
+            }.getOrNull()
+            if (!fromLibrary.isNullOrBlank()) {
+                if (privacy != PlaylistPrivacy.PRIVATE) {
+                    runCatching { setPlaylistPrivacy(fromLibrary, privacy) }
+                }
+                return fromLibrary
+            }
+        }
+
+        throw IllegalStateException(diagnoseCreatePlaylistFailure(lastResponse))
     }
 
     suspend fun deletePlaylist(playlistId: String) {
@@ -1022,16 +1122,17 @@ object Innertube {
      */
     private suspend fun editPlaylist(
         playlistId: String,
+        includeOnBehalfOfUser: Boolean = true,
         actions: JsonArrayBuilder.() -> Unit,
     ): JsonObject {
         requireSession()
-        val response = postMusic("browse/edit_playlist") {
+        val response = postMusic("browse/edit_playlist", includeOnBehalfOfUser = includeOnBehalfOfUser) {
             // The edit endpoint takes the raw id; `VL` is the browse prefix.
             put("playlistId", playlistId.removePrefix("VL"))
             putJsonArray("actions", actions)
         }
         val status = response["status"]?.jsonPrimitive?.contentOrNull
-        if (status != null && status != "STATUS_SUCCEEDED") {
+        if (status != null && !status.contains("SUCCEEDED")) {
             error("YouTube Music refused the edit ($status)")
         }
         return response
@@ -1051,16 +1152,56 @@ object Innertube {
      * Absences are normal and not an error — the add still happened; only the
      * id for undoing it is unknown.
      */
-    suspend fun addToPlaylist(playlistId: String, videoIds: List<String>): Map<String, String> {
-        val response = editPlaylist(playlistId) {
-            videoIds.forEach { videoId ->
-                addJsonObject {
-                    put("action", "ACTION_ADD_VIDEO")
-                    put("addedVideoId", videoId)
+    suspend fun addToPlaylist(
+        playlistId: String,
+        videoIds: List<String>,
+        allowDuplicates: Boolean = false,
+        retryCollaboratorAcl: Boolean = false,
+    ): Map<String, String> {
+        val cleanIds = videoIds.map(String::trim).filter(String::isNotEmpty)
+        if (cleanIds.isEmpty()) return emptyMap()
+
+        suspend fun sendAdd(includeOnBehalf: Boolean): JsonObject =
+            editPlaylist(playlistId, includeOnBehalfOfUser = includeOnBehalf) {
+                cleanIds.forEach { videoId ->
+                    addJsonObject {
+                        put("action", "ACTION_ADD_VIDEO")
+                        put("addedVideoId", videoId)
+                        if (allowDuplicates) {
+                            put("dedupeOption", "DEDUPE_OPTION_SKIP")
+                        }
+                    }
                 }
             }
+
+        var lastErr: Throwable? = null
+        val maxAttempts = if (retryCollaboratorAcl) 4 else 1
+        var response: JsonObject? = null
+        for (attempt in 0 until maxAttempts) {
+            if (attempt > 0 && settleRetryDelayMs > 0L) {
+                delay(settleRetryDelayMs)
+            }
+            val res = runCatching { sendAdd(includeOnBehalf = true) }
+            if (res.isSuccess) {
+                response = res.getOrThrow()
+                break
+            }
+            lastErr = res.exceptionOrNull()
+            val msg = lastErr?.message.orEmpty()
+            if (retryCollaboratorAcl && (msg.contains("403") || msg.contains("400")) &&
+                (channelOverride != null || scope?.dataSyncId != null)
+            ) {
+                val bare = runCatching { sendAdd(includeOnBehalf = false) }
+                if (bare.isSuccess) {
+                    response = bare.getOrThrow()
+                    break
+                }
+            }
+            val retryable = retryCollaboratorAcl && (msg.contains("403") || msg.contains("409") || msg.contains("503"))
+            if (!retryable) break
         }
-        return (response["playlistEditResults"] as? JsonArray)
+        val finalResp = response ?: throw (lastErr ?: IllegalStateException("Could not add track to playlist"))
+        return (finalResp["playlistEditResults"] as? JsonArray)
             .orEmpty()
             .mapNotNull { result ->
                 val added = (result as? JsonObject)
@@ -1147,6 +1288,8 @@ object Innertube {
      */
     suspend fun enablePlaylistCollaboration(playlistId: String, ensureUnlisted: Boolean = true): String {
         val rawId = playlistId.removePrefix("VL")
+        // Promote PRIVATE -> UNLISTED ONCE up front (never inside the loop: YouTube takes up to
+        // ~18s to propagate UNLISTED before ACTION_CREATE_COLLABORATION_INVITE_LINK succeeds).
         if (ensureUnlisted) {
             runCatching {
                 editPlaylist(rawId) {
@@ -1157,45 +1300,169 @@ object Innertube {
                 }
             }
         }
-        val response = editPlaylist(rawId) {
-            addJsonObject {
-                put("action", "ACTION_CREATE_COLLABORATION_INVITE_LINK")
+        var lastError: Throwable? = null
+        for (attempt in 0 until 14) {
+            if (attempt > 0 && settleRetryDelayMs > 0L) {
+                delay(settleRetryDelayMs)
             }
-        }
-        val directLink = response["collaborationInviteLink"]?.jsonPrimitive?.contentOrNull
-            ?: findString(response, "collaborationInviteLink")
-        if (!directLink.isNullOrBlank()) {
-            return if (directLink.startsWith("http")) {
-                directLink.replace("https://www.youtube.com/", "https://music.youtube.com/")
+            val attemptResult = runCatching {
+                editPlaylist(rawId) {
+                    addJsonObject {
+                        put("action", "ACTION_CREATE_COLLABORATION_INVITE_LINK")
+                    }
+                }
+            }
+            val response = attemptResult.getOrNull()
+            if (response != null) {
+                extractCollaborationInviteUrl(response, rawId)
+                    ?.takeIf { it.contains("jct=") }
+                    ?.let { return it }
+                val panelInvite = runCatching {
+                    val browse = browse("VL$rawId")
+                    val params = InnertubeParser.parseYtmCollabHeader(browse, rawId)?.panelParams
+                    val panel = getCollaboratorsPanel(params, rawId)
+                    extractCollaborationInviteUrl(panel, rawId)?.takeIf { it.contains("jct=") }
+                }.getOrNull()
+                if (!panelInvite.isNullOrBlank()) return panelInvite
             } else {
-                "https://music.youtube.com/playlist?list=$rawId&jct=$directLink"
+                lastError = attemptResult.exceptionOrNull()
+                val msg = lastError?.message.orEmpty()
+                // If playlist was still PRIVATE when ensureUnlisted=false, promote it once and keep polling
+                if (attempt == 0 && !ensureUnlisted && (msg.contains("400") || msg.contains("PRECONDITION", ignoreCase = true))) {
+                    runCatching { setPlaylistPrivacy(rawId, PlaylistPrivacy.UNLISTED) }
+                }
+                val retryable = msg.contains("409") ||
+                    msg.contains("400") ||
+                    msg.contains("404") ||
+                    msg.contains("500") ||
+                    msg.contains("503") ||
+                    msg.contains("PRECONDITION", ignoreCase = true) ||
+                    msg.contains("STATUS_FAILED", ignoreCase = true)
+                if (!retryable) break
             }
         }
-        val jct = findString(response, "joinCollaborationToken")
-        if (!jct.isNullOrBlank()) {
-            return "https://music.youtube.com/playlist?list=$rawId&jct=$jct"
-        }
-        return "https://music.youtube.com/playlist?list=$rawId"
+        throw IllegalStateException(
+            lastError?.message
+                ?: "YouTube Music is still preparing collaboration on this playlist. Wait a few seconds and tap Create Invite Link again.",
+        )
     }
 
-    /** Joins a YouTube Music collaborative playlist via its `jct` invite token and saves it to Library. */
+    /**
+     * Authoritative check whether the signed-in account has write/collaborator access to [playlistId]
+     * (either owns it, or YouTube Music lists it in `playlist/get_add_to_playlist`).
+     * Never confuses a read-only viewer (`isCollaborative == true`) with an accepted collaborator.
+     */
+    suspend fun getEditablePlaylistIdsForCurrentUser(): Set<String> {
+        if (!hasSession) return emptySet()
+        return runCatching {
+            val resp = postMusic("playlist/get_add_to_playlist") {
+                put("playlistId", "LM")
+            }
+            InnertubeParser.parseAddToPlaylistIds(resp)
+        }.getOrDefault(emptySet())
+    }
+
+    suspend fun isEditablePlaylistForCurrentUser(playlistId: String): Boolean {
+        if (!hasSession) return false
+        val rawId = playlistId.removePrefix("VL")
+        val owned = runCatching {
+            val browse = browse("VL$rawId")
+            InnertubeParser.parseYtmCollabHeader(browse, rawId)?.owned == true
+        }.getOrDefault(false)
+        if (owned) return true
+        return rawId in getEditablePlaylistIdsForCurrentUser()
+    }
+
+    /**
+     * Joins a YouTube Music collaborative playlist via its `jct` invite token, retrying across
+     * YouTube's ~15s invite-token propagation window, verifying write/collaborator access, and
+     * saving the playlist to Library only once collaboration membership is active.
+     */
     suspend fun joinCollaborativePlaylist(playlistId: String, joinCollaborationToken: String) {
+        val rawId = playlistId.removePrefix("VL")
+        val cleanJct = joinCollaborationToken.trim()
+        require(cleanJct.isNotEmpty()) { "Invite link is missing a YouTube Music collaboration token (jct)." }
+
+        var joined = false
+        var lastErr: Throwable? = null
+        for (attempt in 0 until 8) {
+            if (attempt > 0 && settleRetryDelayMs > 0L) {
+                delay(settleRetryDelayMs)
+            }
+            val primary = runCatching {
+                editPlaylist(rawId, includeOnBehalfOfUser = true) {
+                    addJsonObject {
+                        put("action", "ACTION_JOIN_COLLABORATION")
+                        put("joinCollaborationToken", cleanJct)
+                    }
+                }
+            }
+            if (primary.isSuccess) {
+                joined = true
+                break
+            }
+            lastErr = primary.exceptionOrNull()
+
+            // Check if this account is ALREADY the owner or an accepted collaborator with write access
+            if (isEditablePlaylistForCurrentUser(rawId)) {
+                joined = true
+                break
+            }
+
+            // On first failure, refresh session scope and try without raw-Gaia onBehalfOfUser if set
+            if (attempt == 0) {
+                runCatching { refreshSessionScope() }
+                if (channelOverride != null || scope?.dataSyncId != null) {
+                    val bare = runCatching {
+                        editPlaylist(rawId, includeOnBehalfOfUser = false) {
+                            addJsonObject {
+                                put("action", "ACTION_JOIN_COLLABORATION")
+                                put("joinCollaborationToken", cleanJct)
+                            }
+                        }
+                    }
+                    if (bare.isSuccess || isEditablePlaylistForCurrentUser(rawId)) {
+                        joined = true
+                        break
+                    }
+                }
+            }
+
+            val msg = lastErr?.message.orEmpty()
+            val retryable = msg.contains("400") ||
+                msg.contains("403") ||
+                msg.contains("409") ||
+                msg.contains("500") ||
+                msg.contains("503") ||
+                msg.contains("PRECONDITION", ignoreCase = true) ||
+                msg.contains("STATUS_FAILED", ignoreCase = true)
+            if (!retryable) break
+        }
+
+        if (!joined && !isEditablePlaylistForCurrentUser(rawId)) {
+            val detailMsg = lastErr?.message.orEmpty()
+            if (detailMsg.contains("403") || detailMsg.contains("PERMISSION_DENIED", ignoreCase = true)) {
+                throw IllegalStateException(
+                    "YouTube Music refused the collaboration invite (403 PERMISSION_DENIED). " +
+                        "Make sure your Google account has an active YouTube channel and ask the owner for a fresh invite link if sharing was turned off.",
+                )
+            }
+            throw (lastErr ?: IllegalStateException("Could not join this collaborative playlist on YouTube Music."))
+        }
+        runCatching { ratePlaylist(rawId, saved = true) }
+    }
+
+    /** Leaves a YouTube Music collaborative playlist and removes it from Library. */
+    suspend fun leaveCollaborativePlaylist(playlistId: String) {
         val rawId = playlistId.removePrefix("VL")
         runCatching {
             editPlaylist(rawId) {
                 addJsonObject {
-                    put("action", "ACTION_JOIN_COLLABORATION")
-                    put("joinCollaborationToken", joinCollaborationToken)
+                    put("action", "ACTION_LEAVE_COLLABORATIVE_PLAYLIST")
                 }
             }
-        }.onFailure { err ->
-            // If already a collaborator, YouTube may answer UNAUTHORIZED/FAILED_PRECONDITION; verify via browse.
-            val msg = err.message.orEmpty()
-            if (!msg.contains("UNAUTHORIZED", ignoreCase = true) && !msg.contains("ALREADY", ignoreCase = true)) {
-                throw err
-            }
         }
-        runCatching { ratePlaylist(rawId, saved = true) }
+        runCatching { ratePlaylist(rawId, saved = false) }
     }
 
     /** Closes a YouTube Music collaborative playlist to further collaborator contributions. */
@@ -1214,12 +1481,80 @@ object Innertube {
         }
     }
 
-    /** Fetches the `PAplaylist_collaborate` engagement panel listing active collaborators. */
-    suspend fun getCollaboratorsPanel(params: String?): JsonObject {
+    /**
+     * Fetches the `PAplaylist_collaborate` engagement panel listing active collaborators.
+     * Queries `WEB_REMIX` (`music.youtube.com`) first and falls back to `WEB` (`www.youtube.com`)
+     * when `WEB_REMIX` omits `playlistCollaborationViewModel` rows.
+     */
+    suspend fun getCollaboratorsPanel(params: String?, playlistId: String? = null): JsonObject {
         requireSession()
-        return postMusic("get_panel") {
-            put("panelId", "PAplaylist_collaborate")
-            if (!params.isNullOrBlank()) put("params", params)
+        val musicPanel = runCatching {
+            postMusic("get_panel") {
+                put("panelId", "PAplaylist_collaborate")
+                if (!params.isNullOrBlank()) put("params", params)
+                if (!playlistId.isNullOrBlank()) put("playlistId", playlistId.removePrefix("VL"))
+            }
+        }.getOrNull()
+        if (musicPanel != null && InnertubeParser.parseCollaboratorsPanel(musicPanel).isNotEmpty()) {
+            return musicPanel
+        }
+        val webPanel = runCatching {
+            postYouTubeWeb("get_panel") {
+                put("panelId", "PAplaylist_collaborate")
+                if (!params.isNullOrBlank()) put("params", params)
+            }
+        }.getOrNull()
+        if (webPanel != null && InnertubeParser.parseCollaboratorsPanel(webPanel).isNotEmpty()) {
+            return webPanel
+        }
+        return musicPanel ?: webPanel ?: buildJsonObject {}
+    }
+
+    private suspend fun postYouTubeWeb(
+        endpoint: String,
+        bodyExtras: JsonObjectBuilder.() -> Unit,
+    ): JsonObject {
+        if (cookie != null) ensureSessionScope()
+        val session = scope
+        val origin = youtubeWebOriginUrl
+        return withRetry {
+            client.post("$youtubeWebBaseUrl/$endpoint") {
+                contentType(ContentType.Application.Json)
+                parameter("prettyPrint", "false")
+                parameter("hl", currentLanguage)
+                header("Accept-Language", acceptLanguageHeader)
+                header("X-Origin", origin)
+                header("Origin", origin)
+                header("Referer", "$origin/")
+                header("X-YouTube-Client-Name", "1")
+                header("X-YouTube-Client-Version", "2.20251001.01.00")
+                visitorData?.let { header("X-Goog-Visitor-Id", it) }
+                cookie?.let { c ->
+                    header("Cookie", c)
+                    header("X-Goog-AuthUser", authUserFor(session))
+                    pageIdFor(session)?.let { header("X-Goog-PageId", it) }
+                    sapisidFrom(c)?.let { header("Authorization", sapisidHash(it, origin = origin)) }
+                }
+                setBody(
+                    buildJsonObject {
+                        putJsonObject("context") {
+                            putJsonObject("client") {
+                                put("clientName", "WEB")
+                                put("clientVersion", "2.20251001.01.00")
+                                put("hl", currentLanguage)
+                                currentRegion.let { put("gl", it) }
+                                visitorData?.let { put("visitorData", it) }
+                            }
+                            putJsonObject("user") {
+                                put("lockedSafetyMode", false)
+                                dataSyncIdFor(session)?.let { put("onBehalfOfUser", it) }
+                            }
+                            putJsonObject("request") { put("useSsl", true) }
+                        }
+                        bodyExtras()
+                    },
+                )
+            }.body<JsonObject>()
         }
     }
 
@@ -1324,6 +1659,7 @@ object Innertube {
         /** The context's `gl`; null sends none. */
         region: String? = currentRegion,
         retry: Boolean = true,
+        includeOnBehalfOfUser: Boolean = true,
         checkIdentity: () -> Unit = {},
         bodyExtras: JsonObjectBuilder.() -> Unit,
     ): JsonObject {
@@ -1337,7 +1673,7 @@ object Innertube {
         val request: suspend () -> JsonObject = {
             checkIdentity()
             val transport = if (retry) client else coverUploadClient
-            transport.post("$MUSIC_BASE/$endpoint") {
+            transport.post("$musicBaseUrl/$endpoint") {
                 contentType(ContentType.Application.Json)
                 if (!retry) header("X-Goog-Api-Format-Version", "1")
                 parameter("prettyPrint", "false")
@@ -1379,7 +1715,9 @@ object Innertube {
                                 // `onBehalfOfUser` it cannot tie to the cookie
                                 // with 401, so a guess here would take the
                                 // whole app down rather than just history.
-                                dataSyncIdFor(session)?.let { put("onBehalfOfUser", it) }
+                                if (includeOnBehalfOfUser) {
+                                    dataSyncIdFor(session)?.let { put("onBehalfOfUser", it) }
+                                }
                             }
                             putJsonObject("request") { put("useSsl", true) }
                         }
@@ -1413,7 +1751,7 @@ object Innertube {
     ): JsonObject {
         val clientVersion = webRemixVersion
         return withRetry {
-            client.post("$MUSIC_BASE/$endpoint") {
+            client.post("$musicBaseUrl/$endpoint") {
                 contentType(ContentType.Application.Json)
                 parameter("prettyPrint", "false")
                 header("X-Origin", MUSIC_ORIGIN)
@@ -1455,6 +1793,140 @@ object Innertube {
             ?: element.values.firstNotNullOfOrNull { findString(it, key) }
         is JsonArray -> element.firstNotNullOfOrNull { findString(it, key) }
         else -> null
+    }
+
+    private val YT_VIDEO_ID = Regex("^[A-Za-z0-9_-]{11}$")
+    private val HTML_TAG = Regex("<[^>]+>")
+    private val PLAYLIST_URL_ID = Regex("[?&]list=(PL[A-Za-z0-9_-]+)")
+
+    private val CHANNEL_CREATION_KEYS = setOf(
+        "channelCreationDialogRenderer",
+        "createCoreIdentityModalRenderer",
+        "channelCreationFormEndpoint",
+        "channelCreationServiceEndpoint",
+        "createCoreIdentityEndpoint",
+    )
+
+    private val GATED_OR_POPUP_KEYS = CHANNEL_CREATION_KEYS + setOf(
+        "showEngagementPanelEndpoint",
+        "modalWithTitleAndButtonRenderer",
+        "openPopupAction",
+    )
+
+    internal fun sanitizePlaylistTitle(raw: String): String =
+        raw.trim()
+            .replace('<', '‹')
+            .replace('>', '›')
+            .ifBlank { "Collaborative Playlist" }
+
+    internal fun sanitizePlaylistDescription(raw: String?): String? =
+        raw?.replace(HTML_TAG, "")
+            ?.replace('<', '‹')
+            ?.replace('>', '›')
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+
+    /**
+     * Extracts a newly created playlist's raw ID (without `VL`) across all YouTube Music
+     * `playlist/create` response shapes:
+     * 1. Top-level `playlistId`
+     * 2. Toast / command / action `browseEndpoint.playlistId` or `browseEndpoint.browseId` (`VLPL…` / `PL…`)
+     * 3. Deep `playlistId`, playlist `browseId`, or `?list=PL…` URL anywhere outside `responseContext`.
+     */
+    internal fun extractCreatedPlaylistId(response: JsonObject): String? {
+        fun normalizePlaylistId(candidate: String?): String? {
+            val cleaned = candidate?.trim()?.removePrefix("VL")?.trim().orEmpty()
+            if (cleaned.length < 4) return null
+            if (cleaned == "LM" || cleaned == "SE") return null
+            if (cleaned.startsWith("FEmusic", ignoreCase = true) ||
+                cleaned.startsWith("FE", ignoreCase = false) ||
+                cleaned.startsWith("UC") ||
+                cleaned.startsWith("MP") ||
+                cleaned.startsWith("SP")
+            ) {
+                return null
+            }
+            if (!cleaned.all { it.isLetterOrDigit() || it == '_' || it == '-' }) return null
+            return cleaned
+        }
+
+        normalizePlaylistId((response["playlistId"] as? JsonPrimitive)?.contentOrNull)?.let { return it }
+
+        fun searchElement(el: JsonElement, parentKey: String? = null): String? = when (el) {
+            is JsonObject -> {
+                normalizePlaylistId((el["playlistId"] as? JsonPrimitive)?.contentOrNull)?.let { return it }
+                val bid = (el["browseId"] as? JsonPrimitive)?.contentOrNull?.trim()
+                if (!bid.isNullOrEmpty() && (bid.startsWith("VL") || bid.startsWith("PL") || bid.startsWith("OL"))) {
+                    normalizePlaylistId(bid)?.let { return it }
+                }
+                for ((k, v) in el) {
+                    if (k == "responseContext") continue
+                    searchElement(v, k)?.let { return it }
+                }
+                null
+            }
+            is JsonArray -> el.firstNotNullOfOrNull { searchElement(it, parentKey) }
+            is JsonPrimitive -> {
+                val s = el.contentOrNull
+                if (s != null && s.contains("list=PL")) {
+                    PLAYLIST_URL_ID.find(s)?.groupValues?.getOrNull(1)?.let(::normalizePlaylistId)
+                } else null
+            }
+        }
+
+        return searchElement(response)
+    }
+
+    internal fun extractCollaborationInviteUrl(element: JsonElement, rawPlaylistId: String): String? {
+        val direct = (element as? JsonObject)?.get("collaborationInviteLink")?.let { (it as? JsonPrimitive)?.contentOrNull }
+            ?: findString(element, "collaborationInviteLink")
+        if (!direct.isNullOrBlank()) {
+            return if (direct.startsWith("http")) {
+                direct.replace("https://www.youtube.com/", "https://music.youtube.com/")
+            } else {
+                "https://music.youtube.com/playlist?list=$rawPlaylistId&jct=$direct"
+            }
+        }
+        val jct = findString(element, "joinCollaborationToken")
+        if (!jct.isNullOrBlank()) {
+            return "https://music.youtube.com/playlist?list=$rawPlaylistId&jct=$jct"
+        }
+        fun findJctUrl(el: JsonElement): String? = when (el) {
+            is JsonObject -> el.values.firstNotNullOfOrNull(::findJctUrl)
+            is JsonArray -> el.firstNotNullOfOrNull(::findJctUrl)
+            is JsonPrimitive -> el.contentOrNull?.takeIf { it.startsWith("http") && it.contains("jct=") }
+        }
+        return findJctUrl(element)?.replace("https://www.youtube.com/", "https://music.youtube.com/")
+    }
+
+    private fun hasAnyKey(element: JsonElement, keys: Set<String>): Boolean = when (element) {
+        is JsonObject -> element.keys.any { it in keys } || element.values.any { hasAnyKey(it, keys) }
+        is JsonArray -> element.any { hasAnyKey(it, keys) }
+        else -> false
+    }
+
+    internal fun diagnoseCreatePlaylistFailure(response: JsonObject): String {
+        response["error"]?.let { err ->
+            val msg = (err as? JsonObject)?.get("message")?.let { (it as? JsonPrimitive)?.contentOrNull }
+            val status = (err as? JsonObject)?.get("status")?.let { (it as? JsonPrimitive)?.contentOrNull }
+            if (!msg.isNullOrBlank()) {
+                return "YouTube Music refused playlist creation: $msg${status?.let { " ($it)" }.orEmpty()}"
+            }
+        }
+        if (hasAnyKey(response, CHANNEL_CREATION_KEYS) ||
+            response.toString().contains("youtubeSignupRequired", ignoreCase = true)
+        ) {
+            return "CHANNEL_REQUIRED: Your Google account doesn't have a YouTube channel yet. Tap 'Set Up YouTube Channel' below once to finish setting up your profile on YouTube Music."
+        }
+        val panelTag = findString(response, "tag") ?: findString(response, "panelIdentifier")
+        if (panelTag == "PAfeature_enablement") {
+            return "YouTube Music temporarily gated playlist creation on this account (PAfeature_enablement). Please wait a moment or verify your YouTube channel in 'Set Up YouTube Channel'."
+        }
+        if (hasAnyKey(response, setOf("modalWithTitleAndButtonRenderer"))) {
+            val modalText = findString(response, "text")
+            return "SESSION_EXPIRED: ${modalText ?: "Your YouTube Music session needs to be refreshed. Tap 'Sign in with Google' to reconnect."}"
+        }
+        return "YouTube Music did not return a playlist ID. Check that your Google account has an active YouTube Music profile and try again."
     }
 
     /**

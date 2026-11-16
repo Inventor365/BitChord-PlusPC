@@ -23,21 +23,47 @@ export function cleanCollabInviteToken(raw: string | null | undefined): string |
  * - raw `bci_...` token
  */
 export function parseCollabInviteLink(rawInput: string): ParsedCollabInvite | null {
-  const input = rawInput.trim();
-  if (!input) return null;
+  const trimmed = rawInput.trim();
+  if (!trimmed) return null;
+  const direct = parseSingleInviteCandidate(trimmed);
+  if (direct) return direct;
+  const matches = trimmed.match(/(?:https?:\/\/|bitchord:\/\/|intent:\/\/)\S+/gi) ?? [];
+  for (const m of matches) {
+    const cleaned = m.replace(/[.,)\]>'"]+$/, '');
+    const parsed = parseSingleInviteCandidate(cleaned);
+    if (parsed) return parsed;
+  }
+  return null;
+}
 
+function parseRawQueryParam(search: string, key: string): string | null {
+  const q = search.startsWith('?') ? search.slice(1) : search;
+  for (const pair of q.split('&')) {
+    const eq = pair.indexOf('=');
+    if (eq <= 0) continue;
+    if (pair.slice(0, eq).toLowerCase() === key.toLowerCase()) {
+      try {
+        return decodeURIComponent(pair.slice(eq + 1));
+      } catch {
+        return pair.slice(eq + 1);
+      }
+    }
+  }
+  return null;
+}
+
+function parseSingleInviteCandidate(input: string): ParsedCollabInvite | null {
   const directToken = cleanCollabInviteToken(input);
   if (directToken) {
     return { token: directToken, serverOrigin: null };
   }
   if (input.startsWith('ytm:')) {
     const parts = input.split(':');
-    if (parts.length === 3 && parts[1] && parts[2]) {
-      return { token: input, serverOrigin: null, ytmPlaylistId: parts[1], ytmJoinToken: parts[2] };
+    if (parts.length >= 3 && parts[1] && parts.slice(2).join(':')) {
+      const jct = parts.slice(2).join(':');
+      return { token: input, serverOrigin: null, ytmPlaylistId: parts[1], ytmJoinToken: jct };
     }
   }
-
-  // Relative path: /collab/invite/bci_...
   if (input.startsWith('/')) {
     try {
       const parsed = new URL(input, 'https://bitchord.local');
@@ -52,19 +78,25 @@ export function parseCollabInviteLink(rawInput: string): ParsedCollabInvite | nu
   }
 
   // Android intent URI: intent://collab/invite/bci_...?server=...#Intent;scheme=bitchord;end
-  if (/^intent:\/\/collab\/invite\//i.test(input)) {
+  if (/^intent:\/\/collab\//i.test(input)) {
     const withoutFragment = input.split('#')[0] ?? input;
     const normalized = withoutFragment.replace(/^intent:\/\//i, 'bitchord://');
-    return parseCollabInviteLink(normalized);
+    return parseSingleInviteCandidate(normalized);
   }
 
-  // Custom scheme: bitchord://collab/invite/bci_...?server=...
+  // Custom scheme: bitchord://collab/invite/bci_... or bitchord://collab/ytm/<playlistId>?jct=...
   if (/^bitchord:\/\//i.test(input)) {
     try {
       const parsed = new URL(input);
       const host = parsed.host.toLowerCase();
       let candidateToken: string | null = null;
       if (host === 'collab') {
+        const ytmMatch = parsed.pathname.match(/^\/ytm\/([^/?#]+)\/?$/);
+        const jct = parseRawQueryParam(parsed.search, 'jct')?.trim();
+        if (ytmMatch?.[1] && jct) {
+          const pid = decodeURIComponent(ytmMatch[1]).replace(/^VL/, '').trim();
+          return { token: `ytm:${pid}:${jct}`, serverOrigin: null, ytmPlaylistId: pid, ytmJoinToken: jct };
+        }
         const match = parsed.pathname.match(/^\/invite\/([^/?#]+)\/?$/);
         if (match) candidateToken = decodeURIComponent(match[1]!);
       } else if (!host && parsed.pathname.startsWith('/collab/invite/')) {
@@ -91,8 +123,8 @@ export function parseCollabInviteLink(rawInput: string): ParsedCollabInvite | nu
       host === 'youtube.com' ||
       host === 'm.youtube.com'
     ) {
-      const listId = parsed.searchParams.get('list')?.replace(/^VL/, '').trim();
-      const jct = parsed.searchParams.get('jct')?.trim();
+      const listId = parseRawQueryParam(parsed.search, 'list')?.replace(/^VL/, '').trim();
+      const jct = parseRawQueryParam(parsed.search, 'jct')?.trim();
       if (listId && jct) {
         return {
           token: `ytm:${listId}:${jct}`,

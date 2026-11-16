@@ -27,12 +27,23 @@ object CollabInviteLink {
 
     private val TOKEN_REGEX = Regex("""^bci_[A-Za-z0-9_-]{16,128}$""")
     private val YTM_ID_REGEX = Regex("""^[A-Za-z0-9_-]{8,128}$""")
-    private val JCT_REGEX = Regex("""^[A-Za-z0-9_-]{6,256}$""")
+    private val JCT_REGEX = Regex("""^[A-Za-z0-9_+=/.-]{4,512}$""")
+    private val EMBEDDED_URL_REGEX = Regex("""(?:https?://|bitchord://|intent://)\S+""", RegexOption.IGNORE_CASE)
 
     fun isValidToken(token: String): Boolean = TOKEN_REGEX.matches(token.trim())
 
     fun parse(raw: String?): ParsedCollabInvite? {
-        val input = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val trimmed = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        parseSingleCandidate(trimmed)?.let { return it }
+        // Extract embedded URL when pasted from chat/share text ("Join my playlist: https://...")
+        for (match in EMBEDDED_URL_REGEX.findAll(trimmed)) {
+            val candidate = match.value.trimEnd('.', ',', ')', ']', '>', '"', '\'')
+            parseSingleCandidate(candidate)?.let { return it }
+        }
+        return null
+    }
+
+    private fun parseSingleCandidate(input: String): ParsedCollabInvite? {
         if (isValidToken(input)) {
             return ParsedCollabInvite(token = input)
         }
@@ -47,11 +58,13 @@ object CollabInviteLink {
         val queryPart = cleaned.substringAfter('?', missingDelimiterValue = "")
         val pathAndOrigin = cleaned.substringBefore('?')
 
-        // 1. Check for YouTube / YouTube Music collaborative playlist link (?list=PL...&jct=...)
-        val listParam = parseQueryParam(queryPart, "list")?.removePrefix("VL")?.trim()
-        val jctParam = parseQueryParam(queryPart, "jct")?.trim()
+        // 1. Check for YouTube / YouTube Music / BitChord YTM collaborative playlist link (?list=PL...&jct=...)
+        val listParam = parseQueryParam(queryPart, "list", plusAsSpace = false)?.removePrefix("VL")?.trim()
+        val jctParam = parseQueryParam(queryPart, "jct", plusAsSpace = false)?.trim()
         if (!jctParam.isNullOrEmpty() && JCT_REGEX.matches(jctParam)) {
-            if (pathAndOrigin.startsWith("bitchord://collab/ytm/", ignoreCase = true)) {
+            if (pathAndOrigin.startsWith("bitchord://collab/ytm/", ignoreCase = true) ||
+                pathAndOrigin.startsWith("intent://collab/ytm/", ignoreCase = true)
+            ) {
                 val pid = pathAndOrigin.substringAfterLast('/').removePrefix("VL").trim()
                 if (YTM_ID_REGEX.matches(pid)) {
                     return ParsedCollabInvite(
@@ -69,7 +82,6 @@ object CollabInviteLink {
                 )
             }
         }
-
         // 2. Check for custom PlusPC backend bci_... invite links
         val queryServer = parseQueryParam(queryPart, "server")?.let(::normalizeServerOrigin)
 
@@ -123,26 +135,55 @@ object CollabInviteLink {
         return "$normalized/collab/invite/${token.trim()}"
     }
 
-    private fun parseQueryParam(query: String, key: String): String? {
+    fun buildYouTubeMusicInviteUrl(playlistId: String, joinToken: String): String {
+        val pid = playlistId.trim().removePrefix("VL")
+        return "https://music.youtube.com/playlist?list=$pid&jct=${percentEncodeComponent(joinToken.trim())}"
+    }
+
+    fun buildBitChordYtmDeepLink(playlistId: String, joinToken: String): String {
+        val pid = playlistId.trim().removePrefix("VL")
+        return "bitchord://collab/ytm/$pid?jct=${percentEncodeComponent(joinToken.trim())}"
+    }
+
+    private fun parseQueryParam(query: String, key: String, plusAsSpace: Boolean = true): String? {
         if (query.isBlank()) return null
         for (pair in query.split('&')) {
             val eq = pair.indexOf('=')
             if (eq <= 0) continue
             val k = pair.substring(0, eq)
             if (k.equals(key, ignoreCase = true)) {
-                return percentDecode(pair.substring(eq + 1))
+                return percentDecode(pair.substring(eq + 1), plusAsSpace = plusAsSpace)
             }
         }
         return null
     }
 
-    private fun percentDecode(encoded: String): String {
+    private fun percentEncodeComponent(raw: String): String {
+        val sb = StringBuilder(raw.length)
+        for (b in raw.encodeToByteArray()) {
+            val ch = b.toInt() and 0xFF
+            val unreserved = (ch in 'A'.code..'Z'.code) ||
+                (ch in 'a'.code..'z'.code) ||
+                (ch in '0'.code..'9'.code) ||
+                ch == '-'.code || ch == '_'.code || ch == '.'.code || ch == '~'.code
+            if (unreserved) {
+                sb.append(ch.toChar())
+            } else {
+                sb.append('%')
+                sb.append("0123456789ABCDEF"[ch ushr 4])
+                sb.append("0123456789ABCDEF"[ch and 0x0F])
+            }
+        }
+        return sb.toString()
+    }
+
+    private fun percentDecode(encoded: String, plusAsSpace: Boolean = true): String {
         val bytes = ArrayList<Byte>(encoded.length)
         var i = 0
         while (i < encoded.length) {
             val c = encoded[i]
             when {
-                c == '+' -> {
+                plusAsSpace && c == '+' -> {
                     bytes.add(' '.code.toByte())
                     i++
                 }

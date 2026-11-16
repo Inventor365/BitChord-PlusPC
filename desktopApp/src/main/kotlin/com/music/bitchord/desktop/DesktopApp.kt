@@ -6873,7 +6873,7 @@ private fun DesktopSettingsScreen(
 /** The line at the foot of the settings sheet, as Android has it. */
 @Composable
 private fun DesktopSettingsFooter(onLicenses: () -> Unit) {
-    val version = remember { System.getProperty("bitchord.version") ?: "1.10.1" }
+    val version = remember { System.getProperty("bitchord.version") ?: "1.10.3" }
     var easterEggTaps by remember { mutableStateOf(0) }
     val easterEggActive = easterEggTaps > 0
     val linkStyles = TextLinkStyles(

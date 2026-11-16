@@ -1886,7 +1886,7 @@ object InnertubeParser {
 
     fun parseYtmCollabHeader(root: JsonElement, fallbackId: String): YtmCollabHeaderMeta? {
         val editable = collectRenderers(root, "musicEditablePlaylistDetailHeaderRenderer").firstOrNull()
-        val owned = editable != null || (parsePlaylistOwned(root) == true)
+        val owned = editable != null || parsePlaylistCoverEditable(root)
         val privacy = editable?.o("editHeader")?.o("musicPlaylistEditHeaderRenderer")?.s("privacy")
             ?: "UNLISTED"
         val header = editable?.o("header")?.o("musicResponsiveHeaderRenderer")
@@ -1933,53 +1933,82 @@ object InnertubeParser {
         )
     }
 
-    /** Parses `(channelId, displayName, avatarUrl)` entries from `get_panel` (`PAplaylist_collaborate`). */
+    data class TrackContributorInfo(
+        val name: String,
+        val avatarUrl: String?,
+        val channelId: String? = null,
+    )
+
+    /** Parses `(channelId, displayName, avatarUrl)` entries from `get_panel` (`PAplaylist_collaborate`) or `browse`. */
     fun parseCollaboratorsPanel(root: JsonElement): List<Triple<String, String, String?>> {
         val out = ArrayList<Triple<String, String, String?>>()
+        fun extractRow(row: JsonObject?, explicitCid: String = "") {
+            if (row == null) return
+            val vm = row.o("contentListItemViewModel") ?: row
+            val name = vm.o("title").s("content")
+                ?: vm.o("title").runs().takeIf { it.isNotBlank() }
+                ?: vm.findString("accessibilityText")
+                ?: ""
+            val cleanName = name.trim()
+            if (cleanName.isEmpty() || cleanName.equals("Collaborate", ignoreCase = true)) return
+            val avatar = vm.o("avatar").o("avatarViewModel").o("image").a("sources")?.lastOrNull().s("url")
+                ?: collectRenderers(vm, "avatarViewModel").firstOrNull()?.o("image")?.a("sources")?.lastOrNull().s("url")
+            val cid = explicitCid.ifBlank {
+                vm.o("rendererContext").o("commandContext").o("onTap").o("innertubeCommand")
+                    .o("browseEndpoint").s("browseId").orEmpty()
+                    .ifBlank { vm.findString("browseId").orEmpty() }
+            }
+            out.add(Triple(cid.ifBlank { "ytm:${cleanName.lowercase()}" }, cleanName, avatar))
+        }
+
         collectRenderers(root, "playlistCollaborationViewModel").forEach { vm ->
             vm.a("playlistCollaboratorsData").orEmpty().forEach { item ->
                 val cid = item.s("externalChannelId").orEmpty()
-                val row = item.o("collaboratorContentListItem").o("contentListItemViewModel")
-                    ?: item.o("collaboratorContentListItem")
-                val name = row?.o("title")?.s("content") ?: row?.findString("content").orEmpty()
-                val avatar = row?.o("avatar")?.o("avatarViewModel")?.o("image")?.a("sources")?.lastOrNull().s("url")
-                if (name.isNotBlank()) {
-                    out.add(Triple(cid.ifBlank { "ytm:$name" }, name, avatar))
-                }
+                extractRow(item.o("collaboratorContentListItem"), cid)
+            }
+            vm.a("playlistCollaborators").orEmpty().forEach { item ->
+                extractRow(item as? JsonObject)
             }
         }
         if (out.isEmpty()) {
             collectRenderers(root, "contentListItemViewModel").forEach { row ->
-                val name = row.o("title").s("content").orEmpty()
-                val avatar = row.o("avatar").o("avatarViewModel").o("image").a("sources")?.lastOrNull().s("url")
-                val cid = row.findString("browseId").orEmpty()
-                if (name.isNotBlank()) {
-                    out.add(Triple(cid.ifBlank { "ytm:$name" }, name, avatar))
-                }
+                extractRow(row)
             }
         }
-        return out.distinctBy { it.first }
+        return out.distinctBy { "${it.first}:${it.second.lowercase()}" }
     }
 
     /**
-     * Extracts per-track contributor `(name, avatarUrl)` from `musicResponsiveListItemRenderer`
-     * rows on a YouTube Music collaborative playlist where YouTube provides contributor badges/avatars.
+     * Extracts per-track contributor `(name, avatarUrl, channelId)` from `musicResponsiveListItemRenderer`
+     * rows on a YouTube Music collaborative playlist (`contributorsAvatars.avatarStackViewModel`).
      */
-    fun parsePlaylistTrackContributors(root: JsonElement): Map<String, Pair<String, String?>> {
-        val result = HashMap<String, Pair<String, String?>>()
+    fun parsePlaylistTrackContributors(root: JsonElement): Map<String, TrackContributorInfo> {
+        val result = HashMap<String, TrackContributorInfo>()
         val scope: JsonElement = root.o("continuationContents")
             ?: root.o("contents").o("twoColumnBrowseResultsRenderer").o("secondaryContents")
             ?: root
         collectRenderers(scope, "musicResponsiveListItemRenderer").forEach { row ->
-            val key = row.o("playlistItemData").s("playlistSetVideoId")
-                ?: row.o("playlistItemData").s("videoId")
-                ?: return@forEach
-            // Check avatarViewModel / contributor avatar or USER_CHANNEL flexColumn
-            val avatarUrl = collectRenderers(row, "avatarViewModel").firstOrNull()
-                ?.o("image")?.a("sources")?.lastOrNull().s("url")
-            var contributorName: String? = collectRenderers(row, "avatarViewModel").firstOrNull()
-                ?.findString("label")
+            val setVid = row.o("playlistItemData").s("playlistSetVideoId")
+            val vid = row.o("playlistItemData").s("videoId")
+            val key = setVid ?: vid ?: return@forEach
+
+            val contribStack = row.o("contributorsAvatars").o("avatarStackViewModel")
+            val firstAvVm = contribStack?.a("avatars")?.firstOrNull()?.o("avatarViewModel")
+                ?: collectRenderers(row, "avatarViewModel").firstOrNull()
+
+            val avatarUrl = firstAvVm?.o("image")?.a("sources")?.lastOrNull().s("url")
+            var channelId: String? = contribStack?.o("rendererContext")?.o("commandContext")
+                ?.o("onTap")?.o("innertubeCommand")?.o("browseEndpoint")?.s("browseId")
+                ?.takeIf { it.isNotBlank() }
+
+            var contributorName: String? = (
+                firstAvVm?.s("accessibilityText")
+                    ?: firstAvVm?.findString("accessibilityText")
+                    ?: firstAvVm?.findString("label")
+                    ?: contribStack?.o("rendererContext")?.o("accessibilityContext")?.s("label")
+                )
                 ?.removePrefix("Added by ")
+                ?.removePrefix("by ")
                 ?.trim()
                 ?.takeIf { it.isNotBlank() }
 
@@ -1988,11 +2017,12 @@ object InnertubeParser {
                 for (col in cols.drop(1)) {
                     val runs = col.o("musicResponsiveListItemFlexColumnRenderer").o("text").a("runs").orEmpty()
                     for (run in runs) {
-                        val pt = run.o("navigationEndpoint").o("browseEndpoint")
-                            .o("browseEndpointContextSupportedConfigs")
+                        val be = run.o("navigationEndpoint").o("browseEndpoint")
+                        val pt = be.o("browseEndpointContextSupportedConfigs")
                             .o("browseEndpointContextMusicConfig").s("pageType")
                         if (pt == "MUSIC_PAGE_TYPE_USER_CHANNEL") {
                             contributorName = run.s("text")?.takeIf { it.isNotBlank() }
+                            if (channelId == null) channelId = be.s("browseId")?.takeIf { it.isNotBlank() }
                             break
                         }
                     }
@@ -2000,10 +2030,29 @@ object InnertubeParser {
                 }
             }
             if (contributorName != null || avatarUrl != null) {
-                result[key] = (contributorName ?: "Collaborator") to avatarUrl
+                val info = TrackContributorInfo(
+                    name = contributorName ?: "Collaborator",
+                    avatarUrl = avatarUrl,
+                    channelId = channelId,
+                )
+                result[key] = info
+                if (vid != null && vid != key) result.putIfAbsent(vid, info)
             }
         }
         return result
+    }
+
+    /** Parses writable playlist IDs returned by `playlist/get_add_to_playlist`. */
+    fun parseAddToPlaylistIds(root: JsonElement): Set<String> {
+        val ids = HashSet<String>()
+        collectRenderers(root, "playlistAddToOptionRenderer").forEach { opt ->
+            opt.s("playlistId")?.removePrefix("VL")?.takeIf { it.isNotBlank() }?.let(ids::add)
+            opt.findString("playlistId")?.removePrefix("VL")?.takeIf { it.isNotBlank() }?.let(ids::add)
+        }
+        collectRenderers(root, "playlistEditEndpoint").forEach { ep ->
+            ep.s("playlistId")?.removePrefix("VL")?.takeIf { it.isNotBlank() }?.let(ids::add)
+        }
+        return ids
     }
 }
 

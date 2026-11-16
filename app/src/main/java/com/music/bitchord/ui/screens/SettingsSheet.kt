@@ -1919,6 +1919,14 @@ fun SettingsScreen(
                     onClick = { ExternalLinks.setEnabled(context, !externalLinks) },
                 )
             }
+            row("Open YouTube Music Links in BitChord", "music.youtube.com", "playlist", "default", "link", "collaborative") {
+                SettingsRow(
+                    icon = Icons.Rounded.Link,
+                    title = "Open music.youtube.com Links by Default",
+                    subtitle = "Choose BitChord for music.youtube.com & youtube.com playlist and invite links",
+                    onClick = { com.music.bitchord.collab.AndroidCollab.openYouTubeMusicDefaultLinkSettings(context) },
+                )
+            }
             val appIconTitle = stringResource(R.string.app_icon)
             row(appIconTitle, "icon", "launcher", "logo") {
                 var selectedIcon by remember { mutableStateOf(AppIcon.current(context)) }

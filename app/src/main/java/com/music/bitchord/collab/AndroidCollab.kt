@@ -2,6 +2,11 @@ package com.music.bitchord.collab
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.verify.domain.DomainVerificationManager
+import android.content.pm.verify.domain.DomainVerificationUserState
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import com.music.bitchord.BuildConfig
 import com.music.bitchord.data.collab.CollabInviteLink
 import com.music.bitchord.data.collab.CollabManager
@@ -42,6 +47,44 @@ object AndroidCollab {
     fun init(context: Context) {
         appContext = context.applicationContext
         manager.initialize()
+    }
+
+    /**
+     * Whether Android currently routes `music.youtube.com` links to BitChord by default.
+     * On Android 12+ (`S`), checks `DomainVerificationManager` for `music.youtube.com`.
+     */
+    fun isYouTubeMusicDefaultLinkHandler(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
+        return runCatching {
+            val mgr = context.getSystemService(DomainVerificationManager::class.java) ?: return false
+            val state = mgr.getDomainVerificationUserState(context.packageName) ?: return false
+            if (!state.isLinkHandlingAllowed) return false
+            val status = state.hostToStateMap["music.youtube.com"]
+            status == DomainVerificationUserState.DOMAIN_STATE_SELECTED ||
+                status == DomainVerificationUserState.DOMAIN_STATE_VERIFIED
+        }.getOrDefault(false)
+    }
+
+    /**
+     * Opens Android's "Open by default" settings page for BitChord so the user can tick
+     * `music.youtube.com` (and `www.youtube.com`) once to open YouTube Music playlist links
+     * directly in BitChord by default.
+     */
+    fun openYouTubeMusicDefaultLinkSettings(context: Context) {
+        val pkgUri = Uri.parse("package:${context.packageName}")
+        val primary = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Intent(Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS, pkgUri)
+        } else {
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri)
+        }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { context.startActivity(primary) }.onFailure {
+            runCatching {
+                context.startActivity(
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
+            }
+        }
     }
 
     private fun readBuildConfigString(field: String): String =

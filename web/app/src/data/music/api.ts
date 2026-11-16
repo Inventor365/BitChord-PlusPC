@@ -281,16 +281,61 @@ export async function addToPlaylist(playlistId: string, videoId: string): Promis
  */
 export async function createPlaylist(title: string, videoIds: string[], description = ''): Promise<string> {
   const yt = await getSignedInnertube();
-  const response = await yt.actions.execute('/playlist/create', {
-    title,
-    description,
+  const cleanTitle = title.trim().replace(/</g, '‹').replace(/>/g, '›') || 'New Playlist';
+  const cleanDesc = description.replace(/<[^>]+>/g, '').replace(/</g, '‹').replace(/>/g, '›').trim();
+  const cleanVideos = videoIds.map((v) => v.trim()).filter((v) => /^[A-Za-z0-9_-]{11}$/.test(v));
+  const payload: Record<string, unknown> = {
+    title: cleanTitle,
     privacyStatus: 'PRIVATE',
-    videoIds,
     client: 'YTMUSIC',
-  });
-  const id = (response.data as { playlistId?: string } | undefined)?.playlistId;
+  };
+  if (cleanDesc) payload.description = cleanDesc;
+  if (cleanVideos.length > 0) payload.videoIds = cleanVideos;
+  const response = await yt.actions.execute('/playlist/create', payload);
+  const id = extractCreatedPlaylistIdFromData(response.data);
   if (!id) throw new Error('YouTube Music did not make the playlist');
   return id;
+}
+
+export function extractCreatedPlaylistIdFromData(data: unknown): string | null {
+  const normalize = (raw: unknown): string | null => {
+    if (typeof raw !== 'string') return null;
+    const cleaned = raw.trim().replace(/^VL/, '').trim();
+    if (cleaned.length < 4 || cleaned === 'LM' || cleaned === 'SE') return null;
+    if (/^(FE|UC|MP|SP)/i.test(cleaned)) return null;
+    if (!/^[A-Za-z0-9_-]+$/.test(cleaned)) return null;
+    return cleaned;
+  };
+  const walk = (node: unknown): string | null => {
+    if (!node || typeof node !== 'object') {
+      if (typeof node === 'string' && node.includes('list=PL')) {
+        const m = node.match(/[?&]list=(PL[A-Za-z0-9_-]+)/);
+        if (m?.[1]) return normalize(m[1]);
+      }
+      return null;
+    }
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        const hit = walk(item);
+        if (hit) return hit;
+      }
+      return null;
+    }
+    const obj = node as Record<string, unknown>;
+    const direct = normalize(obj.playlistId);
+    if (direct) return direct;
+    if (typeof obj.browseId === 'string' && /^(VL|PL|OL)/.test(obj.browseId.trim())) {
+      const bid = normalize(obj.browseId);
+      if (bid) return bid;
+    }
+    for (const [k, v] of Object.entries(obj)) {
+      if (k === 'responseContext') continue;
+      const hit = walk(v);
+      if (hit) return hit;
+    }
+    return null;
+  };
+  return walk(data);
 }
 
 // ---- AutoPlay (phase 6) -------------------------------------------------------------

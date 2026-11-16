@@ -1,4 +1,4 @@
-import { fetchLibraryPlaylists } from '@/data/music/api';
+import { extractCreatedPlaylistIdFromData, fetchLibraryPlaylists } from '@/data/music/api';
 import { getInnertube, getSignedInnertube } from '@/playback/youtube/innertube';
 import { useCollabAuth } from './auth';
 import {
@@ -142,46 +142,59 @@ function parseDurationMs(text: string): number | null {
   return null;
 }
 
-async function enableYtmCollabOnId(rawId: string): Promise<string> {
+function sleepMs(ms: number): Promise<void> {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function enableYtmCollabOnId(rawId: string, ensureUnlisted = true): Promise<string> {
   const yt = await getSignedInnertube();
-  try {
+  if (ensureUnlisted) {
     await yt.actions.execute('/browse/edit_playlist', {
       playlistId: rawId,
       actions: [{ action: 'ACTION_SET_PLAYLIST_PRIVACY', playlistPrivacy: 'UNLISTED' }],
       client: 'YTMUSIC',
-    });
-  } catch {
-    // Already unlisted/public
+    }).catch(() => {});
   }
-  const resp = await yt.actions.execute('/browse/edit_playlist', {
-    playlistId: rawId,
-    actions: [{ action: 'ACTION_CREATE_COLLABORATION_INVITE_LINK' }],
-    client: 'YTMUSIC',
-  });
-  const link = findStringDeep(resp.data, 'collaborationInviteLink');
-  if (link) {
-    return link.startsWith('http')
-      ? link.replace('https://www.youtube.com/', 'https://music.youtube.com/')
-      : `https://music.youtube.com/playlist?list=${rawId}&jct=${link}`;
+  for (let attempt = 0; attempt < 12; attempt++) {
+    if (attempt > 0) {
+      await sleepMs(2000);
+    }
+    try {
+      const resp = await yt.actions.execute('/browse/edit_playlist', {
+        playlistId: rawId,
+        actions: [{ action: 'ACTION_CREATE_COLLABORATION_INVITE_LINK' }],
+        client: 'YTMUSIC',
+      });
+      const link = findStringDeep(resp.data, 'collaborationInviteLink');
+      if (link) {
+        return link.startsWith('http')
+          ? link.replace('https://www.youtube.com/', 'https://music.youtube.com/')
+          : `https://music.youtube.com/playlist?list=${rawId}&jct=${link}`;
+      }
+      const jct = findStringDeep(resp.data, 'joinCollaborationToken');
+      if (jct) {
+        return `https://music.youtube.com/playlist?list=${rawId}&jct=${jct}`;
+      }
+    } catch {
+      // Retry while YouTube Music propagates UNLISTED / settles playlist
+    }
   }
-  const jct = findStringDeep(resp.data, 'joinCollaborationToken');
-  return jct
-    ? `https://music.youtube.com/playlist?list=${rawId}&jct=${jct}`
-    : `https://music.youtube.com/playlist?list=${rawId}`;
+  throw new Error('YouTube Music is still preparing collaboration on this playlist. Please try creating the invite link again in a few seconds.');
 }
 
 export async function ytmFetchPlaylistDetail(
   rawOrPrefixedId: string,
-  options?: { signedIn?: boolean },
+  options?: { signedIn?: boolean; fallbackTitle?: string; fallbackDescription?: string; fallbackTracks?: CollabTrackInput[] },
 ): Promise<CollabPlaylistDetail> {
   const rawId = rawOrPrefixedId.replace(/^ytm:/, '').replace(/^VL/, '');
   const cplId = `${YTM_COLLAB_PREFIX}${rawId}`;
   const state = readYtmState();
   const me = useCollabAuth.getState().user;
   const yt = options?.signedIn === false ? await getInnertube() : await getSignedInnertube();
-  const browseResp = await yt.actions.execute('/browse', { browseId: `VL${rawId}`, client: 'YTMUSIC' });
-  const root = browseResp.data as RawObj;
-
+  const browseResp = await yt.actions.execute('/browse', { browseId: `VL${rawId}`, client: 'YTMUSIC' }).catch(() => ({ data: {} }));
+  const root = (browseResp.data ?? {}) as RawObj;
   const editable = collectByKey(root, 'musicEditablePlaylistDetailHeaderRenderer')[0];
   const owned = Boolean(editable);
   const header =
@@ -189,9 +202,9 @@ export async function ytmFetchPlaylistDetail(
     collectByKey(root, 'musicResponsiveHeaderRenderer')[0] ??
     {};
 
-  const title = runsText(header.title) || 'Collaborative Playlist';
+  const title = runsText(header.title) || options?.fallbackTitle || 'Collaborative Playlist';
   const descShelf = collectByKey(root, 'musicDescriptionShelfRenderer')[0];
-  const description = runsText(descShelf?.description) || runsText(header.description);
+  const description = runsText(descShelf?.description) || runsText(header.description) || options?.fallbackDescription || '';
   const artworkUrl = bestThumb(header);
 
   const facepile = (header.facepile as RawObj | undefined)?.avatarStackViewModel as RawObj | undefined;
@@ -251,12 +264,19 @@ export async function ytmFetchPlaylistDetail(
     const fixedCols = Array.isArray(row.fixedColumns) ? (row.fixedColumns as RawObj[]) : [];
     const durText = runsText((fixedCols[0]?.musicResponsiveListItemFixedColumnRenderer as RawObj | undefined)?.text);
 
-    const rowAvatarVm = collectByKey(row, 'avatarViewModel')[0];
+    const contribStack = ((row.contributorsAvatars as RawObj | undefined)?.avatarStackViewModel as RawObj | undefined);
+    const rowAvatarVm =
+      (((Array.isArray(contribStack?.avatars) ? contribStack?.avatars[0] : undefined) as RawObj | undefined)?.avatarViewModel as RawObj | undefined) ??
+      collectByKey(row, 'avatarViewModel')[0];
     const rowAvatarSources = (((rowAvatarVm?.image as RawObj | undefined)?.sources ?? []) as RawObj[]);
     const ytmContribAvatar = typeof rowAvatarSources[rowAvatarSources.length - 1]?.url === 'string'
       ? (rowAvatarSources[rowAvatarSources.length - 1]!.url as string)
       : null;
-    const ytmContribLabel = findStringDeep(rowAvatarVm, 'label')?.replace(/^Added by\s+/i, '').trim() || null;
+    const rawLabel =
+      findStringDeep(rowAvatarVm, 'accessibilityText') ??
+      findStringDeep(rowAvatarVm, 'label') ??
+      null;
+    const ytmContribLabel = rawLabel?.replace(/^(Added by|by)\s+/i, '').trim() || null;
 
     const stamp = state.stamps[`${rawId}:${setVideoId}`] ?? state.stamps[`${rawId}:${videoId}`];
     const contribName = ytmContribLabel ?? stamp?.displayName ?? ownerName;
@@ -283,6 +303,29 @@ export async function ytmFetchPlaylistDetail(
       addedAtMs: stamp?.addedAtMs ?? 0,
     });
   });
+  if (tracks.length === 0 && options?.fallbackTracks?.length) {
+    options.fallbackTracks.forEach((t, idx) => {
+      const vid = (t.trackId || t.videoId || '').trim();
+      if (!vid) return;
+      tracks.push({
+        entryId: vid,
+        playlistId: cplId,
+        position: idx,
+        trackId: vid,
+        provider: 'youtube',
+        title: t.title || 'Track',
+        artist: t.artist || 'Unknown Artist',
+        albumName: t.albumName ?? null,
+        thumbnailUrl: t.thumbnailUrl ?? null,
+        durationMs: t.durationMs ?? null,
+        isExplicit: Boolean(t.isExplicit),
+        contributorId: ownerUserId,
+        contributorName: ownerName,
+        contributorAvatarUrl: ownerAvatarUrl,
+        addedAtMs: Date.now(),
+      });
+    });
+  }
 
   const stopped = state.stoppedIds.includes(rawId);
   return {
@@ -368,17 +411,45 @@ export async function ytmCreateCollabPlaylist(params: {
 }): Promise<CollabPlaylistDetail> {
   const yt = await getSignedInnertube();
   const me = useCollabAuth.getState().user;
-  const videoIds = (params.tracks ?? []).map((t) => t.trackId || t.videoId || '').filter(Boolean);
-  const createResp = await yt.actions.execute('/playlist/create', {
-    title: params.title.trim(),
-    description: params.description?.trim() ?? '',
+  const cleanTitle = params.title.trim().replace(/</g, '‹').replace(/>/g, '›') || 'Collaborative Playlist';
+  const cleanDesc = (params.description ?? '').replace(/<[^>]+>/g, '').replace(/</g, '‹').replace(/>/g, '›').trim();
+  const videoIds = (params.tracks ?? [])
+    .map((t) => (t.trackId || t.videoId || '').trim())
+    .filter((v) => /^[A-Za-z0-9_-]{11}$/.test(v));
+  const createPayload: Record<string, unknown> = {
+    title: cleanTitle,
     privacyStatus: 'UNLISTED',
-    videoIds,
     client: 'YTMUSIC',
-  });
-  const rawId = findStringDeep(createResp.data, 'playlistId')?.replace(/^VL/, '');
-  if (!rawId) throw new Error('YouTube Music did not return a playlistId.');
-  const inviteUrl = await enableYtmCollabOnId(rawId);
+  };
+  if (cleanDesc) createPayload.description = cleanDesc;
+  if (videoIds.length > 0) createPayload.videoIds = videoIds.slice(0, 50);
+  let createResp = await yt.actions.execute('/playlist/create', createPayload);
+  let rawId = extractCreatedPlaylistIdFromData(createResp.data);
+  let createdAsPrivate = false;
+  if (!rawId) {
+    createResp = await yt.actions.execute('/playlist/create', { ...createPayload, privacyStatus: 'PRIVATE' });
+    rawId = extractCreatedPlaylistIdFromData(createResp.data);
+    createdAsPrivate = Boolean(rawId);
+  }
+  if (!rawId) {
+    const panelTag = findStringDeep(createResp.data, 'tag') ?? findStringDeep(createResp.data, 'panelIdentifier');
+    if (panelTag === 'PAfeature_enablement') {
+      throw new Error('YouTube Music temporarily gated playlist creation on this account (PAfeature_enablement).');
+    }
+    if (collectByKey(createResp.data, 'channelCreationDialogRenderer').length > 0 || collectByKey(createResp.data, 'createCoreIdentityModalRenderer').length > 0) {
+      throw new Error('Your Google account needs a YouTube channel before YouTube Music allows creating playlists. Open music.youtube.com once to finish channel setup.');
+    }
+    throw new Error('YouTube Music did not return a playlist ID. Check that your Google account has an active YouTube Music profile.');
+  }
+  for (let i = 50; i < videoIds.length; i += 100) {
+    const chunk = videoIds.slice(i, i + 100);
+    await yt.actions.execute('/browse/edit_playlist', {
+      playlistId: rawId,
+      actions: chunk.map((vid) => ({ action: 'ACTION_ADD_VIDEO', addedVideoId: vid, dedupeOption: 'DEDUPE_OPTION_SKIP' })),
+      client: 'YTMUSIC',
+    }).catch(() => {});
+  }
+  const inviteUrl = await enableYtmCollabOnId(rawId, createdAsPrivate);
 
   const state = readYtmState();
   if (!state.trackedIds.includes(rawId)) state.trackedIds.push(rawId);
@@ -390,9 +461,9 @@ export async function ytmCreateCollabPlaylist(params: {
       state.stamps[`${rawId}:${vid}`] = { userId: me.id, displayName: me.displayName, avatarUrl: me.avatarUrl, addedAtMs: now };
     }
   }
-  recordActivity(state, rawId, 'playlist.create', `${me?.displayName ?? 'You'} created collaborative playlist "${params.title.trim()}"`);
+  recordActivity(state, rawId, 'playlist.create', `${me?.displayName ?? 'You'} created collaborative playlist "${cleanTitle}"`);
   writeYtmState(state);
-  return ytmFetchPlaylistDetail(rawId);
+  return ytmFetchPlaylistDetail(rawId, { fallbackTitle: cleanTitle, fallbackDescription: cleanDesc, fallbackTracks: params.tracks });
 }
 
 export async function ytmConvertToCollabPlaylist(
@@ -540,21 +611,43 @@ export async function ytmPreviewInvite(rawId: string): Promise<CollabInvitePrevi
 
 export async function ytmAcceptInvite(rawId: string, jct: string): Promise<{ playlist: CollabPlaylistDetail; alreadyMember: boolean }> {
   const yt = await getSignedInnertube();
-  try {
-    await yt.actions.execute('/browse/edit_playlist', {
-      playlistId: rawId,
-      actions: [{ action: 'ACTION_JOIN_COLLABORATION', joinCollaborationToken: jct }],
-      client: 'YTMUSIC',
-    });
-  } catch (err) {
-    const msg = String(err);
-    if (!/unauthorized|already/i.test(msg)) throw err;
+  const state = readYtmState();
+  const wasAlreadyTracked = state.trackedIds.includes(rawId);
+  let joined = false;
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    if (attempt > 0) {
+      await sleepMs(2000);
+    }
+    try {
+      const resp = await yt.actions.execute('/browse/edit_playlist', {
+        playlistId: rawId,
+        actions: [{ action: 'ACTION_JOIN_COLLABORATION', joinCollaborationToken: jct }],
+        client: 'YTMUSIC',
+      });
+      const status = findStringDeep(resp.data, 'status');
+      if (!status || status.includes('SUCCEEDED')) {
+        joined = true;
+        break;
+      }
+      lastErr = new Error(`YouTube Music refused collaboration join (${status})`);
+    } catch (err) {
+      lastErr = err;
+      const addOpts = await yt.actions.execute('/playlist/get_add_to_playlist', { playlistId: 'LM', client: 'YTMUSIC' }).catch(() => ({ data: {} }));
+      const addJson = JSON.stringify(addOpts.data ?? {});
+      if (addJson.includes(`"${rawId}"`)) {
+        joined = true;
+        break;
+      }
+    }
+  }
+  if (!joined) {
+    throw lastErr instanceof Error ? lastErr : new Error('YouTube Music refused the collaboration invite. Ask the owner for a fresh invite link.');
   }
   await yt.actions.execute('/like/like', { target: { playlistId: rawId }, client: 'YTMUSIC' }).catch(() => {});
-  const state = readYtmState();
   if (!state.trackedIds.includes(rawId)) state.trackedIds.push(rawId);
   state.inviteLinks[rawId] = `https://music.youtube.com/playlist?list=${rawId}&jct=${jct}`;
   writeYtmState(state);
   const playlist = await ytmFetchPlaylistDetail(rawId);
-  return { playlist, alreadyMember: false };
+  return { playlist, alreadyMember: wasAlreadyTracked };
 }

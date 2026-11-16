@@ -136,6 +136,7 @@ import com.music.bitchord.auth.YtMusicLoginScreen
 import com.music.bitchord.data.AppUpdateChecker
 import com.music.bitchord.collab.AndroidCollab
 import com.music.bitchord.collab.CollabInviteIntent
+import com.music.bitchord.data.collab.CollabManager
 import com.music.bitchord.ui.collab.CollabGoogleAuthDialog
 import com.music.bitchord.ui.collab.CollabJoinInviteDialog
 import com.music.bitchord.ui.collab.CollabLibrarySection
@@ -450,9 +451,10 @@ class MainActivity : AppCompatActivity() {
         // the request already standing by the time BitChordApp first reads it.
         PlayerDeepLink.consume(intent)
         JamInviteLink.consume(intent)
-        CollabInviteIntent.consume(intent)
-        // Likewise for a link tapped or shared from another app — see [MusicLink].
-        MusicLink.consume(intent)
+        if (!CollabInviteIntent.consume(intent)) {
+            // Likewise for a link tapped or shared from another app — see [MusicLink].
+            MusicLink.consume(intent)
+        }
         if (RecognitionNotificationActions.consume(intent)) {
             RecognitionNotifications.cancel(this)
         }
@@ -562,8 +564,9 @@ class MainActivity : AppCompatActivity() {
         setIntent(intent)
         PlayerDeepLink.consume(intent)
         JamInviteLink.consume(intent)
-        CollabInviteIntent.consume(intent)
-        MusicLink.consume(intent)
+        if (!CollabInviteIntent.consume(intent)) {
+            MusicLink.consume(intent)
+        }
         if (RecognitionNotificationActions.consume(intent)) {
             RecognitionNotifications.cancel(this)
         }
@@ -1030,9 +1033,16 @@ private fun BitChordApp(
 
     LaunchedEffect(incomingCollabInvite) {
         val inv = incomingCollabInvite ?: return@LaunchedEffect
-        collabJoinInitialInput = inv.token
-        showCollabJoinDialog = true
         CollabInviteIntent.handled()
+        val alreadyJoinedId = inv.ytmPlaylistId?.let { "${CollabManager.YTM_PREFIX}$it" }
+            ?.takeIf { cplId -> AndroidCollab.manager.playlists.value.any { it.id == cplId } }
+        if (alreadyJoinedId != null) {
+            dismissPlayer()
+            navigator.push(AppRoute.CollabPlaylist(alreadyJoinedId))
+        } else {
+            collabJoinInitialInput = inv.token
+            showCollabJoinDialog = true
+        }
     }
 
     // An invite is navigation and an action: reveal the Jam settings page now,
@@ -2269,9 +2279,17 @@ private fun BitChordApp(
             }
             is LinkRequest.Page -> {
                 dismissPlayer()
-                // Titled by the page itself once it lands — a link carries a
-                // browse id and nothing else. See MainViewModel.openDetail.
-                viewModel.openDetail(request.browseId, title = "")
+                val rawPlaylistId = request.browseId.removePrefix("VL")
+                val trackedCollabId = "${CollabManager.YTM_PREFIX}$rawPlaylistId"
+                if (request.browseId.startsWith("VL") &&
+                    AndroidCollab.manager.playlists.value.any { it.id == trackedCollabId }
+                ) {
+                    navigator.push(AppRoute.CollabPlaylist(trackedCollabId))
+                } else {
+                    // Titled by the page itself once it lands — a link carries a
+                    // browse id and nothing else. See MainViewModel.openDetail.
+                    viewModel.openDetail(request.browseId, title = "")
+                }
             }
             is LinkRequest.Search -> serveSearch(request)
             // Another platform's link: read what it names, then serve that as
@@ -3308,7 +3326,7 @@ private fun BitChordApp(
                                 },
                                 onOpenAuthDialog = {
                                     if (AndroidCollab.manager.isNativeYouTubeMode) {
-                                        webSession = WebSessionMode.SIGN_IN
+                                        webSession = if (signedIn) WebSessionMode.SWITCH_CHANNEL else WebSessionMode.SIGN_IN
                                     } else {
                                         showCollabAuthDialog = true
                                     }
@@ -4047,6 +4065,24 @@ private fun BitChordApp(
                                 links = libraryLinks(),
                                 deviceItems = libraryDeviceItems(downloadedReleases) + localPlaylistItems,
                                 collabSection = { queryText ->
+                                    var ytmLinksDefault by remember {
+                                        mutableStateOf(AndroidCollab.isYouTubeMusicDefaultLinkHandler(context))
+                                    }
+                                    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+                                    DisposableEffect(lifecycleOwner) {
+                                        val obs = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                                            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                                                ytmLinksDefault = AndroidCollab.isYouTubeMusicDefaultLinkHandler(context)
+                                                AndroidCollab.manager.let { mgr ->
+                                                    if (mgr.isAuthenticated) {
+                                                        scope.launch { mgr.refreshPlaylists() }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        lifecycleOwner.lifecycle.addObserver(obs)
+                                        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+                                    }
                                     CollabLibrarySection(
                                         manager = AndroidCollab.manager,
                                         query = queryText,
@@ -4064,6 +4100,10 @@ private fun BitChordApp(
                                             showCollabJoinDialog = true
                                         },
                                         onOpenAuthSettings = { showCollabAuthDialog = true },
+                                        showOpenLinksBanner = !ytmLinksDefault,
+                                        onEnableDefaultYouTubeMusicLinks = {
+                                            AndroidCollab.openYouTubeMusicDefaultLinkSettings(context)
+                                        },
                                     )
                                 },
                             )
@@ -6141,7 +6181,7 @@ private fun BitChordApp(
                 onOpenAuthDialog = {
                     if (AndroidCollab.manager.isNativeYouTubeMode) {
                         showCollabCreateOrConvert = false
-                        webSession = WebSessionMode.SIGN_IN
+                        webSession = if (signedIn) WebSessionMode.SWITCH_CHANNEL else WebSessionMode.SIGN_IN
                     } else {
                         showCollabAuthDialog = true
                     }
@@ -6159,7 +6199,8 @@ private fun BitChordApp(
                 onDismiss = { showCollabJoinDialog = false },
                 onOpenAuthDialog = {
                     if (AndroidCollab.manager.isNativeYouTubeMode) {
-                        webSession = WebSessionMode.SIGN_IN
+                        showCollabJoinDialog = false
+                        webSession = if (signedIn) WebSessionMode.SWITCH_CHANNEL else WebSessionMode.SIGN_IN
                     } else {
                         showCollabAuthDialog = true
                     }

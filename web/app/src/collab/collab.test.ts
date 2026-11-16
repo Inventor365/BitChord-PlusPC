@@ -16,6 +16,7 @@ import {
 } from './types';
 import { computeReconnectDelayMs } from './ws';
 import type { Track } from '@/data/music/types';
+import { extractCreatedPlaylistIdFromData } from '@/data/music/api';
 
 const SAMPLE_TOKEN = 'bci_AbCdEfGhIjKlMnOpQrStUvWxYz012345';
 
@@ -550,5 +551,40 @@ describe('playlist conversion mapping, PKCE S256, and socket backoff', () => {
     });
     expect(useCollabAuth.getState().user?.displayName).toBe('Pranav');
     expect(useCollabAuth.getState().user?.email).toBe('pranav@example.com');
+  });
+
+  it('extracts created playlist IDs across top-level playlistId, toast browseEndpoint.browseId, command, and URLs', () => {
+    expect(extractCreatedPlaylistIdFromData({ playlistId: 'VLPL_top_12345' })).toBe('PL_top_12345');
+    expect(
+      extractCreatedPlaylistIdFromData({
+        responseContext: { visitorData: 'Cgvisitor' },
+        actions: [
+          {
+            addToToastAction: {
+              item: {
+                notificationTextRenderer: {
+                  navigationEndpoint: { browseEndpoint: { browseId: 'VLPL_toast_98765' } },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    ).toBe('PL_toast_98765');
+    expect(
+      extractCreatedPlaylistIdFromData({
+        command: { browseEndpoint: { browseId: 'VLPL_cmd_55555' } },
+      }),
+    ).toBe('PL_cmd_55555');
+    expect(
+      extractCreatedPlaylistIdFromData({
+        shareUrl: 'https://music.youtube.com/playlist?list=PL_url_77777&jct=tok',
+      }),
+    ).toBe('PL_url_77777');
+    expect(
+      extractCreatedPlaylistIdFromData({
+        actions: [{ navigationEndpoint: { browseEndpoint: { browseId: 'FEmusic_liked_playlists' } } }],
+      }),
+    ).toBeNull();
   });
 });
