@@ -92,6 +92,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil3.compose.AsyncImage
 import com.music.bitchord.data.collab.CollabInvitePreview
+import com.music.bitchord.data.collab.CollabInviteLink
 import com.music.bitchord.data.collab.CollabInviteView
 import com.music.bitchord.data.collab.CollabManager
 import com.music.bitchord.data.collab.CollabMember
@@ -129,10 +130,23 @@ fun CollabLibrarySection(
     onNewCollaborative: () -> Unit,
     onJoinInvite: () -> Unit,
     onOpenAuthSettings: () -> Unit,
+    showOpenLinksBanner: Boolean = false,
+    onEnableDefaultYouTubeMusicLinks: (() -> Unit)? = null,
 ) {
+    val scope = rememberCoroutineScope()
     val session by manager.session.collectAsState()
     val allPlaylists by manager.playlists.collectAsState()
     val realtimeConnected by manager.realtimeConnected.collectAsState()
+
+    // Auto-refresh collaborative playlists on display and every 12s while visible
+    LaunchedEffect(session?.user?.id) {
+        if (session != null) {
+            while (true) {
+                manager.refreshPlaylists()
+                delay(12_000L)
+            }
+        }
+    }
 
     val filtered = remember(allPlaylists, query) {
         if (query.isBlank()) allPlaylists
@@ -149,17 +163,29 @@ fun CollabLibrarySection(
 
     Column(Modifier.fillMaxWidth()) {
         if (query.isBlank()) {
-            SectionHeader(
-                title = "Collaborative Playlists",
-                subtitle = if (session != null) {
-                    buildString {
-                        append("Signed in as ${session!!.user.displayName}")
-                        if (realtimeConnected) append(" · Live sync")
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(end = PAGE_GUTTER),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.weight(1f)) {
+                    SectionHeader(
+                        title = "Collaborative Playlists",
+                        subtitle = if (session != null) {
+                            buildString {
+                                append("Signed in as ${session!!.user.displayName}")
+                                if (realtimeConnected) append(" · Live sync")
+                            }
+                        } else {
+                            "Create playlists with friends and see who added every song"
+                        },
+                    )
+                }
+                if (session != null) {
+                    IconButton(onClick = { scope.launch { manager.refreshPlaylists() } }) {
+                        Icon(Icons.Rounded.Refresh, contentDescription = "Refresh collaborative playlists")
                     }
-                } else {
-                    "Create playlists with friends and see who added every song"
-                },
-            )
+                }
+            }
             ShelfRow(
                 contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
                 horizontalArrangement = Arrangement.spacedBy(LIBRARY_GRID_SPACING),
@@ -179,6 +205,16 @@ fun CollabLibrarySection(
                         subtitle = "Paste an invite link or code",
                         onClick = onJoinInvite,
                     )
+                }
+                if (showOpenLinksBanner && onEnableDefaultYouTubeMusicLinks != null) {
+                    item(key = "collab:default_links") {
+                        CollabActionTile(
+                            icon = Icons.Rounded.Link,
+                            title = "Open YT Music Links",
+                            subtitle = "Open music.youtube.com playlists in BitChord by default",
+                            onClick = onEnableDefaultYouTubeMusicLinks,
+                        )
+                    }
                 }
                 items(owned.size, key = { "collab:owned:${owned[it].id}" }) { index ->
                     CollabPlaylistCard(
@@ -537,6 +573,17 @@ fun CollabPlaylistDetailScreen(
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                 }
                 Spacer(Modifier.weight(1f))
+                IconButton(
+                    onClick = {
+                        scope.launch {
+                            loading = true
+                            manager.loadPlaylistDetail(playlistId)
+                            loading = false
+                        }
+                    },
+                ) {
+                    Icon(Icons.Rounded.Refresh, contentDescription = "Refresh playlist")
+                }
                 if (current.canInvite(currentUserId)) {
                     OutlinedButton(
                         onClick = {
@@ -1232,30 +1279,54 @@ fun MakeCollaborativeDialog(
                         modifier = Modifier.fillMaxWidth(),
                     )
 
-                    Text(
-                        "Collaborator permissions",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    PermissionCheckboxRow(
-                        checked = editorsRemoveAny,
-                        onCheckedChange = { editorsRemoveAny = it },
-                        label = "Editors can remove any song (off = only songs they added)",
-                    )
-                    PermissionCheckboxRow(
-                        checked = editorsReorder,
-                        onCheckedChange = { editorsReorder = it },
-                        label = "Editors can reorder tracks",
-                    )
-                    PermissionCheckboxRow(
-                        checked = editorsInvite,
-                        onCheckedChange = { editorsInvite = it },
-                        label = "Editors can generate invite links",
-                    )
+                    if (manager.isNativeYouTubeMode) {
+                        Text(
+                            "Shared via your YouTube Music account — anyone you send the invite link to can add and edit tracks together.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Text(
+                            "Collaborator permissions",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        PermissionCheckboxRow(
+                            checked = editorsRemoveAny,
+                            onCheckedChange = { editorsRemoveAny = it },
+                            label = "Editors can remove any song (off = only songs they added)",
+                        )
+                        PermissionCheckboxRow(
+                            checked = editorsReorder,
+                            onCheckedChange = { editorsReorder = it },
+                            label = "Editors can reorder tracks",
+                        )
+                        PermissionCheckboxRow(
+                            checked = editorsInvite,
+                            onCheckedChange = { editorsInvite = it },
+                            label = "Editors can generate invite links",
+                        )
+                    }
                 }
 
-                errorText?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                errorText?.let { rawErr ->
+                    val needsChannel = rawErr.startsWith("CHANNEL_REQUIRED:")
+                    val needsReauth = rawErr.startsWith("SESSION_EXPIRED:")
+                    val cleanErr = rawErr
+                        .removePrefix("CHANNEL_REQUIRED:")
+                        .removePrefix("SESSION_EXPIRED:")
+                        .trim()
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(cleanErr, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                        if (needsChannel || needsReauth) {
+                            OutlinedButton(
+                                onClick = onOpenAuthDialog,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(if (needsChannel) "Set Up YouTube Channel" else "Reconnect Google Account")
+                            }
+                        }
+                    }
                 }
 
                 Row(
@@ -1393,16 +1464,31 @@ fun CollabInviteAndManageDialog(
                     IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, "Close") }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (canInvite) {
-                        FilterChip(selected = tab == 0, onClick = { tab = 0 }, label = { Text("Invite Link") })
-                    }
-                    FilterChip(selected = tab == 1, onClick = { tab = 1 }, label = { Text("Members (${detail.members.size})") })
-                    if (isOwner) {
-                        FilterChip(selected = tab == 2, onClick = { tab = 2 }, label = { Text("Sharing & Rules") })
+                LaunchedEffect(detail.id) {
+                    while (true) {
+                        manager.loadPlaylistDetail(detail.id)
+                        delay(5_000L)
                     }
                 }
 
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (canInvite) {
+                        FilterChip(selected = tab == 0, onClick = { tab = 0 }, label = { Text("Invite Link") })
+                    }
+                    FilterChip(
+                        selected = tab == 1,
+                        onClick = { tab = 1 },
+                        label = { Text("Members (${maxOf(detail.memberCount, detail.members.size)})") },
+                    )
+                    if (isOwner) {
+                        FilterChip(selected = tab == 2, onClick = { tab = 2 }, label = { Text("Sharing & Rules") })
+                    }
+                    Spacer(Modifier.weight(1f))
+                    IconButton(onClick = { scope.launch { manager.loadPlaylistDetail(detail.id) } }) {
+                        Icon(Icons.Rounded.Refresh, contentDescription = "Refresh members")
+                    }
+                }
+                val isYtmNative = manager.isNativeYouTubeMode || detail.id.startsWith("ytm:")
                 if (tab == 0 && canInvite) {
                     Text("Role granted by invite link", style = MaterialTheme.typography.labelLarge)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1418,17 +1504,18 @@ fun CollabInviteAndManageDialog(
                         )
                     }
 
-                    Text("Link expiration", style = MaterialTheme.typography.labelLarge)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(24L to "24h", 168L to "7 days", 0L to "Never").forEach { (hrs, lbl) ->
-                            FilterChip(
-                                selected = (expiryHours ?: 0L) == hrs,
-                                onClick = { expiryHours = if (hrs == 0L) 0L else hrs },
-                                label = { Text(lbl) },
-                            )
+                    if (!isYtmNative) {
+                        Text("Link expiration", style = MaterialTheme.typography.labelLarge)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(24L to "24h", 168L to "7 days", 0L to "Never").forEach { (hrs, lbl) ->
+                                FilterChip(
+                                    selected = (expiryHours ?: 0L) == hrs,
+                                    onClick = { expiryHours = if (hrs == 0L) 0L else hrs },
+                                    label = { Text(lbl) },
+                                )
+                            }
                         }
                     }
-
                     Button(
                         onClick = {
                             scope.launch {
@@ -1453,22 +1540,41 @@ fun CollabInviteAndManageDialog(
                     }
 
                     createdInvite?.let { inv ->
+                        val parsedYtm = CollabInviteLink.parse(inv.inviteUrl)
+                        val directAppLink = if (parsedYtm?.isYouTubeMusicInvite == true) {
+                            CollabInviteLink.buildBitChordYtmDeepLink(parsedYtm.ytmPlaylistId!!, parsedYtm.ytmJoinToken!!)
+                        } else null
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(inv.inviteUrl, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                    if (copiedNotice) {
-                                        Text("Copied to clipboard", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(inv.inviteUrl, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                        if (copiedNotice) {
+                                            Text("Copied to clipboard", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                        }
+                                    }
+                                    IconButton(onClick = { clipboard.setText(AnnotatedString(inv.inviteUrl)); copiedNotice = true }) {
+                                        Icon(Icons.Rounded.ContentCopy, "Copy")
                                     }
                                 }
-                                IconButton(onClick = { clipboard.setText(AnnotatedString(inv.inviteUrl)); copiedNotice = true }) {
-                                    Icon(Icons.Rounded.ContentCopy, "Copy")
+                                if (directAppLink != null) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            clipboard.setText(AnnotatedString(directAppLink))
+                                            copiedNotice = true
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) {
+                                        Icon(Icons.Rounded.ContentCopy, null, modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text("Copy Direct BitChord App Link (bitchord://…)")
+                                    }
                                 }
                             }
                         }
@@ -1483,8 +1589,22 @@ fun CollabInviteAndManageDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(Modifier.weight(1f)) {
-                                    Text("${inv.role} · ${inv.useCount} uses", style = MaterialTheme.typography.bodyMedium)
-                                    Text(inv.token.take(16) + "…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        if (isYtmNative) "YouTube Music collaboration link" else "${inv.role} · ${inv.useCount} uses",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                    Text(
+                                        inv.inviteUrl.ifBlank { inv.token.take(16) + "…" },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                if (inv.inviteUrl.isNotBlank()) {
+                                    IconButton(onClick = { clipboard.setText(AnnotatedString(inv.inviteUrl)); copiedNotice = true }) {
+                                        Icon(Icons.Rounded.ContentCopy, "Copy")
+                                    }
                                 }
                                 TextButton(
                                     onClick = {
@@ -1515,7 +1635,7 @@ fun CollabInviteAndManageDialog(
                                 )
                                 Text(member.role, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            if (isOwner && member.parsedRole != CollabRole.OWNER) {
+                            if (!isYtmNative && isOwner && member.parsedRole != CollabRole.OWNER) {
                                 val nextRole = if (member.parsedRole == CollabRole.EDITOR) CollabRole.VIEWER else CollabRole.EDITOR
                                 TextButton(
                                     onClick = { scope.launch { manager.updateMemberRole(detail.id, member.userId, nextRole) } },
@@ -1675,6 +1795,7 @@ fun CollabJoinInviteDialog(
     onJoined: (CollabPlaylistDetail) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val clipboard = LocalClipboardManager.current
     val session by manager.session.collectAsState()
 
     var input by remember(initialInviteInput) { mutableStateOf(initialInviteInput) }
@@ -1683,9 +1804,14 @@ fun CollabJoinInviteDialog(
     var errorText by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(initialInviteInput) {
-        if (initialInviteInput.isNotBlank()) {
+        val candidate = initialInviteInput.ifBlank {
+            val clipText = runCatching { clipboard.getText()?.text.orEmpty() }.getOrDefault("")
+            if (CollabInviteLink.parse(clipText) != null) clipText else ""
+        }
+        if (candidate.isNotBlank()) {
+            if (input.isBlank()) input = candidate
             loading = true
-            manager.previewInvite(initialInviteInput).fold(
+            manager.previewInvite(candidate).fold(
                 onSuccess = { (_, p) -> preview = p; errorText = null },
                 onFailure = { errorText = it.message },
             )
