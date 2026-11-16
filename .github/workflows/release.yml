@@ -379,11 +379,30 @@ jobs:
             --output-dir dist
           jar=$(ls desktopApp/build/compose/binaries/main/app/BitChord.app/Contents/app/desktopApp*.jar)
           jar tf "$jar" | grep -q 'models/.*\.onnx'
-          python3 scripts/macos/verify-macos-artifacts.py \
-            --expected-version "${{ steps.version.outputs.value }}" \
-            --expected-arch "${{ matrix.arch }}" \
-            dist
           ls -lh dist
+
+      # The real test: install the package the way a user would, and start the app.
+      - name: Install the .pkg and launch the app
+        run: |
+          v="${{ steps.version.outputs.value }}"
+          sudo installer -pkg "dist/BitChord-${v}-macos-${{ matrix.arch }}.pkg" -target /
+          test -x /Applications/BitChord.app/Contents/MacOS/BitChord
+          codesign --verify --deep --strict --verbose=2 /Applications/BitChord.app
+          file /Applications/BitChord.app/Contents/MacOS/BitChord
+          plutil -p /Applications/BitChord.app/Contents/Info.plist | grep -E 'CFBundleShortVersionString|CFBundleIdentifier'
+          # Start it and make sure it is still running a few seconds later (a bad bundle or
+          # signature is killed at once).
+          /Applications/BitChord.app/Contents/MacOS/BitChord > app.log 2>&1 &
+          pid=$!
+          sleep 20
+          if kill -0 "$pid" 2>/dev/null; then
+            echo "BitChord is running (pid $pid)"
+            kill "$pid" || true
+          else
+            echo "::error::BitChord exited within 20 seconds of launch" >&2
+            tail -n 60 app.log >&2
+            exit 1
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
@@ -443,7 +462,11 @@ jobs:
           ls -lh dist
           chmod +x scripts/verify-android-upgrade.sh scripts/macos/verify-macos-artifacts.py
           ./scripts/verify-android-upgrade.sh dist
-          python3 scripts/macos/verify-macos-artifacts.py dist
+          # macOS files were verified, installed and launched on the Mac runners that built
+          # them; the Linux structure checker only understands the retired cross-repack layout.
+          count=$(ls dist | grep -c -- '-macos-')
+          [ "$count" -eq 6 ] || { echo "::error::expected 6 macOS files, found $count" >&2; exit 1; }
+          (cd dist && sha256sum * > SHA256SUMS.txt)
 
       - name: Recreate existing release to refresh published timestamp
         env:

@@ -1204,6 +1204,54 @@ def sign_app_native_macos(app_dir: Path, sign_identity: str) -> bool:
     return False
 
 
+def verify_native_macos_artifacts(produced: Sequence[Path], bundle_id: str) -> None:
+    """
+    Checks what was just built the way a Mac will: Apple's own tools open each file.
+
+    The structure checker in verify-macos-artifacts.py was written for the Linux cross-repack
+    and assumes that repack's layout (HFS+, its own checksum placement); a real hdiutil image
+    is APFS and fails it while being perfectly good. So here the disk image is verified and
+    mounted, the app inside it has its signature checked, and the package is expanded and its
+    payload listed.
+    """
+    for art in produced:
+        suffix = art.suffix.lower()
+        with tempfile.TemporaryDirectory(prefix="bitchord-verify-") as tmp:
+            work = Path(tmp)
+            if suffix == ".dmg":
+                subprocess.run(["hdiutil", "verify", str(art)], check=True)
+                mount = work / "mnt"
+                mount.mkdir()
+                subprocess.run(
+                    ["hdiutil", "attach", str(art), "-nobrowse", "-readonly", "-mountpoint", str(mount)],
+                    check=True,
+                )
+                try:
+                    app = mount / "BitChord.app"
+                    if not (app / "Contents/MacOS/BitChord").is_file():
+                        raise PackagingError(f"{art.name}: BitChord.app is not on the mounted image")
+                    if not (mount / "Applications").is_symlink():
+                        raise PackagingError(f"{art.name}: the Applications shortcut is missing")
+                    subprocess.run(["codesign", "--verify", "--deep", "--strict", "--verbose=2", str(app)], check=True)
+                finally:
+                    subprocess.run(["hdiutil", "detach", str(mount), "-force"], check=False)
+            elif suffix == ".zip":
+                subprocess.run(["ditto", "-x", "-k", str(art), str(work)], check=True)
+                subprocess.run(
+                    ["codesign", "--verify", "--deep", "--strict", "--verbose=2", str(work / "BitChord.app")],
+                    check=True,
+                )
+            elif suffix == ".pkg":
+                expanded = work / "expanded"
+                subprocess.run(["pkgutil", "--expand", str(art), str(expanded)], check=True)
+                listing = subprocess.run(
+                    ["pkgutil", "--payload-files", str(art)], check=True, capture_output=True, text=True
+                ).stdout
+                if "BitChord.app/Contents/MacOS/BitChord" not in listing:
+                    raise PackagingError(f"{art.name}: payload does not contain BitChord.app")
+        print(f"OK (Apple tools): {art.name}")
+
+
 def run_native_macos_packaging(args: argparse.Namespace) -> List[Path]:
     version = args.version.strip().lstrip("v")
     arch = args.arch or ("arm64" if platform.machine().lower() in ("arm64", "aarch64") else "x64")
@@ -1271,12 +1319,8 @@ def run_native_macos_packaging(args: argparse.Namespace) -> List[Path]:
                 ],
                 check=True,
             )
-            raw_dmg = bytearray(out_dmg.read_bytes())
-            koff = len(raw_dmg) - 512
-            df_off, df_len = struct.unpack(">QQ", raw_dmg[koff + 24 : koff + 40])
-            df_crc = zlib.crc32(raw_dmg[df_off : df_off + df_len]) & 0xFFFFFFFF
-            struct.pack_into(">III", raw_dmg, koff + 80, verifier.UDIF_CHECKSUM_CRC32, 32, df_crc)
-            out_dmg.write_bytes(bytes(raw_dmg))
+            # The image is left exactly as hdiutil wrote it. An earlier version rewrote the
+            # trailer's checksum by hand here; Apple's own tool does not need correcting.
             if dev_id_signed:
                 subprocess.run(["codesign", "--force", "--timestamp", "--sign", sign_id, str(out_dmg)], check=True)
 
@@ -1288,26 +1332,29 @@ def run_native_macos_packaging(args: argparse.Namespace) -> List[Path]:
             raw_prod_pkg = tmp_dir / "BitChord-product-raw.pkg"
             norm_pkg = tmp_dir / "BitChord-product-norm.pkg"
 
-            pkgbuild_cmd = [
-                "pkgbuild",
-                "--root", str(pkg_root),
-                "--identifier", args.bundle_id,
-                "--version", version,
-                "--install-location", "/Applications",
-                "--compression", "legacy",
-                str(comp_pkg),
-            ]
-            if subprocess.run(pkgbuild_cmd, capture_output=True).returncode != 0:
-                # Fallback if older pkgbuild lacks --compression legacy
-                subprocess.run(
-                    [
-                        "pkgbuild", "--root", str(pkg_root), "--identifier", args.bundle_id,
-                        "--version", version, "--install-location", "/Applications", str(comp_pkg),
-                    ],
-                    check=True,
-                )
+            # By default Installer treats an app bundle as relocatable: if it finds a copy of
+            # the same bundle id anywhere on the disk it installs over that one instead of into
+            # /Applications, which reads to the user as "the installer did nothing".
+            component_plist = tmp_dir / "component.plist"
+            subprocess.run(["pkgbuild", "--analyze", "--root", str(pkg_root), str(component_plist)], check=True)
+            with component_plist.open("rb") as fh:
+                components = plistlib.load(fh)
+            for component in components:
+                component["BundleIsRelocatable"] = False
+                component["BundleIsVersionChecked"] = False
+            with component_plist.open("wb") as fh:
+                plistlib.dump(components, fh)
+            subprocess.run(
+                [
+                    "pkgbuild", "--root", str(pkg_root), "--component-plist", str(component_plist),
+                    "--identifier", args.bundle_id, "--version", version,
+                    "--install-location", "/Applications", str(comp_pkg),
+                ],
+                check=True,
+            )
             subprocess.run(["productbuild", "--package", str(comp_pkg), str(raw_prod_pkg)], check=True)
-            normalize_native_pkg_xar(raw_prod_pkg, norm_pkg)
+            # productbuild's archive is used as written — not re-encoded.
+            shutil.copy2(raw_prod_pkg, norm_pkg)
 
             out_pkg.unlink(missing_ok=True)
             if inst_id:
@@ -1502,6 +1549,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             produced = run_cross_repack(args)
         elif sys.platform == "darwin":
             produced = run_native_macos_packaging(args)
+            verify_native_macos_artifacts(produced, args.bundle_id)
+            return 0
         else:
             raise PackagingError(
                 f"Host platform is '{sys.platform}'; pass --base-dir <dir> for Linux cross-repack mode, or run on macOS."
