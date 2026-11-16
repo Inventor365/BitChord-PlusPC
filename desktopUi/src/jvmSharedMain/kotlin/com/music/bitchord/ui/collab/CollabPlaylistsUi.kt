@@ -1898,6 +1898,8 @@ fun CollabInviteAndManageDialog(
                                     text = if (member.userId == currentUserId) "${member.displayName} (You)" else member.displayName,
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                                 Text(member.role, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
@@ -1905,7 +1907,7 @@ fun CollabInviteAndManageDialog(
                                 val nextRole = if (member.parsedRole == CollabRole.EDITOR) CollabRole.VIEWER else CollabRole.EDITOR
                                 TextButton(
                                     onClick = { scope.launch { manager.updateMemberRole(detail.id, member.userId, nextRole) } },
-                                ) { Text("Make ${nextRole.name.lowercase().replaceFirstChar { it.uppercase() }}") }
+                                ) { Text("Make ${nextRole.name.lowercase().replaceFirstChar { it.uppercase() }}", maxLines = 1, softWrap = false) }
                                 IconButton(
                                     onClick = { scope.launch { manager.removeMember(detail.id, member.userId) } },
                                 ) { Icon(Icons.Rounded.Close, "Remove member", tint = MaterialTheme.colorScheme.error) }

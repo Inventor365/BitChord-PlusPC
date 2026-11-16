@@ -154,6 +154,8 @@ dependencies {
 
 tasks.withType<Test> {
     systemProperty("java.awt.headless", "true")
+    // `-Dbitchord.renderScreenshots=<dir>` makes CollabScreenshotRenderer write its PNGs there.
+    System.getProperty("bitchord.renderScreenshots")?.let { systemProperty("bitchord.renderScreenshots", it) }
 }
 
 kotlin {

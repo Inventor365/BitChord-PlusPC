@@ -47,6 +47,28 @@
   </tr>
 </table>
 
+<br/>
+
+<table>
+  <tr>
+    <td width="33%" align="center">
+      <img src="docs/screenshots/collab-playlist.png" alt="A collaborative playlist with contributor avatars on every track" width="100%" />
+      <br/>
+      <sub><b>Collaborative playlists</b> — who added what, per-person filters, reorder and remove</sub>
+    </td>
+    <td width="33%" align="center">
+      <img src="docs/screenshots/collab-members.png" alt="Members of a collaborative playlist" width="100%" />
+      <br/>
+      <sub><b>Invite & members</b> — share one link, see everyone who joined</sub>
+    </td>
+    <td width="33%" align="center">
+      <img src="docs/screenshots/collab-edit.png" alt="Editing a collaborative playlist's title, description and cover" width="100%" />
+      <br/>
+      <sub><b>Make it yours</b> — title, description and a cover of your own</sub>
+    </td>
+  </tr>
+</table>
+
 </div>
 
 ---
