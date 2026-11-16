@@ -1,6 +1,7 @@
 import { extractCreatedPlaylistIdFromData, fetchLibraryPlaylists } from '@/data/music/api';
 import { getInnertube, getSignedInnertube } from '@/playback/youtube/innertube';
 import { useCollabAuth } from './auth';
+import { ytmCollaboratorsPanelParams, ytmInviteBrowseParams } from './inviteLink';
 import {
   DEFAULT_COLLAB_PERMISSIONS,
   deriveMemberAvatars,
@@ -148,6 +149,161 @@ function sleepMs(ms: number): Promise<void> {
   });
 }
 
+type SignedInnertube = Awaited<ReturnType<typeof getSignedInnertube>>;
+
+/** The HTTP status a failed Innertube call was answered with, when the error says. */
+export function ytmErrorStatus(err: unknown): number | null {
+  if (!err || typeof err !== 'object') return null;
+  const direct = (err as RawObj).status ?? ((err as RawObj).info as RawObj | undefined)?.status ?? ((err as RawObj).response as RawObj | undefined)?.status;
+  if (typeof direct === 'number') return direct;
+  const text = err instanceof Error ? err.message : '';
+  const match = /\b(?:status(?: code)?|HTTP)\s*:?\s*(\d{3})\b/i.exec(text) ?? /"code"\s*:\s*(\d{3})/.exec(text);
+  return match ? Number(match[1]) : null;
+}
+
+const MEMBER_ONLY_EDIT_ACTIONS = ['ACTION_REMOVE_VIDEO', 'ACTION_MOVE_VIDEO', 'ACTION_SET_PLAYLIST', 'ACTION_SET_CLOSED_TO_CONTRIBUTIONS', 'ACTION_LEAVE'];
+
+function endpointJoins(endpoint: RawObj): boolean {
+  const actions = Array.isArray(endpoint.actions) ? (endpoint.actions as RawObj[]) : [];
+  return actions.some((a) => String(a?.action ?? '').includes('JOIN') || typeof a?.joinCollaborationToken === 'string');
+}
+
+/** Playlist ids the account can add to, from a `get_add_to_playlist` answer. A join offer is not write access. */
+export function parseAddToPlaylistIds(data: unknown): Set<string> {
+  const ids = new Set<string>();
+  for (const opt of collectByKey(data, 'playlistAddToOptionRenderer')) {
+    const id = findStringDeep(opt, 'playlistId');
+    if (id) ids.add(id.replace(/^VL/, ''));
+  }
+  for (const ep of collectByKey(data, 'playlistEditEndpoint')) {
+    if (!endpointJoins(ep) && typeof ep.playlistId === 'string') ids.add(ep.playlistId.replace(/^VL/, ''));
+  }
+  return ids;
+}
+
+/** Whether a playlist page hands the account commands that change the playlist — proof it may write to it. */
+export function hasPlaylistEditAffordance(data: unknown, rawId: string): boolean {
+  return collectByKey(data, 'playlistEditEndpoint').some((ep) => {
+    if (typeof ep.playlistId !== 'string' || ep.playlistId.replace(/^VL/, '') !== rawId) return false;
+    const actions = Array.isArray(ep.actions) ? (ep.actions as RawObj[]) : [];
+    return actions.some((a) => MEMBER_ONLY_EDIT_ACTIONS.some((prefix) => String(a?.action ?? '').startsWith(prefix)));
+  });
+}
+
+/** The join commands a playlist page's invite dialog carries (a `playlistEditEndpoint` whose actions join). */
+export function parseCollabJoinEndpoints(data: unknown, rawId: string): RawObj[] {
+  return collectByKey(data, 'playlistEditEndpoint')
+    .filter((ep) => endpointJoins(ep) && (typeof ep.playlistId !== 'string' || ep.playlistId.replace(/^VL/, '') === rawId))
+    .map((ep) => ({ ...ep, playlistId: rawId }));
+}
+
+/**
+ * Whether the signed-in account can write to the playlist: it owns it, YouTube Music hands it
+ * edit commands for it, or lists it in the "Save to playlist" dialog (asked the way the web
+ * client asks, with the track being saved).
+ */
+async function ytmCanEditPlaylist(yt: SignedInnertube, rawId: string): Promise<boolean> {
+  const page = await yt.actions.execute('/browse', { browseId: `VL${rawId}`, client: 'YTMUSIC' }).catch(() => null);
+  if (page?.data) {
+    if (collectByKey(page.data, 'musicEditablePlaylistDetailHeaderRenderer').length > 0) return true;
+    if (hasPlaylistEditAffordance(page.data, rawId)) return true;
+  }
+  const probe = (page?.data && findStringDeep(collectByKey(page.data, 'playlistItemData')[0], 'videoId')) || 'dQw4w9WgXcQ';
+  const byTrack = await yt.actions
+    .execute('/playlist/get_add_to_playlist', { videoIds: [probe], excludeWatchLater: true, client: 'YTMUSIC' })
+    .catch(() => null);
+  let ids = parseAddToPlaylistIds(byTrack?.data);
+  if (ids.size === 0) {
+    const byList = await yt.actions
+      .execute('/playlist/get_add_to_playlist', { playlistId: 'LM', excludeWatchLater: true, client: 'YTMUSIC' })
+      .catch(() => null);
+    ids = parseAddToPlaylistIds(byList?.data);
+  }
+  return ids.has(rawId);
+}
+
+/** Collaborator rows of a `get_panel` (`PAplaylist_collaborate`) answer. */
+export function parseCollaboratorsPanel(data: unknown): { name: string; avatarUrl: string | null; channelId: string | null }[] {
+  const out: { name: string; avatarUrl: string | null; channelId: string | null }[] = [];
+  for (const vm of collectByKey(data, 'playlistCollaborationViewModel')) {
+    const rows = Array.isArray(vm.playlistCollaborators) ? (vm.playlistCollaborators as RawObj[]) : [];
+    for (const item of rows) {
+      const row = (item?.contentListItemViewModel as RawObj | undefined) ?? item;
+      const name = findStringDeep(row?.title, 'content') ?? runsText(row?.title);
+      if (!name) continue;
+      const sources = ((((row?.avatar as RawObj | undefined)?.avatarViewModel as RawObj | undefined)?.image as RawObj | undefined)?.sources ?? []) as RawObj[];
+      const last = sources[sources.length - 1];
+      out.push({
+        name: name.trim(),
+        avatarUrl: typeof last?.url === 'string' ? last.url : null,
+        channelId: findStringDeep(row?.rendererContext, 'browseId'),
+      });
+    }
+  }
+  return out;
+}
+
+export interface YtmAddResult {
+  acceptedIds: string[];
+  rejectedIds: string[];
+}
+
+/**
+ * Adds tracks and accounts for every one. A playlist created a moment ago answers 409 (or 5xx)
+ * until it settles, so that is waited out; any other refusal is narrowed by halving the batch,
+ * so one track YouTube Music will not take costs that track and not the fifty sent with it.
+ */
+export async function ytmAddVideosReliably(
+  yt: SignedInnertube,
+  rawId: string,
+  videoIds: string[],
+  options: { settleDelayMs?: number; settleWaits?: number } = {},
+): Promise<YtmAddResult> {
+  const settleDelayMs = options.settleDelayMs ?? 2500;
+  const settleWaits = options.settleWaits ?? 10;
+  const acceptedIds: string[] = [];
+  const rejectedIds: string[] = [];
+  const send = async (batch: string[]) => {
+    const resp = await yt.actions.execute('/browse/edit_playlist', {
+      playlistId: rawId,
+      actions: batch.map((vid) => ({ action: 'ACTION_ADD_VIDEO', addedVideoId: vid, dedupeOption: 'DEDUPE_OPTION_SKIP' })),
+      client: 'YTMUSIC',
+    });
+    const status = typeof (resp.data as RawObj | undefined)?.status === 'string' ? ((resp.data as RawObj).status as string) : null;
+    if (status && !status.includes('SUCCEEDED')) throw new Error(`YouTube Music refused the edit (${status})`);
+  };
+  const addBatch = async (batch: string[], waitForSettling: boolean): Promise<void> => {
+    if (batch.length === 0) return;
+    let lastErr: unknown = null;
+    for (let wait = 0; wait <= (waitForSettling ? settleWaits : 0); wait++) {
+      try {
+        await send(batch);
+        acceptedIds.push(...batch);
+        return;
+      } catch (err) {
+        lastErr = err;
+        const status = ytmErrorStatus(err);
+        const settling = status === 409 || (status !== null && status >= 500);
+        if (!settling) break;
+        if (wait < settleWaits) await sleepMs(settleDelayMs);
+      }
+    }
+    // Signed out: no smaller batch will fare better.
+    if (ytmErrorStatus(lastErr) === 401) throw lastErr;
+    if (batch.length === 1) {
+      rejectedIds.push(batch[0] as string);
+      return;
+    }
+    const middle = Math.floor(batch.length / 2);
+    await addBatch(batch.slice(0, middle), false);
+    await addBatch(batch.slice(middle), false);
+  };
+  for (let i = 0; i < videoIds.length; i += 50) {
+    await addBatch(videoIds.slice(i, i + 50), true);
+  }
+  return { acceptedIds, rejectedIds };
+}
+
 async function enableYtmCollabOnId(rawId: string, ensureUnlisted = true): Promise<string> {
   const yt = await getSignedInnertube();
   if (ensureUnlisted) {
@@ -241,6 +397,53 @@ export async function ytmFetchPlaylistDetail(
       role: 'EDITOR',
       displayName: me.displayName,
       avatarUrl: me.avatarUrl,
+      joinedAtMs: 0,
+    });
+  }
+
+  // The roster behind the header's avatar stack. The panel takes params the header carries,
+  // which are nothing more than the playlist id wrapped up — so they can be built when absent.
+  if (facepile && options?.signedIn !== false) {
+    const showPanel = collectByKey(facepile, 'showEngagementPanelEndpoint')[0];
+    const headerParams = findStringDeep(showPanel?.globalConfiguration, 'params');
+    const panelResp = await yt.actions
+      .execute('/get_panel', {
+        panelId: 'PAplaylist_collaborate',
+        params: headerParams ?? ytmCollaboratorsPanelParams(rawId),
+        client: 'YTMUSIC',
+      })
+      .catch(() => null);
+    parseCollaboratorsPanel(panelResp?.data).forEach((row, idx) => {
+      const isMe = Boolean(me && row.name.toLowerCase() === me.displayName.toLowerCase());
+      const known = members.find((m) => m.displayName.toLowerCase() === row.name.toLowerCase() || (isMe && m.userId === me?.id));
+      if (known) {
+        if (!known.avatarUrl && row.avatarUrl) known.avatarUrl = row.avatarUrl;
+        return;
+      }
+      if (idx === 0 && !owned && members[0]) {
+        // First row is the owner; the header only gave a label for them.
+        members[0].displayName = row.name;
+        members[0].avatarUrl = row.avatarUrl ?? members[0].avatarUrl;
+        return;
+      }
+      members.push({
+        playlistId: cplId,
+        userId: isMe && me ? me.id : (row.channelId ?? `ytm:${row.name.toLowerCase()}`),
+        role: 'EDITOR',
+        displayName: row.name,
+        avatarUrl: row.avatarUrl,
+        joinedAtMs: 0,
+      });
+    });
+  }
+  // Collaborators the header counts but the panel did not name still count as members.
+  for (let i = members.length; i < facepileAvatars.length; i++) {
+    members.push({
+      playlistId: cplId,
+      userId: `ytm:facepile:${rawId}_${i}`,
+      role: 'EDITOR',
+      displayName: `Collaborator ${i}`,
+      avatarUrl: facepileAvatars[i] ?? null,
       joinedAtMs: 0,
     });
   }
@@ -413,9 +616,13 @@ export async function ytmCreateCollabPlaylist(params: {
   const me = useCollabAuth.getState().user;
   const cleanTitle = params.title.trim().replace(/</g, '‹').replace(/>/g, '›') || 'Collaborative Playlist';
   const cleanDesc = (params.description ?? '').replace(/<[^>]+>/g, '').replace(/</g, '‹').replace(/>/g, '›').trim();
-  const videoIds = (params.tracks ?? [])
-    .map((t) => (t.trackId || t.videoId || '').trim())
-    .filter((v) => /^[A-Za-z0-9_-]{11}$/.test(v));
+  const videoIds = Array.from(
+    new Set(
+      (params.tracks ?? [])
+        .map((t) => (t.trackId || t.videoId || '').trim())
+        .filter((v) => /^[A-Za-z0-9_-]{11}$/.test(v)),
+    ),
+  );
   const createPayload: Record<string, unknown> = {
     title: cleanTitle,
     privacyStatus: 'UNLISTED',
@@ -441,14 +648,9 @@ export async function ytmCreateCollabPlaylist(params: {
     }
     throw new Error('YouTube Music did not return a playlist ID. Check that your Google account has an active YouTube Music profile.');
   }
-  for (let i = 50; i < videoIds.length; i += 100) {
-    const chunk = videoIds.slice(i, i + 100);
-    await yt.actions.execute('/browse/edit_playlist', {
-      playlistId: rawId,
-      actions: chunk.map((vid) => ({ action: 'ACTION_ADD_VIDEO', addedVideoId: vid, dedupeOption: 'DEDUPE_OPTION_SKIP' })),
-      client: 'YTMUSIC',
-    }).catch(() => {});
-  }
+  // The rest follow once the playlist exists — confirmed batch by batch, never dropped quietly.
+  const migration = await ytmAddVideosReliably(yt, rawId, videoIds.slice(50));
+  const rejected = new Set(migration.rejectedIds);
   const inviteUrl = await enableYtmCollabOnId(rawId, createdAsPrivate);
 
   const state = readYtmState();
@@ -458,12 +660,25 @@ export async function ytmCreateCollabPlaylist(params: {
   if (me) {
     const now = Date.now();
     for (const vid of videoIds) {
+      if (rejected.has(vid)) continue;
       state.stamps[`${rawId}:${vid}`] = { userId: me.id, displayName: me.displayName, avatarUrl: me.avatarUrl, addedAtMs: now };
     }
   }
-  recordActivity(state, rawId, 'playlist.create', `${me?.displayName ?? 'You'} created collaborative playlist "${cleanTitle}"`);
+  const carried = videoIds.length - rejected.size;
+  recordActivity(
+    state,
+    rawId,
+    'playlist.create',
+    rejected.size > 0
+      ? `${me?.displayName ?? 'You'} created collaborative playlist "${cleanTitle}" (${carried} of ${videoIds.length} songs — YouTube Music would not take the rest)`
+      : `${me?.displayName ?? 'You'} created collaborative playlist "${cleanTitle}"`,
+  );
   writeYtmState(state);
-  return ytmFetchPlaylistDetail(rawId, { fallbackTitle: cleanTitle, fallbackDescription: cleanDesc, fallbackTracks: params.tracks });
+  return ytmFetchPlaylistDetail(rawId, {
+    fallbackTitle: cleanTitle,
+    fallbackDescription: cleanDesc,
+    fallbackTracks: (params.tracks ?? []).filter((t) => !rejected.has((t.trackId || t.videoId || '').trim())),
+  });
 }
 
 export async function ytmConvertToCollabPlaylist(
@@ -474,7 +689,21 @@ export async function ytmConvertToCollabPlaylist(
   const existing = state.convertedSources[key];
   if (existing && !state.stoppedIds.includes(existing)) {
     try {
-      const detail = await ytmFetchPlaylistDetail(existing);
+      let detail = await ytmFetchPlaylistDetail(existing);
+      // An earlier conversion may have stopped short, or the source may have grown since.
+      const present = new Set(detail.tracks.map((t) => t.trackId));
+      const missing = Array.from(
+        new Set(
+          input.tracks
+            .map((t) => (t.trackId || t.videoId || '').trim())
+            .filter((v) => /^[A-Za-z0-9_-]{11}$/.test(v) && !present.has(v)),
+        ),
+      );
+      if (missing.length > 0) {
+        const yt = await getSignedInnertube();
+        const topUp = await ytmAddVideosReliably(yt, existing, missing);
+        if (topUp.acceptedIds.length > 0) detail = await ytmFetchPlaylistDetail(existing);
+      }
       return { playlist: detail, alreadyConverted: true };
     } catch {
       // Recreate if deleted remotely
@@ -500,11 +729,12 @@ export async function ytmAddCollabTracks(
   const yt = await getSignedInnertube();
   const me = useCollabAuth.getState().user;
   const videoIds = tracks.map((t) => t.trackId || t.videoId || '').filter(Boolean);
-  await yt.actions.execute('/browse/edit_playlist', {
-    playlistId: rawId,
-    actions: videoIds.map((vid) => ({ action: 'ACTION_ADD_VIDEO', addedVideoId: vid, dedupeOption: 'DEDUPE_OPTION_SKIP' })),
-    client: 'YTMUSIC',
-  });
+  // A collaborator's first add can be refused for a few seconds after joining while the
+  // membership propagates, which the settle wait covers.
+  const outcome = await ytmAddVideosReliably(yt, rawId, videoIds, { settleWaits: 3 });
+  if (outcome.acceptedIds.length === 0 && videoIds.length > 0) {
+    throw new Error("YouTube Music didn't add the song. Check that you still have access to this playlist and try again.");
+  }
   const state = readYtmState();
   if (me) {
     const now = Date.now();
@@ -609,45 +839,90 @@ export async function ytmPreviewInvite(rawId: string): Promise<CollabInvitePrevi
   };
 }
 
-export async function ytmAcceptInvite(rawId: string, jct: string): Promise<{ playlist: CollabPlaylistDetail; alreadyMember: boolean }> {
+/** What a refused join should say on screen — never the response body. */
+export function ytmJoinFailureMessage(err: unknown): string {
+  const status = ytmErrorStatus(err);
+  if (status === 404) return "This playlist can't be found on YouTube Music. It may have been deleted or made private.";
+  if (status === null || status === 400 || status === 401 || status === 403) {
+    return (
+      "YouTube Music didn't accept this invite for the signed-in account. The link may have been replaced by a newer one, " +
+      'or sharing was turned off — ask the owner to create a fresh invite link and send it again. If it keeps happening, ' +
+      "check that you're signed in with the Google account you want to join with and that it has a YouTube channel."
+    );
+  }
+  return `YouTube Music couldn't complete the join right now (HTTP ${status}). Try again in a moment.`;
+}
+
+/**
+ * Joins a YouTube Music collaborative playlist via its `jct`.
+ *
+ * `ACTION_JOIN_COLLABORATION` is answered 401 "You are not authorized to edit this playlist"
+ * both when the account is already a collaborator and while a freshly minted token has not
+ * propagated (up to ~20s). So a refusal is never taken at its word: write access is checked
+ * after it, the join is retried across that window, and on alternate rounds it is made the way
+ * music.youtube.com makes it — through the join command on the invite page itself.
+ */
+export async function ytmAcceptInvite(
+  rawId: string,
+  jct: string,
+  options: { retryDelayMs?: number; attempts?: number } = {},
+): Promise<{ playlist: CollabPlaylistDetail; alreadyMember: boolean }> {
   const yt = await getSignedInnertube();
   const state = readYtmState();
   const wasAlreadyTracked = state.trackedIds.includes(rawId);
+  const retryDelayMs = options.retryDelayMs ?? 2500;
+  const attempts = options.attempts ?? 7;
+  const succeeded = (data: unknown) => {
+    const status = typeof (data as RawObj | undefined)?.status === 'string' ? ((data as RawObj).status as string) : null;
+    return !status || status.includes('SUCCEEDED');
+  };
   let joined = false;
+  let alreadyCollaborator = false;
   let lastErr: unknown = null;
-  for (let attempt = 0; attempt < 8; attempt++) {
-    if (attempt > 0) {
-      await sleepMs(2000);
-    }
+  for (let attempt = 0; attempt < attempts && !joined; attempt++) {
+    if (attempt > 0) await sleepMs(retryDelayMs);
     try {
       const resp = await yt.actions.execute('/browse/edit_playlist', {
         playlistId: rawId,
         actions: [{ action: 'ACTION_JOIN_COLLABORATION', joinCollaborationToken: jct }],
         client: 'YTMUSIC',
       });
-      const status = findStringDeep(resp.data, 'status');
-      if (!status || status.includes('SUCCEEDED')) {
+      if (succeeded(resp.data)) {
         joined = true;
         break;
       }
-      lastErr = new Error(`YouTube Music refused collaboration join (${status})`);
+      lastErr = new Error('YouTube Music refused the collaboration join');
     } catch (err) {
       lastErr = err;
-      const addOpts = await yt.actions.execute('/playlist/get_add_to_playlist', { playlistId: 'LM', client: 'YTMUSIC' }).catch(() => ({ data: {} }));
-      const addJson = JSON.stringify(addOpts.data ?? {});
-      if (addJson.includes(`"${rawId}"`)) {
-        joined = true;
-        break;
-      }
     }
+    if (await ytmCanEditPlaylist(yt, rawId)) {
+      joined = true;
+      alreadyCollaborator = attempt === 0;
+      break;
+    }
+    if (attempt % 2 === 0) {
+      const page = await yt.actions
+        .execute('/browse', { browseId: `VL${rawId}`, params: ytmInviteBrowseParams(jct), client: 'YTMUSIC' })
+        .catch(() => null);
+      for (const endpoint of parseCollabJoinEndpoints(page?.data, rawId)) {
+        const served = await yt.actions.execute('/browse/edit_playlist', { ...endpoint, client: 'YTMUSIC' }).catch(() => null);
+        if (served && succeeded(served.data)) {
+          joined = true;
+          break;
+        }
+      }
+      if (!joined && (await ytmCanEditPlaylist(yt, rawId))) joined = true;
+    }
+    const status = ytmErrorStatus(lastErr);
+    if (status !== null && ![400, 401, 403, 404, 409, 429, 500, 502, 503].includes(status)) break;
   }
   if (!joined) {
-    throw lastErr instanceof Error ? lastErr : new Error('YouTube Music refused the collaboration invite. Ask the owner for a fresh invite link.');
+    throw new Error(ytmJoinFailureMessage(lastErr));
   }
   await yt.actions.execute('/like/like', { target: { playlistId: rawId }, client: 'YTMUSIC' }).catch(() => {});
   if (!state.trackedIds.includes(rawId)) state.trackedIds.push(rawId);
   state.inviteLinks[rawId] = `https://music.youtube.com/playlist?list=${rawId}&jct=${jct}`;
   writeYtmState(state);
   const playlist = await ytmFetchPlaylistDetail(rawId);
-  return { playlist, alreadyMember: wasAlreadyTracked };
+  return { playlist, alreadyMember: wasAlreadyTracked || alreadyCollaborator };
 }

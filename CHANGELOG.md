@@ -4,6 +4,42 @@ All notable changes to **BitChord PlusPC** (`https://github.com/Inventor365/BitC
 
 ---
 
+## [1.10.5] — 2026-11-16 (`versionCode = 46`) — test build, not yet released
+
+### Fixed
+- **Creating a collaborative playlist no longer waits 15–25 seconds**: the playlist opens as soon as YouTube Music has created it. Its invite link, which YouTube Music only mints once the new playlist has settled, is fetched in the background instead of in front of the Create button.
+- **Invite links are reused**: once a playlist's link is known, *Copy Invite Link* hands it out instantly instead of asking YouTube Music to mint it again (5–10 seconds each time). The button shows progress while a link is still being prepared.
+- **Song titles were unreadable in the "Add Songs" search panel** on the dark theme (only the artist and artwork showed): the title now has an explicit colour.
+- **Adding a song gives feedback and shows up immediately**: the `+` turns into a spinner and then a check with haptics, the row says "In this playlist", a notice confirms the add, and the song appears in the list at once. It stays there while YouTube Music's page catches up — it used to disappear until the playlist was closed and reopened. A refused add is taken back off and explained.
+
+---
+
+## [1.10.4] — 2026-11-16 (`versionCode = 45`) — test build, not yet released
+
+Verified against the simulated YouTube Music environment and the unit suites only. The join,
+roster and conversion changes still need a two-device check on real accounts before release.
+
+### Fixed
+- **Joining a collaborative playlist no longer fails with a raw `HTTP 401` dialog** (Android, Desktop, Web):
+  - YouTube Music answers `ACTION_JOIN_COLLABORATION` with `401 "You are not authorized to edit this playlist."` both when the account is *already* a collaborator and while a newly created invite link has not propagated yet. BitChord took the first 401 as final. It now checks write access after a refusal and retries across the propagation window.
+  - Write access is checked the way the web client's "Save to playlist" dialog asks (`playlist/get_add_to_playlist` with `videoIds`), plus the edit commands the playlist page itself hands a member.
+  - Fallback join through the invite page: the playlist page is requested with the invite's `jct` folded into its `browse` params — the encoding music.youtube.com's own server uses — and the join command on that page is run as served.
+  - A join that is really refused is explained in a sentence; response bodies are never shown.
+- **Invite / Members / Sharing & Rules chips no longer wrap** into a four-line column on phones: the refresh button moved to the dialog's title row and the chip rows scroll sideways. The Editor/Viewer chooser is hidden for YouTube Music playlists, which have one collaborator role.
+- **Member count follows the roster**: the `PAplaylist_collaborate` panel is requested with params built from the playlist id when the header carries none, on `WEB_REMIX` and then `WEB`.
+- **"Make Collaborative" carries every song across**:
+  - The source playlist is read again in full, every page — the screen starting the conversion only has the first ~100 songs loaded.
+  - Songs after the first 50 could be dropped without a word while the new playlist was still settling (YouTube Music refuses edits with `409` for up to ~20 seconds). Each batch is now confirmed, the settling is waited out, and a single song YouTube Music will not accept costs only that song.
+  - Converting a playlist that was already converted adds whatever the collaborative copy is missing instead of returning it short.
+  - A collaborative playlist's page reads every page of its tracks, so long playlists are no longer listed short.
+  - Songs that could not be copied are named in a notice rather than lost silently.
+- **Playback controls missing on some phones**: the notification permission was only requested at the first download, so on Android 13+ a listener who never downloaded anything never granted it — and on several vendor skins the lock-screen player and status-bar "island" are built from the media notification. It is now requested the first time something plays, and the media notification is posted under the playback-transport category.
+
+### Added
+- **Edit a collaborative playlist's title, description and cover** (owner): tap the cover or the title, or use *Sharing & Rules → Edit title, description & cover*. Until a cover is set, a YouTube Music playlist shows the collage YouTube makes of its first four songs. Android uses the existing cover picker; Desktop opens a file dialog (JPEG/PNG, other formats are converted).
+
+---
+
 ## [1.10.1] — 2026-11-16 (`versionCode = 42`)
 
 ### Fixed

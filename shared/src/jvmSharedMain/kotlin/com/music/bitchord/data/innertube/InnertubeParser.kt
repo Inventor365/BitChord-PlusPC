@@ -1939,8 +1939,14 @@ object InnertubeParser {
         val channelId: String? = null,
     )
 
-    /** Parses `(channelId, displayName, avatarUrl)` entries from `get_panel` (`PAplaylist_collaborate`) or `browse`. */
-    fun parseCollaboratorsPanel(root: JsonElement): List<Triple<String, String, String?>> {
+    /**
+     * Parses `(channelId, displayName, avatarUrl)` entries from `get_panel` (`PAplaylist_collaborate`).
+     *
+     * [strict] reads only a `playlistCollaborationViewModel`, and is what a whole playlist page
+     * must be read with: outside a panel response a bare `contentListItemViewModel` is any list
+     * row at all, not necessarily a collaborator.
+     */
+    fun parseCollaboratorsPanel(root: JsonElement, strict: Boolean = false): List<Triple<String, String, String?>> {
         val out = ArrayList<Triple<String, String, String?>>()
         fun extractRow(row: JsonObject?, explicitCid: String = "") {
             if (row == null) return
@@ -1970,13 +1976,109 @@ object InnertubeParser {
                 extractRow(item as? JsonObject)
             }
         }
-        if (out.isEmpty()) {
+        if (out.isEmpty() && !strict) {
             collectRenderers(root, "contentListItemViewModel").forEach { row ->
                 extractRow(row)
             }
         }
         return out.distinctBy { "${it.first}:${it.second.lowercase()}" }
     }
+
+    /**
+     * The `get_panel` params a page offers for its `PAplaylist_collaborate` panel, wherever the
+     * `showEngagementPanelEndpoint` that opens it sits — `WEB` and `WEB_REMIX` hang it off
+     * different buttons.
+     */
+    fun parseCollaboratorsPanelParams(root: JsonElement): String? =
+        collectRenderers(root, "showEngagementPanelEndpoint").firstNotNullOfOrNull { show ->
+            val tag = show.o("identifier").s("tag") ?: show.s("panelIdentifier")
+            if (tag != "PAplaylist_collaborate") return@firstNotNullOfOrNull null
+            (show.o("globalConfiguration").s("params") ?: show.s("params"))?.takeIf { it.isNotBlank() }
+        }
+
+    /**
+     * Whether a playlist page hands the signed-in account commands that *change* [rawPlaylistId]
+     * — removing or moving a row, renaming, leaving. YouTube Music only serves those to the
+     * owner and to accepted collaborators, so their presence is proof of write access. A join
+     * or invite command is deliberately not counted: that is what a non-member is offered.
+     */
+    fun hasPlaylistEditAffordance(root: JsonElement, rawPlaylistId: String): Boolean {
+        val rawId = rawPlaylistId.removePrefix("VL")
+        return collectRenderers(root, "playlistEditEndpoint").any { endpoint ->
+            endpoint.s("playlistId")?.removePrefix("VL") == rawId &&
+                endpoint.a("actions").orEmpty().any { action ->
+                    val name = action.s("action").orEmpty()
+                    MEMBER_ONLY_EDIT_ACTIONS.any { name.startsWith(it) }
+                }
+        }
+    }
+
+    private val MEMBER_ONLY_EDIT_ACTIONS = listOf(
+        "ACTION_REMOVE_VIDEO",
+        "ACTION_MOVE_VIDEO",
+        "ACTION_SET_PLAYLIST",
+        "ACTION_SET_CLOSED_TO_CONTRIBUTIONS",
+        "ACTION_LEAVE",
+    )
+
+    /** An Innertube command lifted out of a response: where to POST it and with what. */
+    data class InnertubeCommand(val endpoint: String, val body: JsonObject)
+
+    /**
+     * The commands on a playlist page that accept a collaboration invite — what the page's
+     * invite dialog (`collaborativePlaylistInviteMessageViewModel`) wires to its join button
+     * when the page was requested with an invite's `jct`.
+     *
+     * Two shapes are recognised: a `playlistEditEndpoint` whose actions join, and — only when
+     * the invite dialog is actually present — any other POST command whose payload names a
+     * collaboration join. Anything that declines, dismisses or leaves is never returned.
+     */
+    fun parseCollaborationJoinCommands(root: JsonElement, rawPlaylistId: String): List<InnertubeCommand> {
+        val rawId = rawPlaylistId.removePrefix("VL")
+        val out = LinkedHashSet<InnertubeCommand>()
+
+        collectRenderers(root, "playlistEditEndpoint").forEach { endpoint ->
+            val target = endpoint.s("playlistId")?.removePrefix("VL")
+            if (target != null && target != rawId) return@forEach
+            val joins = endpoint.a("actions").orEmpty().any { action ->
+                action.s("action").orEmpty().contains("JOIN") || action.s("joinCollaborationToken") != null
+            }
+            if (!joins) return@forEach
+            val body = if (target == null) JsonObject(endpoint + ("playlistId" to JsonPrimitive(rawId))) else endpoint
+            out.add(InnertubeCommand("browse/edit_playlist", body))
+        }
+
+        if (root.hasKey("collaborativePlaylistInviteMessageViewModel")) {
+            fun walk(node: JsonElement) {
+                when (node) {
+                    is JsonObject -> {
+                        val web = node.o("commandMetadata").o("webCommandMetadata")
+                        val apiUrl = web.s("apiUrl")
+                        if (apiUrl != null && apiUrl.startsWith(API_URL_PREFIX) && web.s("sendPost") != "false") {
+                            val payload = node.entries.firstOrNull { (key, value) ->
+                                key !in COMMAND_ENVELOPE_KEYS && value is JsonObject
+                            }
+                            val name = payload?.key.orEmpty().lowercase()
+                            val isJoin = "join" in name && ("collab" in name || "playlist" in name)
+                            val isRefusal = REFUSAL_WORDS.any { it in name }
+                            if (payload != null && isJoin && !isRefusal) {
+                                out.add(InnertubeCommand(apiUrl.removePrefix(API_URL_PREFIX), payload.value as JsonObject))
+                            }
+                        }
+                        node.values.forEach(::walk)
+                    }
+                    is JsonArray -> node.forEach(::walk)
+                    else -> Unit
+                }
+            }
+            walk(root)
+        }
+        return out.toList()
+    }
+
+    private const val API_URL_PREFIX = "/youtubei/v1/"
+    private val COMMAND_ENVELOPE_KEYS = setOf("commandMetadata", "clickTrackingParams", "loggingDirectives")
+    private val REFUSAL_WORDS = listOf("decline", "reject", "dismiss", "leave", "cancel")
 
     /**
      * Extracts per-track contributor `(name, avatarUrl, channelId)` from `musicResponsiveListItemRenderer`
@@ -2049,8 +2151,11 @@ object InnertubeParser {
             opt.s("playlistId")?.removePrefix("VL")?.takeIf { it.isNotBlank() }?.let(ids::add)
             opt.findString("playlistId")?.removePrefix("VL")?.takeIf { it.isNotBlank() }?.let(ids::add)
         }
+        // The redesigned dialog lists its targets as cards whose tap is the edit itself, so the
+        // id is only on the endpoint. A join endpoint is the opposite of write access.
         collectRenderers(root, "playlistEditEndpoint").forEach { ep ->
-            ep.s("playlistId")?.removePrefix("VL")?.takeIf { it.isNotBlank() }?.let(ids::add)
+            val joins = ep.a("actions").orEmpty().any { it.s("action").orEmpty().contains("JOIN") }
+            if (!joins) ep.s("playlistId")?.removePrefix("VL")?.takeIf { it.isNotBlank() }?.let(ids::add)
         }
         return ids
     }

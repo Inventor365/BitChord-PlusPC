@@ -1,6 +1,7 @@
 package com.music.bitchord.ui.collab
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,6 +38,8 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Link
@@ -70,6 +73,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -79,8 +83,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -103,6 +109,7 @@ import com.music.bitchord.data.collab.CollabPlaylistSummary
 import com.music.bitchord.data.collab.CollabRole
 import com.music.bitchord.data.collab.CollabTrackEntry
 import com.music.bitchord.data.collab.CollabUser
+import com.music.bitchord.data.collab.toCollabUserMessage
 import com.music.bitchord.data.YtMusicRepository
 import com.music.bitchord.data.model.SearchFilter
 import com.music.bitchord.data.model.SearchResult
@@ -426,6 +433,12 @@ fun CollabPlaylistDetailScreen(
     onPlaySongs: (songs: List<Song>, startIndex: Int, shuffle: Boolean, playlistTitle: String) -> Unit,
     onOpenAuthDialog: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(bottom = 110.dp),
+    /**
+     * Lets the owner pick a new cover image. The host shows its own picker and uploads the
+     * result (see [CollabManager.setPlaylistCover]); null hides the control on hosts with no
+     * picker to offer.
+     */
+    onEditCover: ((CollabPlaylistDetail) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val session by manager.session.collectAsState()
@@ -441,6 +454,10 @@ fun CollabPlaylistDetailScreen(
     var showAddSearch by remember(playlistId) { mutableStateOf(false) }
     var showManageDialog by remember(playlistId) { mutableStateOf(false) }
     var manageInitialTab by remember(playlistId) { mutableIntStateOf(0) }
+    var showEditDetails by remember(playlistId) { mutableStateOf(false) }
+    val addStates = remember(playlistId) { mutableStateMapOf<String, AddState>() }
+    var addError by remember(playlistId) { mutableStateOf<String?>(null) }
+    val haptics = LocalHapticFeedback.current
 
     var searchQuery by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<Song>>(emptyList()) }
@@ -467,7 +484,7 @@ fun CollabPlaylistDetailScreen(
                 loading = false
             },
             onFailure = {
-                errorMessage = it.message
+                errorMessage = it.toCollabUserMessage()
                 loading = false
             },
         )
@@ -619,6 +636,7 @@ fun CollabPlaylistDetailScreen(
             ) {
                 val coverUrl = current.artworkUrl
                     ?: current.tracks.firstOrNull { !it.thumbnailUrl.isNullOrBlank() }?.thumbnailUrl
+                val canEditDetails = current.canManageSettings(currentUserId)
                 Box(
                     modifier = Modifier
                         .size(210.dp)
@@ -630,7 +648,8 @@ fun CollabPlaylistDetailScreen(
                                     MaterialTheme.colorScheme.surfaceVariant,
                                 ),
                             ),
-                        ),
+                        )
+                        .then(if (canEditDetails) Modifier.clickable { showEditDetails = true } else Modifier),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (!coverUrl.isNullOrBlank()) {
@@ -647,6 +666,22 @@ fun CollabPlaylistDetailScreen(
                             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                             modifier = Modifier.size(64.dp),
                         )
+                    }
+                    if (canEditDetails) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.Black.copy(alpha = 0.62f),
+                            modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp).size(36.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Rounded.Edit,
+                                    contentDescription = "Edit cover, title and description",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -680,6 +715,7 @@ fun CollabPlaylistDetailScreen(
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onBackground,
+                    modifier = if (canEditDetails) Modifier.clickable { showEditDetails = true } else Modifier,
                 )
 
                 if (current.description.isNotBlank()) {
@@ -805,12 +841,31 @@ fun CollabPlaylistDetailScreen(
                             }
                         }
                         searchResults.forEach { song ->
+                            val addState = addStates[song.videoId]
+                            val inPlaylist = addState == AddState.ADDED || current.tracks.any { it.trackId == song.videoId }
+                            val addThis: () -> Unit = {
+                                if (addState != AddState.ADDING && !inPlaylist) {
+                                    addStates[song.videoId] = AddState.ADDING
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    scope.launch {
+                                        manager.addSongs(current.id, listOf(song)).fold(
+                                            onSuccess = {
+                                                addStates[song.videoId] = AddState.ADDED
+                                                addError = null
+                                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            },
+                                            onFailure = {
+                                                addStates.remove(song.videoId)
+                                                addError = it.toCollabUserMessage("Couldn't add \"${song.title}\". Try again.")
+                                            },
+                                        )
+                                    }
+                                }
+                            }
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable {
-                                        scope.launch { manager.addSongs(current.id, listOf(song)) }
-                                    }
+                                    .clickable(onClick = addThis)
                                     .padding(vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
@@ -825,17 +880,38 @@ fun CollabPlaylistDetailScreen(
                                 )
                                 Spacer(Modifier.width(10.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text(song.title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
-                                    Text(song.artist, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    // Coloured explicitly: this panel is a Surface with a translucent
+                                    // fill, whose default content colour came out near-black on the
+                                    // dark theme and left the song title unreadable.
+                                    Text(
+                                        song.title,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    Text(
+                                        text = if (inPlaylist) "In this playlist · ${song.artist}" else song.artist,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (inPlaylist) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
                                 }
-                                IconButton(
-                                    onClick = {
-                                        scope.launch { manager.addSongs(current.id, listOf(song)) }
-                                    },
-                                ) {
-                                    Icon(Icons.Rounded.Add, contentDescription = "Add song", tint = MaterialTheme.colorScheme.primary)
+                                IconButton(onClick = addThis, enabled = addState != AddState.ADDING && !inPlaylist) {
+                                    Crossfade(targetState = if (inPlaylist) AddState.ADDED else addState, label = "add-song") { state ->
+                                        when (state) {
+                                            AddState.ADDING -> CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                                            AddState.ADDED -> Icon(Icons.Rounded.Check, contentDescription = "Added", tint = MaterialTheme.colorScheme.primary)
+                                            null -> Icon(Icons.Rounded.Add, contentDescription = "Add song", tint = MaterialTheme.colorScheme.onSurface)
+                                        }
+                                    }
                                 }
                             }
+                        }
+                        addError?.let {
+                            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -997,7 +1073,155 @@ fun CollabPlaylistDetailScreen(
                 showManageDialog = false
                 onBack()
             },
+            onEditDetails = {
+                showManageDialog = false
+                showEditDetails = true
+            },
         )
+    }
+    if (showEditDetails) {
+        CollabEditDetailsDialog(
+            detail = current,
+            manager = manager,
+            // Covers are a YouTube Music playlist feature; a self-hosted one has none to upload to.
+            onEditCover = onEditCover?.takeIf { current.id.startsWith("ytm:") }?.let { pick ->
+                {
+                    showEditDetails = false
+                    pick(current)
+                }
+            },
+            onDismiss = { showEditDetails = false },
+        )
+    }
+}
+
+/** Where a search result is on its way into the playlist. */
+private enum class AddState { ADDING, ADDED }
+
+/**
+ * Title, description and cover of a collaborative playlist, for its owner.
+ *
+ * A YouTube Music playlist with no cover of its own wears a collage of its first four tracks;
+ * [onEditCover] replaces that with a picture the owner chooses.
+ */
+@Composable
+fun CollabEditDetailsDialog(
+    detail: CollabPlaylistDetail,
+    manager: CollabManager,
+    onEditCover: (() -> Unit)?,
+    onDismiss: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    var title by remember(detail.id) { mutableStateOf(detail.title) }
+    var description by remember(detail.id) { mutableStateOf(detail.description) }
+    var saving by remember { mutableStateOf(false) }
+    var errorText by remember { mutableStateOf<String?>(null) }
+    val changed = title.trim() != detail.title.trim() || description.trim() != detail.description.trim()
+
+    Dialog(onDismissRequest = { if (!saving) onDismiss() }) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp,
+            modifier = Modifier.fillMaxWidth().widthIn(max = 460.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(22.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Text("Edit playlist", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    val coverUrl = detail.artworkUrl
+                        ?: detail.tracks.firstOrNull { !it.thumbnailUrl.isNullOrBlank() }?.thumbnailUrl
+                    Box(
+                        modifier = Modifier
+                            .size(84.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (!coverUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = coverUrl.artworkAt(300),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        } else {
+                            Icon(Icons.Rounded.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (onEditCover != null) {
+                            OutlinedButton(onClick = onEditCover, enabled = !saving) {
+                                Icon(Icons.Rounded.Image, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Change cover", maxLines = 1, softWrap = false)
+                            }
+                        }
+                        Text(
+                            "Without a cover of its own, the playlist shows a collage of its first four songs.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it.take(150); errorText = null },
+                    label = { Text("Title") },
+                    singleLine = true,
+                    enabled = !saving,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it.take(1_000); errorText = null },
+                    label = { Text("Description") },
+                    minLines = 2,
+                    maxLines = 5,
+                    enabled = !saving,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                errorText?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss, enabled = !saving) { Text("Cancel") }
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        enabled = !saving && changed && title.trim().isNotEmpty(),
+                        onClick = {
+                            saving = true
+                            errorText = null
+                            scope.launch {
+                                manager.updatePlaylistMetadata(
+                                    playlistId = detail.id,
+                                    title = title.trim().takeIf { it != detail.title.trim() },
+                                    description = description.trim().takeIf { it != detail.description.trim() },
+                                ).fold(
+                                    onSuccess = { onDismiss() },
+                                    onFailure = { errorText = it.toCollabUserMessage("Couldn't save the changes.") },
+                                )
+                                saving = false
+                            }
+                        },
+                    ) {
+                        if (saving) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        Text("Save")
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1232,7 +1456,7 @@ fun MakeCollaborativeDialog(
 
                 if (isConversion) {
                     Text(
-                        text = "Your original playlist stays untouched. A shared collaborative copy with all ${existingSongs.size} songs attributed to you will be created so friends can join via link and add tracks in real time.",
+                        text = "Your original playlist stays untouched. A shared collaborative copy with every song in it, attributed to you, will be created so friends can join via link and add tracks in real time. Long playlists take a little longer while the songs are copied across.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1369,7 +1593,7 @@ fun MakeCollaborativeDialog(
                                     submitting = false
                                     result.fold(
                                         onSuccess = onCreated,
-                                        onFailure = { errorText = it.message ?: "Could not create collaborative playlist." },
+                                        onFailure = { errorText = it.toCollabUserMessage("Could not create collaborative playlist.") },
                                     )
                                 }
                             },
@@ -1415,6 +1639,8 @@ fun CollabInviteAndManageDialog(
     initialTab: Int = 0,
     onDismiss: () -> Unit,
     onDeletedOrLeft: () -> Unit,
+    /** Opens the title / description / cover editor; null where there is nowhere to open it from. */
+    onEditDetails: (() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
@@ -1431,6 +1657,7 @@ fun CollabInviteAndManageDialog(
     var confirmStopSharing by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var statusError by remember { mutableStateOf<String?>(null) }
+    var creatingInvite by remember { mutableStateOf(false) }
 
     LaunchedEffect(detail.id, isOwner, tab) {
         if (isOwner && tab == 0) {
@@ -1461,47 +1688,80 @@ fun CollabInviteAndManageDialog(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
+                    // Up here rather than beside the tabs: three chips and a button do not fit
+                    // one phone-width row, and the last chip paid for it by wrapping to four lines.
+                    IconButton(onClick = { scope.launch { manager.loadPlaylistDetail(detail.id) } }) {
+                        Icon(Icons.Rounded.Refresh, contentDescription = "Refresh members")
+                    }
                     IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, "Close") }
                 }
 
                 LaunchedEffect(detail.id) {
                     while (true) {
-                        manager.loadPlaylistDetail(detail.id)
+                        // Members are in the header; there is no call to re-read every page of a
+                        // long playlist every five seconds for them.
+                        manager.loadPlaylistDetail(detail.id, allPages = false)
                         delay(5_000L)
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     if (canInvite) {
-                        FilterChip(selected = tab == 0, onClick = { tab = 0 }, label = { Text("Invite Link") })
+                        FilterChip(
+                            selected = tab == 0,
+                            onClick = { tab = 0 },
+                            label = { Text("Invite Link", maxLines = 1, softWrap = false) },
+                        )
                     }
                     FilterChip(
                         selected = tab == 1,
                         onClick = { tab = 1 },
-                        label = { Text("Members (${maxOf(detail.memberCount, detail.members.size)})") },
+                        label = {
+                            Text(
+                                "Members (${maxOf(detail.memberCount, detail.members.size)})",
+                                maxLines = 1,
+                                softWrap = false,
+                            )
+                        },
                     )
                     if (isOwner) {
-                        FilterChip(selected = tab == 2, onClick = { tab = 2 }, label = { Text("Sharing & Rules") })
-                    }
-                    Spacer(Modifier.weight(1f))
-                    IconButton(onClick = { scope.launch { manager.loadPlaylistDetail(detail.id) } }) {
-                        Icon(Icons.Rounded.Refresh, contentDescription = "Refresh members")
+                        FilterChip(
+                            selected = tab == 2,
+                            onClick = { tab = 2 },
+                            label = { Text("Sharing & Rules", maxLines = 1, softWrap = false) },
+                        )
                     }
                 }
                 val isYtmNative = manager.isNativeYouTubeMode || detail.id.startsWith("ytm:")
                 if (tab == 0 && canInvite) {
-                    Text("Role granted by invite link", style = MaterialTheme.typography.labelLarge)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = inviteRole == CollabRole.EDITOR,
-                            onClick = { inviteRole = CollabRole.EDITOR },
-                            label = { Text("Editor (can add songs)") },
+                    if (isYtmNative) {
+                        // YouTube Music has one kind of collaborator, so there is no role to pick.
+                        Text(
+                            "Anyone who joins with the link can add songs.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        FilterChip(
-                            selected = inviteRole == CollabRole.VIEWER,
-                            onClick = { inviteRole = CollabRole.VIEWER },
-                            label = { Text("Viewer (read-only)") },
-                        )
+                    } else {
+                        Text("Role granted by invite link", style = MaterialTheme.typography.labelLarge)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            FilterChip(
+                                selected = inviteRole == CollabRole.EDITOR,
+                                onClick = { inviteRole = CollabRole.EDITOR },
+                                label = { Text("Editor (can add songs)", maxLines = 1, softWrap = false) },
+                            )
+                            FilterChip(
+                                selected = inviteRole == CollabRole.VIEWER,
+                                onClick = { inviteRole = CollabRole.VIEWER },
+                                label = { Text("Viewer (read-only)", maxLines = 1, softWrap = false) },
+                            )
+                        }
                     }
 
                     if (!isYtmNative) {
@@ -1517,26 +1777,32 @@ fun CollabInviteAndManageDialog(
                         }
                     }
                     Button(
+                        enabled = !creatingInvite,
                         onClick = {
                             scope.launch {
                                 statusError = null
+                                creatingInvite = true
                                 val sec = expiryHours?.let { if (it <= 0L) 0L else it * 3_600L }
-                                manager.createInvite(detail.id, inviteRole, sec).fold(
+                                manager.createInvite(detail.id, inviteRole, sec).also { creatingInvite = false }.fold(
                                     onSuccess = { inv ->
                                         createdInvite = inv
                                         clipboard.setText(AnnotatedString(inv.inviteUrl))
                                         copiedNotice = true
                                         if (isOwner) activeInvites = manager.listInvites(detail.id).getOrNull().orEmpty()
                                     },
-                                    onFailure = { statusError = it.message },
+                                    onFailure = { statusError = it.toCollabUserMessage() },
                                 )
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Icon(Icons.Rounded.Link, null, modifier = Modifier.size(18.dp))
+                        if (creatingInvite) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Rounded.Link, null, modifier = Modifier.size(18.dp))
+                        }
                         Spacer(Modifier.width(8.dp))
-                        Text("Create & Copy Invite Link")
+                        Text(if (creatingInvite) "Preparing link…" else "Copy Invite Link", maxLines = 1, softWrap = false)
                     }
 
                     createdInvite?.let { inv ->
@@ -1665,6 +1931,14 @@ fun CollabInviteAndManageDialog(
                 }
 
                 if (tab == 2 && isOwner) {
+                    if (onEditDetails != null) {
+                        OutlinedButton(onClick = onEditDetails, modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Rounded.Edit, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Edit title, description & cover", maxLines = 1, softWrap = false)
+                        }
+                        HorizontalDivider()
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.weight(1f)) {
                             Text("Editors can remove any song", style = MaterialTheme.typography.bodyMedium)
@@ -1813,7 +2087,7 @@ fun CollabJoinInviteDialog(
             loading = true
             manager.previewInvite(candidate).fold(
                 onSuccess = { (_, p) -> preview = p; errorText = null },
-                onFailure = { errorText = it.message },
+                onFailure = { errorText = it.toCollabUserMessage() },
             )
             loading = false
         }
@@ -1845,7 +2119,7 @@ fun CollabJoinInviteDialog(
                                 errorText = null
                                 manager.previewInvite(input).fold(
                                     onSuccess = { (_, p) -> preview = p },
-                                    onFailure = { errorText = it.message ?: "Invalid invite link." },
+                                    onFailure = { errorText = it.toCollabUserMessage("Invalid invite link.") },
                                 )
                                 loading = false
                             }
@@ -1891,7 +2165,7 @@ fun CollabJoinInviteDialog(
                                         loading = true
                                         manager.acceptInvite(input).fold(
                                             onSuccess = { onJoined(it.playlist) },
-                                            onFailure = { errorText = it.message },
+                                            onFailure = { errorText = it.toCollabUserMessage() },
                                         )
                                         loading = false
                                     }
@@ -2041,7 +2315,7 @@ fun CollabGoogleAuthDialog(
                                     }
                                     res.fold(
                                         onSuccess = { onDismiss() },
-                                        onFailure = { errorText = it.message },
+                                        onFailure = { errorText = it.toCollabUserMessage() },
                                     )
                                     busy = false
                                 }
@@ -2071,7 +2345,7 @@ fun CollabGoogleAuthDialog(
                                     scope.launch {
                                         manager.signInWithGoogleIdToken(manualIdToken).fold(
                                             onSuccess = { onDismiss() },
-                                            onFailure = { errorText = it.message },
+                                            onFailure = { errorText = it.toCollabUserMessage() },
                                         )
                                         busy = false
                                     }

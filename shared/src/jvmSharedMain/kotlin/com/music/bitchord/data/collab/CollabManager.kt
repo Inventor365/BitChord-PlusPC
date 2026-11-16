@@ -31,6 +31,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.io.File
@@ -119,6 +120,17 @@ class CollabManager(
     @Volatile private var diskLoaded = false
     private val localTrackStamps = LinkedHashMap<String, LocalTrackStamp>()
     private val localActivities = LinkedHashMap<String, List<CollabActivity>>()
+
+    /** A title or description this device just set, held until YouTube's pages catch up. */
+    private data class PendingMetadata(val title: String?, val description: String?, val untilMs: Long)
+    private val pendingMetadata = HashMap<String, PendingMetadata>()
+
+    /** A row this device added that YouTube's page may not list yet. */
+    private class PendingAdd(val entry: CollabTrackEntry, val untilMs: Long)
+    private val pendingAdds = HashMap<String, MutableList<PendingAdd>>()
+
+    /** What became of the songs a create or convert was asked to carry over. */
+    private data class TrackMigration(val acceptedIds: Set<String>, val rejected: List<Song>)
 
     private val activeSubscriptions = LinkedHashSet<String>()
     private val recentOwnOps = ArrayDeque<String>(64)
@@ -385,10 +397,14 @@ class CollabManager(
         }
     }.onFailure { handleAuthError(it) }
 
-    suspend fun loadPlaylistDetail(playlistId: String): Result<CollabPlaylistDetail> = runCatching {
+    /**
+     * Reads a playlist afresh. [allPages] false reads only the head of a long YouTube Music
+     * playlist and keeps the rest as last read — what something refreshing on a timer wants.
+     */
+    suspend fun loadPlaylistDetail(playlistId: String, allPages: Boolean = true): Result<CollabPlaylistDetail> = runCatching {
         if (isNativeYouTubeMode || playlistId.startsWith(YTM_PREFIX)) {
             val rawId = playlistId.removePrefix(YTM_PREFIX).removePrefix("VL")
-            val detail = fetchNativeYtmPlaylistDetail(rawId)
+            val detail = fetchNativeYtmPlaylistDetail(rawId, allPages = allPages)
             storeDetailSnapshot(detail)
             detail
         } else {
@@ -411,21 +427,15 @@ class CollabManager(
             val me = requireNativeGoogleSignIn()
             val cleanTitle = title.trim().ifBlank { "Collaborative Playlist" }
             val cleanDesc = description.trim()
-            val resolvedSongs = resolveYouTubeSongs(initialSongs)
-            val seedVideoIds = resolvedSongs.map { it.videoId }.take(50)
+            val resolvedSongs = resolveYouTubeSongs(initialSongs).distinctBy { it.videoId }
             // Create directly as UNLISTED so collaboration invite links mint without waiting ~18s for
             // PRIVATE -> UNLISTED propagation (Innertube.createPlaylist auto-falls back to PRIVATE if gated).
-            val rawId = Innertube.createPlaylist(
-                title = cleanTitle,
-                privacy = PlaylistPrivacy.UNLISTED,
-                description = cleanDesc,
-                videoIds = seedVideoIds,
-            ).removePrefix("VL")
-            resolvedSongs.map { it.videoId }.drop(50).chunked(100).forEach { chunk ->
-                runCatching { Innertube.addToPlaylist(rawId, chunk, allowDuplicates = true, retryCollaboratorAcl = true) }
-            }
-            val inviteUrl = runCatching { Innertube.enablePlaylistCollaboration(rawId, ensureUnlisted = false) }
-                .recoverCatching { Innertube.enablePlaylistCollaboration(rawId, ensureUnlisted = true) }
+            val (rawId, migration) = createYtmPlaylistWithSongs(cleanTitle, cleanDesc, resolvedSongs)
+            reportIncompleteMigration(cleanTitle, resolvedSongs.size, migration, unresolved = emptyList())
+            // One quick try. A playlist seconds old usually refuses this until it has settled,
+            // which can take twenty seconds; that wait happens in the background
+            // (scheduleDeferredInviteLinkFetch) instead of in front of the person who tapped Create.
+            val inviteUrl = runCatching { Innertube.enablePlaylistCollaboration(rawId, ensureUnlisted = false, maxAttempts = 1) }
                 .getOrDefault("https://music.youtube.com/playlist?list=$rawId")
             synchronized(ytmCollabIds) {
                 ytmCollabIds.add(rawId)
@@ -484,31 +494,67 @@ class CollabManager(
         if (isNativeYouTubeMode) {
             val me = requireNativeGoogleSignIn()
             val sourceKey = "$sourceType:$sourcePlaylistId"
+            val cleanTitle = title.trim().ifBlank { "Collaborative Playlist" }
+            val cleanDesc = description.trim()
+            // The caller hands over whatever its screen had loaded, which for a long playlist is
+            // only the first page. The source is read again here, every page of it.
+            val sourceSongs = completeSourceSongs(sourcePlaylistId, sourceType, songs)
+            val (resolvedAll, unresolved) = resolveYouTubeSongsDetailed(sourceSongs)
+            val resolvedSongs = resolvedAll.distinctBy { it.videoId }
+
             val existingRawId = synchronized(ytmCollabIds) { ytmConvertedSources[sourceKey] }
             if (!existingRawId.isNullOrBlank() && existingRawId !in ytmStoppedIds) {
                 val existingDetail = runCatching { fetchNativeYtmPlaylistDetail(existingRawId) }.getOrNull()
                 if (existingDetail != null) {
-                    storeDetailSnapshot(existingDetail)
-                    return@runCatching CollabConvertResult(playlist = existingDetail, alreadyConverted = true)
+                    // An earlier conversion may have stopped short, or the source may have grown
+                    // since: bring across whatever the collaborative copy is still missing.
+                    // Only songs the source names by their YouTube id. One that had to be matched
+                    // by search (a local file, a Spotify import) can match a different video on a
+                    // different day, and topping up by id would then add the same song twice.
+                    val present = existingDetail.tracks.mapTo(HashSet()) { it.trackId }
+                    val sourceIds = sourceSongs.mapTo(HashSet()) { it.videoId.trim() }
+                    val missing = resolvedSongs.filter { it.videoId !in present && it.videoId in sourceIds }
+                    val topUp = if (missing.isNotEmpty() && existingDetail.canAddTracks(me.id)) {
+                        addSongsReliably(existingRawId, missing)
+                    } else {
+                        TrackMigration(emptySet(), emptyList())
+                    }
+                    val detail = if (topUp.acceptedIds.isEmpty()) {
+                        existingDetail
+                    } else {
+                        if (attributeExistingTracksToOwner) {
+                            val now = System.currentTimeMillis()
+                            topUp.acceptedIds.forEach { vid ->
+                                localTrackStamps["$existingRawId:$vid"] = LocalTrackStamp(me.id, me.displayName, me.avatarUrl, now)
+                            }
+                        }
+                        recordLocalActivity(
+                            existingRawId, me, "playlist.convert",
+                            "${me.displayName} brought ${topUp.acceptedIds.size} more songs across from the original playlist",
+                        )
+                        fetchNativeYtmPlaylistDetail(
+                            rawId = existingRawId,
+                            initialSongs = missing.filter { it.videoId in topUp.acceptedIds },
+                        )
+                    }
+                    storeDetailSnapshot(detail)
+                    reportIncompleteMigration(detail.title, missing.size, topUp, unresolved = emptyList())
+                    return@runCatching CollabConvertResult(
+                        playlist = detail,
+                        alreadyConverted = true,
+                        requestedTrackCount = sourceSongs.size,
+                        migratedTrackCount = present.size + topUp.acceptedIds.size,
+                        skippedTitles = topUp.rejected.map { it.title },
+                    )
                 }
             }
 
-            val cleanTitle = title.trim().ifBlank { "Collaborative Playlist" }
-            val cleanDesc = description.trim()
-            val resolvedSongs = resolveYouTubeSongs(songs)
-            val allVideoIds = resolvedSongs.map { it.videoId }
-            val rawId = Innertube.createPlaylist(
-                title = cleanTitle,
-                privacy = PlaylistPrivacy.UNLISTED,
-                description = cleanDesc,
-                videoIds = allVideoIds.take(50),
-            ).removePrefix("VL")
-            // Add remaining tracks in chunks of 100 so large personal playlists convert reliably
-            allVideoIds.drop(50).chunked(100).forEach { chunk ->
-                runCatching { Innertube.addToPlaylist(rawId, chunk, allowDuplicates = true, retryCollaboratorAcl = true) }
-            }
-            val inviteUrl = runCatching { Innertube.enablePlaylistCollaboration(rawId, ensureUnlisted = false) }
-                .recoverCatching { Innertube.enablePlaylistCollaboration(rawId, ensureUnlisted = true) }
+            val (rawId, migration) = createYtmPlaylistWithSongs(cleanTitle, cleanDesc, resolvedSongs)
+            val allVideoIds = resolvedSongs.map { it.videoId }.filter { it in migration.acceptedIds }
+            // One quick try. A playlist seconds old usually refuses this until it has settled,
+            // which can take twenty seconds; that wait happens in the background
+            // (scheduleDeferredInviteLinkFetch) instead of in front of the person who tapped Create.
+            val inviteUrl = runCatching { Innertube.enablePlaylistCollaboration(rawId, ensureUnlisted = false, maxAttempts = 1) }
                 .getOrDefault("https://music.youtube.com/playlist?list=$rawId")
             synchronized(ytmCollabIds) {
                 ytmCollabIds.add(rawId)
@@ -525,17 +571,29 @@ class CollabManager(
                     localTrackStamps["$rawId:$vid"] = LocalTrackStamp(me.id, me.displayName, me.avatarUrl, now)
                 }
             }
-            recordLocalActivity(rawId, me, "playlist.convert", "${me.displayName} made \"$cleanTitle\" collaborative (${allVideoIds.size} songs)")
+            val songCount = if (allVideoIds.size == sourceSongs.size) {
+                "${allVideoIds.size} songs"
+            } else {
+                "${allVideoIds.size} of ${sourceSongs.size} songs"
+            }
+            recordLocalActivity(rawId, me, "playlist.convert", "${me.displayName} made \"$cleanTitle\" collaborative ($songCount)")
             val detail = fetchNativeYtmPlaylistDetail(
                 rawId = rawId,
                 fallbackTitle = cleanTitle,
                 fallbackDescription = cleanDesc,
                 fallbackArtwork = artworkUrl,
-                initialSongs = resolvedSongs,
+                initialSongs = resolvedSongs.filter { it.videoId in migration.acceptedIds },
                 fallbackPermissions = permissions,
             ).copy(sourceType = sourceType, sourcePlaylistId = sourcePlaylistId)
             storeDetailSnapshot(detail)
-            CollabConvertResult(playlist = detail, alreadyConverted = false)
+            reportIncompleteMigration(cleanTitle, resolvedSongs.size, migration, unresolved)
+            CollabConvertResult(
+                playlist = detail,
+                alreadyConverted = false,
+                requestedTrackCount = sourceSongs.size,
+                migratedTrackCount = allVideoIds.size,
+                skippedTitles = (unresolved + migration.rejected).map { it.title },
+            )
         } else {
             val server = requireServerUrl()
             val tok = requireToken()
@@ -566,11 +624,33 @@ class CollabManager(
         if (isNativeYouTubeMode || playlistId.startsWith(YTM_PREFIX)) {
             requireNativeGoogleSignIn()
             val rawId = playlistId.removePrefix(YTM_PREFIX).removePrefix("VL")
+            val cur = _details.value[playlistId]
             val cleanTitle = title?.trim()?.takeIf { it.isNotBlank() }
-            val cleanDesc = description?.trim()
+                ?.let(Innertube::sanitizePlaylistTitle)
+                ?.takeIf { it != cur?.title }
+            val cleanDesc = description?.let { Innertube.sanitizePlaylistDescription(it).orEmpty() }
+                ?.takeIf { it != cur?.description }
             if (cleanTitle != null) Innertube.renamePlaylist(rawId, cleanTitle)
             if (cleanDesc != null) Innertube.setPlaylistDescription(rawId, cleanDesc)
-            val cur = _details.value[playlistId]
+            if (cleanTitle != null || cleanDesc != null) {
+                // The page that serves the playlist back can trail the edit by a few seconds;
+                // without this the next poll would put the old title back on screen.
+                synchronized(pendingMetadata) {
+                    val previous = pendingMetadata[rawId]?.takeIf { it.untilMs > System.currentTimeMillis() }
+                    pendingMetadata[rawId] = PendingMetadata(
+                        title = cleanTitle ?: previous?.title,
+                        description = cleanDesc ?: previous?.description,
+                        untilMs = System.currentTimeMillis() + PENDING_METADATA_MS,
+                    )
+                }
+                currentUser?.let { me ->
+                    val what = listOfNotNull(
+                        cleanTitle?.let { "renamed the playlist to \"$it\"" },
+                        cleanDesc?.let { "updated the description" },
+                    ).joinToString(" and ")
+                    recordLocalActivity(rawId, me, "playlist.update", "${me.displayName} $what")
+                }
+            }
             val mergedPerms = if (permissions != null && cur != null) {
                 cur.permissions.copy(
                     editorCanRemove = permissions.editorCanRemove ?: cur.permissions.editorCanRemove,
@@ -601,6 +681,39 @@ class CollabManager(
             detail
         }
     }.onFailure { handleAuthError(it) }
+
+    /**
+     * Replaces the playlist's cover with [image] (JPEG or PNG). Until this is done a YouTube
+     * Music playlist wears the collage YouTube makes of its first four tracks.
+     *
+     * Only the owner can; YouTube Music serves the new cover a little after it accepts it, so
+     * the header is re-read a few times before the old one is given back.
+     */
+    suspend fun setPlaylistCover(playlistId: String, image: ByteArray): Result<CollabPlaylistDetail> = runCatching {
+        if (!(isNativeYouTubeMode || playlistId.startsWith(YTM_PREFIX))) {
+            error("Custom covers are available on YouTube Music collaborative playlists.")
+        }
+        val me = requireNativeGoogleSignIn()
+        val rawId = playlistId.removePrefix(YTM_PREFIX).removePrefix("VL")
+        val before = _details.value["$YTM_PREFIX$rawId"]?.artworkUrl
+        YtMusicRepository.setPlaylistCover(rawId, image).getOrThrow()
+        recordLocalActivity(rawId, me, "playlist.update", "${me.displayName} changed the playlist cover")
+        var detail = fetchNativeYtmPlaylistDetail(rawId, allPages = false)
+        var looks = 0
+        while (detail.artworkUrl == before && looks++ < 3) {
+            delay(Innertube.settleRetryDelayMs)
+            detail = fetchNativeYtmPlaylistDetail(rawId, allPages = false)
+        }
+        storeDetailSnapshot(detail)
+        detail
+    }.onFailure { handleAuthError(it) }
+
+    /** Re-reads a playlist after something outside this manager changed it — a cover the host app uploaded, say. */
+    suspend fun refreshAfterExternalEdit(playlistId: String) {
+        val id = if (playlistId.startsWith(YTM_PREFIX) || !isNativeYouTubeMode) playlistId else "$YTM_PREFIX${playlistId.removePrefix("VL")}"
+        if (_details.value[id] == null && synchronized(ytmCollabIds) { id.removePrefix(YTM_PREFIX) !in ytmCollabIds }) return
+        loadPlaylistDetail(id)
+    }
 
     suspend fun stopSharing(playlistId: String): Result<CollabPlaylistDetail> = runCatching {
         if (isNativeYouTubeMode || playlistId.startsWith(YTM_PREFIX)) {
@@ -652,17 +765,57 @@ class CollabManager(
             require(resolvedSongs.isNotEmpty()) { "Select playable songs to add to this collaborative playlist." }
             val videoIds = resolvedSongs.map { it.videoId }
             val setMap = HashMap<String, String>()
-            videoIds.chunked(100).forEach { chunk ->
-                setMap.putAll(
-                    Innertube.addToPlaylist(
-                        playlistId = rawId,
-                        videoIds = chunk,
-                        allowDuplicates = true,
-                        retryCollaboratorAcl = true,
-                    ),
+            val now = System.currentTimeMillis()
+            // On screen at once: the add itself can take seconds (longer on a new playlist), and
+            // YouTube's page lists the row later still. Held in pendingAdds so the refreshes in
+            // between do not take it back off the screen.
+            val before = _details.value[cplId]
+            val optimistic = resolvedSongs.mapIndexed { idx, s ->
+                CollabTrackEntry(
+                    entryId = s.videoId,
+                    playlistId = cplId,
+                    position = (before?.tracks?.size ?: 0) + idx,
+                    trackId = s.videoId,
+                    provider = "youtube",
+                    title = s.title,
+                    artist = s.artist,
+                    albumName = s.albumName,
+                    thumbnailUrl = s.thumbnailUrl,
+                    durationMs = s.toCollabTrackInput()?.durationMs,
+                    isExplicit = s.isExplicit == true,
+                    contributorId = me.id,
+                    contributorName = me.displayName,
+                    contributorAvatarUrl = me.avatarUrl,
+                    addedAtMs = now,
                 )
             }
-            val now = System.currentTimeMillis()
+            synchronized(pendingAdds) {
+                pendingAdds.getOrPut(rawId) { ArrayList() }
+                    .addAll(optimistic.map { PendingAdd(it, now + PENDING_ADD_MS) })
+            }
+            if (before != null) {
+                val known = before.tracks.mapTo(HashSet()) { it.trackId }
+                val shown = before.tracks + optimistic.filterNot { it.trackId in known }
+                storeDetailSnapshot(before.copy(tracks = shown, trackCount = shown.size))
+            }
+            try {
+                videoIds.chunked(100).forEach { chunk ->
+                    setMap.putAll(
+                        Innertube.addToPlaylist(
+                            playlistId = rawId,
+                            videoIds = chunk,
+                            allowDuplicates = true,
+                            retryCollaboratorAcl = true,
+                        ),
+                    )
+                }
+            } catch (e: Throwable) {
+                // It did not go in: take it back off the screen.
+                val failed = optimistic.mapTo(HashSet()) { it.trackId }
+                synchronized(pendingAdds) { pendingAdds[rawId]?.removeAll { it.entry.trackId in failed } }
+                if (before != null) storeDetailSnapshot(before)
+                throw e
+            }
             resolvedSongs.forEach { s ->
                 val stamp = LocalTrackStamp(me.id, me.displayName, me.avatarUrl, now)
                 localTrackStamps["$rawId:${s.videoId}"] = stamp
@@ -698,6 +851,10 @@ class CollabManager(
                 detail = detail.copy(tracks = combined, trackCount = combined.size)
             }
             storeDetailSnapshot(detail)
+            _notices.tryEmit(
+                if (resolvedSongs.size == 1) "Added \"${resolvedSongs.first().title}\" to ${detail.title}"
+                else "Added ${resolvedSongs.size} songs to ${detail.title}",
+            )
             detail
         } else {
             val inputs = songs.mapNotNull { it.toCollabTrackInput() }
@@ -717,6 +874,10 @@ class CollabManager(
             val rawId = playlistId.removePrefix(YTM_PREFIX).removePrefix("VL")
             var current = _details.value[playlistId]
             var targetEntry = current?.tracks?.firstOrNull { it.entryId == entryId }
+            // A row being removed is no longer one to keep on screen on this device's say-so.
+            synchronized(pendingAdds) {
+                pendingAdds[rawId]?.removeAll { it.entry.entryId == entryId || it.entry.trackId == (targetEntry?.trackId ?: entryId) }
+            }
             // If entryId was an optimistic videoId before YouTube minted setVideoId, refresh once to resolve setVideoId
             if (targetEntry == null || targetEntry.entryId == targetEntry.trackId) {
                 val refreshed = runCatching { fetchNativeYtmPlaylistDetail(rawId) }.getOrNull()
@@ -801,7 +962,12 @@ class CollabManager(
             val inviteUrl = if (role == CollabRole.VIEWER) {
                 "https://music.youtube.com/playlist?list=$rawId"
             } else {
-                Innertube.enablePlaylistCollaboration(rawId).also { url ->
+                // A playlist has one collaboration link. Once it is known, handing it out again
+                // is instant; asking YouTube Music to mint it afresh costs several seconds.
+                val known = synchronized(ytmCollabIds) {
+                    ytmInviteLinks[rawId]?.takeIf { it.contains("jct=") && rawId !in ytmStoppedIds }
+                }
+                known ?: Innertube.enablePlaylistCollaboration(rawId).also { url ->
                     synchronized(ytmCollabIds) {
                         ytmStoppedIds.remove(rawId)
                         ytmInviteLinks[rawId] = url
@@ -909,18 +1075,21 @@ class CollabManager(
             val rawId = parsed.ytmPlaylistId!!
             val jct = parsed.ytmJoinToken!!
             val wasAlreadyTracked = synchronized(ytmCollabIds) { rawId in ytmCollabIds }
-            Innertube.joinCollaborativePlaylist(rawId, jct)
+            val outcome = Innertube.joinCollaborativePlaylist(rawId, jct)
+            val alreadyMember = wasAlreadyTracked ||
+                outcome == Innertube.CollabJoinOutcome.ALREADY_COLLABORATOR
             synchronized(ytmCollabIds) {
                 ytmCollabIds.add(rawId)
                 ytmStoppedIds.remove(rawId)
                 ytmInviteLinks[rawId] = "https://music.youtube.com/playlist?list=$rawId&jct=$jct"
             }
-            if (!wasAlreadyTracked) {
+            if (!alreadyMember) {
                 recordLocalActivity(rawId, me, "member.join", "${me.displayName} joined via invite link")
             }
+            saveToDiskAsync()
             val detail = fetchNativeYtmPlaylistDetail(rawId)
             storeDetailSnapshot(detail)
-            CollabAcceptInviteResult(playlist = detail, alreadyMember = wasAlreadyTracked)
+            CollabAcceptInviteResult(playlist = detail, alreadyMember = alreadyMember)
         } else {
             adoptServerOriginIfUnset(parsed.serverOrigin)
             val server = parsed.serverOrigin ?: requireServerUrl()
@@ -1092,18 +1261,23 @@ class CollabManager(
         fallbackArtwork: String? = null,
         initialSongs: List<Song> = emptyList(),
         fallbackPermissions: CollabPermissions? = null,
+        allPages: Boolean = true,
     ): CollabPlaylistDetail {
         val cplId = "$YTM_PREFIX$rawId"
         val prev = _details.value[cplId]
         val me = currentUser
         val browse = runCatching { Innertube.browse("VL$rawId") }.getOrNull()
         val meta = browse?.let { InnertubeParser.parseYtmCollabHeader(it, rawId) }
-        val shelf = browse?.let { InnertubeParser.parsePlaylistShelf(it) }
-        val rowContribMap = browse?.let { InnertubeParser.parsePlaylistTrackContributors(it) }.orEmpty()
+        val rows = loadYtmPlaylistRows(browse, allPages)
+        val rowContribMap = rows.contributors
+        val pending = synchronized(pendingMetadata) {
+            pendingMetadata[rawId]?.takeIf { it.untilMs > System.currentTimeMillis() }
+                ?: null.also { pendingMetadata.remove(rawId) }
+        }
 
         // 1. Fetch collaborator roster from PAplaylist_collaborate panel (WEB_REMIX + WEB fallback)
         //    and any inline panel inside browse.
-        val inlinePanelMembers = browse?.let { InnertubeParser.parseCollaboratorsPanel(it) }.orEmpty()
+        val inlinePanelMembers = browse?.let { InnertubeParser.parseCollaboratorsPanel(it, strict = true) }.orEmpty()
         val fetchedPanelMembers = if (meta?.isCollaborative == true || !meta?.panelParams.isNullOrBlank()) {
             runCatching {
                 InnertubeParser.parseCollaboratorsPanel(
@@ -1218,8 +1392,11 @@ class CollabManager(
             }
         }
 
-        val effectiveSongs = shelf?.songs?.takeIf { it.isNotEmpty() } ?: initialSongs
-        val entries = effectiveSongs.mapIndexed { idx, song ->
+        // What YouTube's page lists, then anything this device knows it just put there that the
+        // page has not caught up with yet (a playlist seconds old lists only part of itself).
+        val listedIds = rows.songs.mapTo(HashSet()) { it.videoId }
+        val effectiveSongs = rows.songs + initialSongs.filterNot { it.videoId in listedIds }
+        val freshEntries = effectiveSongs.mapIndexed { idx, song ->
             val setVid = song.setVideoId ?: song.videoId
             val rowFromYtm = rowContribMap[setVid] ?: rowContribMap[song.videoId]
             val localStamp = localTrackStamps["$rawId:$setVid"] ?: localTrackStamps["$rawId:${song.videoId}"]
@@ -1252,13 +1429,47 @@ class CollabManager(
                 addedAtMs = localStamp?.addedAtMs ?: 0L,
             )
         }
+        // A quick refresh reads the first page only. For a playlist longer than that, the rows
+        // past it are carried over from the last full read rather than dropped off the screen.
+        val listedEntries = if (rows.complete || prev == null || prev.tracks.size <= freshEntries.size) {
+            freshEntries
+        } else {
+            val freshKeys = freshEntries.flatMapTo(HashSet()) { listOf(it.entryId, it.trackId) }
+            val tail = prev.tracks.filterNot { it.entryId in freshKeys || it.trackId in freshKeys }
+            (freshEntries + tail).mapIndexed { idx, entry -> entry.copy(position = idx) }
+        }
+
+        val entries = synchronized(pendingAdds) {
+            val pendingRows = pendingAdds[rawId]
+            if (pendingRows.isNullOrEmpty()) {
+                listedEntries
+            } else {
+                val listed = listedEntries.mapTo(HashSet()) { it.trackId }
+                val nowMs = System.currentTimeMillis()
+                // Vouched for until the page has had long enough to catch up — not merely until it
+                // lists the row once: successive refreshes can be answered by different replicas,
+                // and one that is behind would take the row back off the screen.
+                pendingRows.removeAll { it.untilMs < nowMs }
+                val unlisted = pendingRows.map { it.entry }.filterNot { it.trackId in listed }
+                if (pendingRows.isEmpty()) pendingAdds.remove(rawId)
+                if (unlisted.isEmpty()) {
+                    listedEntries
+                } else {
+                    (listedEntries + unlisted).mapIndexed { idx, e -> e.copy(position = idx) }
+                }
+            }
+        }
 
         val prevRev = prev?.revision ?: 0L
         val stopped = rawId in ytmStoppedIds
         return CollabPlaylistDetail(
             id = cplId,
-            title = meta?.title?.takeIf { it.isNotBlank() } ?: prev?.title ?: fallbackTitle,
-            description = meta?.description?.takeIf { it.isNotBlank() } ?: prev?.description?.takeIf { it.isNotBlank() } ?: fallbackDescription,
+            title = pending?.title
+                ?: meta?.title?.takeIf { it.isNotBlank() } ?: prev?.title ?: fallbackTitle,
+            description = pending?.description
+                ?: meta?.description?.takeIf { it.isNotBlank() }
+                ?: prev?.description?.takeIf { it.isNotBlank() }
+                ?: fallbackDescription,
             artworkUrl = meta?.thumbnailUrl ?: prev?.artworkUrl ?: fallbackArtwork ?: entries.firstOrNull()?.thumbnailUrl,
             ownerUserId = ownerUserId,
             ownerName = ownerName,
@@ -1281,6 +1492,182 @@ class CollabManager(
         )
     }
 
+    private class YtmPlaylistRows(
+        val songs: List<Song>,
+        val contributors: Map<String, InnertubeParser.TrackContributorInfo>,
+        /** False when pages were left unread, so [songs] is only the head of the playlist. */
+        val complete: Boolean,
+    )
+
+    /**
+     * The rows of a playlist page and, when [allPages], of every continuation after it. A
+     * playlist comes back about a hundred rows at a time; read as one page, a long one shows
+     * up short and a conversion looks as though it lost songs.
+     */
+    private suspend fun loadYtmPlaylistRows(firstPage: JsonObject?, allPages: Boolean): YtmPlaylistRows {
+        val first = firstPage?.let { InnertubeParser.parsePlaylistShelf(it) }
+            ?: return YtmPlaylistRows(emptyList(), emptyMap(), complete = firstPage != null)
+        val songs = LinkedHashMap<String, Song>()
+        val contributors = HashMap(InnertubeParser.parsePlaylistTrackContributors(firstPage))
+        first.songs.forEach { songs.putIfAbsent(it.setVideoId ?: it.videoId, it) }
+        var token = first.continuation
+        // An owned playlist's shelf always carries a token, even when all it leads to is the
+        // "Suggestions" shelf — so a short first page is taken as the whole list.
+        if (token != null && first.songs.size < YTM_FIRST_PAGE_ROWS) token = null
+        var page = 1
+        while (allPages && token != null && page++ < MAX_TRACK_PAGES) {
+            val response = runCatching { Innertube.browseContinuation(token!!) }.getOrNull() ?: break
+            val shelf = InnertubeParser.parsePlaylistShelf(response)
+            if (shelf == null || shelf.songs.isEmpty()) {
+                token = null
+                break
+            }
+            shelf.songs.forEach { songs.putIfAbsent(it.setVideoId ?: it.videoId, it) }
+            contributors.putAll(InnertubeParser.parsePlaylistTrackContributors(response))
+            token = shelf.continuation
+        }
+        return YtmPlaylistRows(songs.values.toList(), contributors, complete = token == null)
+    }
+
+    /**
+     * Every song of the playlist being converted. For a YouTube Music playlist the list is read
+     * from YouTube Music, all pages, and [provided] only fills in what that read did not have;
+     * for a local or imported one, [provided] is all there is.
+     */
+    private suspend fun completeSourceSongs(
+        sourcePlaylistId: String,
+        sourceType: String,
+        provided: List<Song>,
+    ): List<Song> {
+        val id = sourcePlaylistId.trim()
+        val isYtmPlaylist = sourceType == "ytm" && id.isNotEmpty() && ':' !in id
+        if (!isYtmPlaylist) return provided
+        val browseId = if (id.startsWith("VL")) id else "VL$id"
+        val firstPage = runCatching { Innertube.browse(browseId) }.getOrNull() ?: return provided
+        val full = loadYtmPlaylistRows(firstPage, allPages = true).songs
+        if (full.isEmpty()) return provided
+        val known = full.mapTo(HashSet()) { it.videoId }
+        return full + provided.filterNot { it.videoId in known }
+    }
+
+    /**
+     * Creates the YouTube Music playlist a collaboration lives in and puts [songs] in it.
+     *
+     * The first [CREATE_SEED_SIZE] ride along with the create call; the rest follow through
+     * [addSongsReliably]. If YouTube Music refuses a create that carries songs, the playlist is
+     * created empty and every song goes through the confirmed path instead.
+     */
+    private suspend fun createYtmPlaylistWithSongs(
+        title: String,
+        description: String,
+        songs: List<Song>,
+    ): Pair<String, TrackMigration> {
+        val seed = songs.take(CREATE_SEED_SIZE)
+        val seeded = runCatching {
+            Innertube.createPlaylist(
+                title = title,
+                privacy = PlaylistPrivacy.UNLISTED,
+                description = description,
+                videoIds = seed.map { it.videoId },
+            ).removePrefix("VL")
+        }
+        val rawId: String
+        val rest: List<Song>
+        val seededIds: Set<String>
+        if (seeded.isSuccess || seed.isEmpty()) {
+            rawId = seeded.getOrThrow()
+            rest = songs.drop(CREATE_SEED_SIZE)
+            seededIds = seed.mapTo(LinkedHashSet()) { it.videoId }
+        } else {
+            (seeded.exceptionOrNull() as? CancellationException)?.let { throw it }
+            rawId = Innertube.createPlaylist(
+                title = title,
+                privacy = PlaylistPrivacy.UNLISTED,
+                description = description,
+            ).removePrefix("VL")
+            rest = songs
+            seededIds = emptySet()
+        }
+        val added = addSongsReliably(rawId, rest)
+        return rawId to TrackMigration(seededIds + added.acceptedIds, added.rejected)
+    }
+
+    /**
+     * Adds [songs] to [rawId] and accounts for every one of them.
+     *
+     * A playlist created a moment ago refuses edits (409, sometimes 5xx) until it has settled,
+     * which can take twenty seconds — so a refusal of that kind is waited out rather than
+     * accepted. A refusal of any other kind is narrowed down by halving the batch, so one track
+     * YouTube Music will not take (deleted, region-locked) costs that track and not the fifty
+     * sent alongside it. Nothing is swallowed: a song is either in [TrackMigration.acceptedIds]
+     * because a call that carried it succeeded, or in [TrackMigration.rejected].
+     */
+    private suspend fun addSongsReliably(rawId: String, songs: List<Song>): TrackMigration {
+        val accepted = LinkedHashSet<String>()
+        val rejected = ArrayList<Song>()
+
+        suspend fun addBatch(batch: List<Song>, waitForSettling: Boolean) {
+            if (batch.isEmpty()) return
+            val ids = batch.map { it.videoId }
+            var result = runCatching {
+                Innertube.addToPlaylist(rawId, ids, allowDuplicates = true, retryCollaboratorAcl = waitForSettling)
+            }
+            var waits = 0
+            while (result.isFailure && waitForSettling && waits++ < SETTLE_WAITS &&
+                isSettlingRefusal(result.exceptionOrNull())
+            ) {
+                delay(Innertube.settleRetryDelayMs)
+                result = runCatching { Innertube.addToPlaylist(rawId, ids, allowDuplicates = true) }
+            }
+            if (result.isSuccess) {
+                accepted.addAll(ids)
+                return
+            }
+            val error = result.exceptionOrNull()
+            // Signed out or offline: no smaller batch will fare better, and halving two hundred
+            // songs down to singles to find that out is two hundred more failed requests.
+            if (error is CancellationException || error is java.io.IOException ||
+                Innertube.httpStatusOf(error) == 401
+            ) {
+                throw error!!
+            }
+            if (batch.size == 1) {
+                rejected.add(batch.first())
+                return
+            }
+            val middle = batch.size / 2
+            addBatch(batch.subList(0, middle), waitForSettling = false)
+            addBatch(batch.subList(middle, batch.size), waitForSettling = false)
+        }
+
+        songs.chunked(MIGRATION_CHUNK).forEach { addBatch(it, waitForSettling = true) }
+        return TrackMigration(accepted, rejected)
+    }
+
+    private fun isSettlingRefusal(error: Throwable?): Boolean {
+        val status = Innertube.httpStatusOf(error)
+        if (status != null) return status == 409 || status >= 500
+        val message = error?.message.orEmpty()
+        return message.contains("ABORTED", ignoreCase = true) || message.contains("409")
+    }
+
+    /** Says so, once, when a create or convert could not carry every song across. */
+    private fun reportIncompleteMigration(
+        title: String,
+        requested: Int,
+        migration: TrackMigration,
+        unresolved: List<Song>,
+    ) {
+        val skipped = unresolved + migration.rejected
+        if (skipped.isEmpty()) return
+        val total = requested + unresolved.size
+        val names = skipped.take(3).joinToString(", ") { it.title.ifBlank { it.videoId } }
+        val more = if (skipped.size > 3) " and ${skipped.size - 3} more" else ""
+        _notices.tryEmit(
+            "\"$title\": ${total - skipped.size} of $total songs were copied. Couldn't add $names$more.",
+        )
+    }
+
     private fun parseSummaryCollaboratorCount(summary: String?): Int {
         val text = summary?.trim()?.takeIf { it.isNotEmpty() } ?: return 0
         val othersMatch = OTHERS_COUNT_REGEX.find(text)
@@ -1295,8 +1682,13 @@ class CollabManager(
      * Resolves songs to playable YouTube Music tracks with valid 11-character `videoId`s so
      * converting or adding local/Spotify songs never sends `local:…` IDs to YouTube's playlist API.
      */
-    private suspend fun resolveYouTubeSongs(songs: List<Song>): List<Song> {
-        if (songs.isEmpty()) return emptyList()
+    private suspend fun resolveYouTubeSongs(songs: List<Song>): List<Song> =
+        resolveYouTubeSongsDetailed(songs).first
+
+    /** [resolveYouTubeSongs], plus the songs no YouTube Music track could be found for. */
+    private suspend fun resolveYouTubeSongsDetailed(songs: List<Song>): Pair<List<Song>, List<Song>> {
+        if (songs.isEmpty()) return emptyList<Song>() to emptyList()
+        val unresolved = ArrayList<Song>()
         val out = ArrayList<Song>(songs.size)
         for (song in songs) {
             val vid = song.videoId.trim()
@@ -1317,16 +1709,20 @@ class CollabManager(
                 }.getOrNull()
                 if (matched != null) {
                     out.add(song.copy(videoId = matched.videoId, thumbnailUrl = song.thumbnailUrl ?: matched.thumbnailUrl))
+                } else {
+                    unresolved.add(song)
                 }
+            } else {
+                unresolved.add(song)
             }
         }
-        return out
+        return out to unresolved
     }
 
     /** Background retry when YouTube Music's newly created playlist takes a few seconds to settle before minting `jct=`. */
     private fun scheduleDeferredInviteLinkFetch(rawId: String) {
         scope.launch {
-            for (waitMs in listOf(2_500L, 5_000L)) {
+            for (waitMs in listOf(1_000L, 5_000L, 10_000L)) {
                 delay(if (Innertube.settleRetryDelayMs < 100L) 20L else waitMs)
                 if (rawId in ytmStoppedIds || !Innertube.hasSession) return@launch
                 val currentUrl = synchronized(ytmCollabIds) { ytmInviteLinks[rawId] }
@@ -1362,15 +1758,19 @@ class CollabManager(
         ytmPollJob = scope.launch {
             _realtimeConnected.value = true
             try {
+                var tick = 0
                 while (isActive) {
                     delay(if (Innertube.settleRetryDelayMs < 100L) 60L else 5_000L)
                     val subs = synchronized(activeSubscriptions) { activeSubscriptions.toList() }
                     if (subs.isEmpty()) break
                     if (!Innertube.hasSession) continue
+                    // Every page of a long playlist every five seconds is a lot of requests for a
+                    // screen nobody may be scrolling; the head is read each tick, the rest each sixth.
+                    val everyPage = tick++ % FULL_READ_EVERY_TICKS == 0
                     for (pid in subs) {
                         if (pid.startsWith(YTM_PREFIX) || isNativeYouTubeMode) {
                             val rawId = pid.removePrefix(YTM_PREFIX).removePrefix("VL")
-                            runCatching { fetchNativeYtmPlaylistDetail(rawId) }
+                            runCatching { fetchNativeYtmPlaylistDetail(rawId, allPages = everyPage) }
                                 .getOrNull()
                                 ?.let(::storeDetailSnapshot)
                         }
@@ -1585,7 +1985,7 @@ class CollabManager(
             saveToDiskAsync()
             _notices.tryEmit("Custom collaboration server session expired. Sign in again or clear Server URL.")
         } else if (error !is CancellationException) {
-            error.message?.takeIf { it.isNotBlank() }?.let(_notices::tryEmit)
+            error.message?.takeIf { it.isNotBlank() }?.let { _notices.tryEmit(collabUserMessage(it)) }
         }
     }
 
@@ -1703,5 +2103,21 @@ class CollabManager(
         const val YTM_NATIVE_SESSION_TOKEN = "ytm_native_google_session"
         private val YT_VIDEO_ID_PATTERN = Regex("^[A-Za-z0-9_-]{11}$")
         private val OTHERS_COUNT_REGEX = Regex("""\band\s+(\d+)\s+other""", RegexOption.IGNORE_CASE)
+
+        /** Songs sent along with `playlist/create`; the rest are added once it exists. */
+        private const val CREATE_SEED_SIZE = 50
+        private const val MIGRATION_CHUNK = 50
+
+        /** Extra waits, a settle delay each, for a just-created playlist to start taking edits. */
+        private const val SETTLE_WAITS = 8
+
+        /** YouTube caps a playlist at 5,000 rows and serves about 100 a page. */
+        private const val MAX_TRACK_PAGES = 60
+
+        /** Fewer rows than this on a first page and the playlist is taken to end there. */
+        private const val YTM_FIRST_PAGE_ROWS = 50
+        private const val FULL_READ_EVERY_TICKS = 6
+        private const val PENDING_METADATA_MS = 30_000L
+        private const val PENDING_ADD_MS = 45_000L
     }
 }

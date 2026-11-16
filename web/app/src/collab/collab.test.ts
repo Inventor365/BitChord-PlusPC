@@ -1,7 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { derivePkceChallengeS256, syncYtExtensionToCollab, useCollabAuth } from './auth';
 import { sanitizeCollabServerUrl } from './config';
-import { cleanCollabInviteToken, formatCollabDeepLink, formatCollabInviteUrl, parseCollabInviteLink } from './inviteLink';
+import {
+  cleanCollabInviteToken,
+  formatCollabDeepLink,
+  formatCollabInviteUrl,
+  parseCollabInviteLink,
+  ytmCollaboratorsPanelParams,
+  ytmInviteBrowseParams,
+} from './inviteLink';
+import {
+  hasPlaylistEditAffordance,
+  parseAddToPlaylistIds,
+  parseCollabJoinEndpoints,
+  parseCollaboratorsPanel,
+  ytmErrorStatus,
+  ytmJoinFailureMessage,
+} from './ytmCollab';
 import {
   applyCollabWsFrame,
   buildConvertPayload,
@@ -586,5 +601,67 @@ describe('playlist conversion mapping, PKCE S256, and socket backoff', () => {
         actions: [{ navigationEndpoint: { browseEndpoint: { browseId: 'FEmusic_liked_playlists' } } }],
       }),
     ).toBeNull();
+  });
+});
+
+describe('YouTube Music collaboration protocol', () => {
+  it('folds an invite jct into browse params exactly as music.youtube.com does', () => {
+    // Expected values are what the real server put in the playlist page's own browse request.
+    expect(ytmInviteBrowseParams('AbCdEfGhIjKlMnOpQrStUv')).toBe('ugIWQWJDZEVmR2hJaktsTW5PcFFyU3RVdsIFAwjYBA%3D%3D');
+    expect(ytmInviteBrowseParams('L1_yAKqFkzTabc-XYZ_0123456789')).toBe('ugIdTDFfeUFLcUZrelRhYmMtWFlaXzAxMjM0NTY3ODnCBQMI2AQ%3D');
+    expect(ytmInviteBrowseParams('ab~ab~ab~ab~ab~ab~ab~a.')).toBe('ugIXYWJ-YWJ-YWJ-YWJ-YWJ-YWJ-YWJ-YS7CBQMI2AQ%3D');
+  });
+
+  it('builds the collaborators panel params a real playlist header carries', () => {
+    expect(ytmCollaboratorsPanelParams('PLxyTaDz8f5PBc-8kE36gvB-eflhODG2dw')).toBe('0ggkCiJQTHh5VGFEejhmNVBCYy04a0UzNmd2Qi1lZmxoT0RHMmR3');
+    expect(ytmCollaboratorsPanelParams('VLPLxyTaDz8f5PBc-8kE36gvB-eflhODG2dw')).toBe('0ggkCiJQTHh5VGFEejhmNVBCYy04a0UzNmd2Qi1lZmxoT0RHMmR3');
+  });
+
+  it('treats edit commands as write access and a join offer as the opposite', () => {
+    const member = {
+      menu: { serviceEndpoint: { playlistEditEndpoint: { playlistId: 'PLabc', actions: [{ action: 'ACTION_REMOVE_VIDEO', setVideoId: 's1' }] } } },
+    };
+    const invited = {
+      button: { command: { playlistEditEndpoint: { playlistId: 'PLabc', params: 'served', actions: [{ action: 'ACTION_JOIN_COLLABORATION', joinCollaborationToken: 'tok' }] } } },
+    };
+    expect(hasPlaylistEditAffordance(member, 'PLabc')).toBe(true);
+    expect(hasPlaylistEditAffordance(member, 'PLother')).toBe(false);
+    expect(hasPlaylistEditAffordance(invited, 'PLabc')).toBe(false);
+    expect([...parseAddToPlaylistIds(invited)]).toEqual([]);
+    expect([...parseAddToPlaylistIds({ playlists: [{ playlistAddToOptionRenderer: { playlistId: 'VLPLmine' } }] })]).toEqual(['PLmine']);
+    expect(parseCollabJoinEndpoints(invited, 'PLabc')).toEqual([
+      { playlistId: 'PLabc', params: 'served', actions: [{ action: 'ACTION_JOIN_COLLABORATION', joinCollaborationToken: 'tok' }] },
+    ]);
+    expect(parseCollabJoinEndpoints(invited, 'PLother')).toEqual([]);
+    expect(parseCollabJoinEndpoints(member, 'PLabc')).toEqual([]);
+  });
+
+  it('reads the roster from the collaborate panel', () => {
+    const panel = {
+      content: {
+        playlistCollaborationViewModel: {
+          playlistCollaborators: [
+            { contentListItemViewModel: { title: { content: 'Pranav' }, avatar: { avatarViewModel: { image: { sources: [{ url: 'https://yt3.ggpht.com/p' }] } } } } },
+            { contentListItemViewModel: { title: { content: 'Saksham' }, rendererContext: { commandContext: { onTap: { innertubeCommand: { browseEndpoint: { browseId: 'UCsaksham' } } } } } } },
+          ],
+        },
+      },
+    };
+    expect(parseCollaboratorsPanel(panel)).toEqual([
+      { name: 'Pranav', avatarUrl: 'https://yt3.ggpht.com/p', channelId: null },
+      { name: 'Saksham', avatarUrl: null, channelId: 'UCsaksham' },
+    ]);
+    expect(parseCollaboratorsPanel({ contents: [{ contentListItemViewModel: { title: { content: 'A setting' } } }] })).toEqual([]);
+  });
+
+  it('explains a refused join in words, never with the response body', () => {
+    const raw = new Error('Request to https://music.youtube.com/youtubei/v1/browse/edit_playlist failed with status code 401 {"error":{"code":401,"message":"You are not authorized to edit this playlist."}}');
+    expect(ytmErrorStatus(raw)).toBe(401);
+    expect(ytmErrorStatus({ info: { status: 409 } })).toBe(409);
+    const shown = ytmJoinFailureMessage(raw);
+    expect(shown).not.toMatch(/[{}]|youtubei/);
+    expect(shown).toMatch(/invite/i);
+    expect(ytmJoinFailureMessage({ status: 404 })).toMatch(/can't be found/);
+    expect(ytmJoinFailureMessage({ status: 503 })).toMatch(/HTTP 503/);
   });
 });
