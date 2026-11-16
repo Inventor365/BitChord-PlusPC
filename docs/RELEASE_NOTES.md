@@ -49,7 +49,8 @@ This release replaces `v1.10.1` and carries everything from `1.10.1` through `1.
   2. Open BitChord once. macOS will refuse.
   3. Go to **System Settings → Privacy & Security**, scroll to the message about BitChord and choose **Open Anyway**.
   - Or, in Terminal: `xattr -dr com.apple.quarantine /Applications/BitChord.app`
-- Pick `arm64` for Apple Silicon (M1 and later) and `x64` for Intel Macs.
+- Pick `x64` for Intel Macs. For Apple Silicon (M1 and later) pick `arm64` when it is listed below; the `x64` build also runs there through Rosetta.
+- Every macOS package in this release was installed and launched on a Mac before publishing.
 
 ---
 
@@ -57,7 +58,7 @@ This release replaces `v1.10.1` and carries everything from `1.10.1` through `1.
 - **Android phone & Auto**: `BitChord-v1.10.5.apk` (universal) or the `arm64-v8a` / `armeabi-v7a` / `x86_64` build
 - **Android TV / Fire TV**: `BitChordTV-v1.10.5.apk` or the per-ABI builds
 - **Wear OS**: `BitChordWear-v1.10.5.apk` (also bundled in the phone app)
-- **macOS**: `BitChord-1.10.5-macos-arm64.dmg` / `.pkg` / `.zip`, `BitChord-1.10.5-macos-x64.dmg` / `.pkg` / `.zip`
+- **macOS**: `BitChord-1.10.5-macos-x64.dmg` / `.pkg` / `.zip` (Intel, and Apple Silicon through Rosetta); `-macos-arm64` builds are added as soon as GitHub's Apple Silicon runners produce them
 - **Windows**: `BitChord-1.10.5-windows-x64-setup.exe`, `.msi`, `-portable.zip`
 - **Linux**: `BitChord-1.10.5-linux-x86_64.AppImage`, `-linux-amd64.deb`, `-linux-x86_64.rpm`
 
