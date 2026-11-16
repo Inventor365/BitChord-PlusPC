@@ -62,6 +62,7 @@ jobs:
           [ -n "$LISTEN_TOGETHER_SERVER" ] && echo "LISTEN_TOGETHER_SERVER=$LISTEN_TOGETHER_SERVER" >> local.properties
           [ -n "$COLLAB_SERVER" ] && echo "COLLAB_SERVER=$COLLAB_SERVER" >> local.properties
           [ -n "$COLLAB_GOOGLE_CLIENT_ID" ] && echo "COLLAB_GOOGLE_CLIENT_ID=$COLLAB_GOOGLE_CLIENT_ID" >> local.properties
+          true # an unset optional value above must not fail the step
 
           # NEVER generate a random throwaway keystore on release builds: doing so changes
           # the signing certificate SHA-256 on every tag and causes Android PackageManager
@@ -161,6 +162,7 @@ jobs:
           [ -n "$LISTEN_TOGETHER_SERVER" ] && echo "LISTEN_TOGETHER_SERVER=$LISTEN_TOGETHER_SERVER" >> local.properties
           [ -n "$COLLAB_SERVER" ] && echo "COLLAB_SERVER=$COLLAB_SERVER" >> local.properties
           [ -n "$COLLAB_GOOGLE_CLIENT_ID" ] && echo "COLLAB_GOOGLE_CLIENT_ID=$COLLAB_GOOGLE_CLIENT_ID" >> local.properties
+          true # an unset optional value above must not fail the step
 
       - name: Packaging tools
         run: |
@@ -255,6 +257,7 @@ jobs:
           [ -n "$LISTEN_TOGETHER_SERVER" ] && echo "LISTEN_TOGETHER_SERVER=$LISTEN_TOGETHER_SERVER" >> local.properties
           [ -n "$COLLAB_SERVER" ] && echo "COLLAB_SERVER=$COLLAB_SERVER" >> local.properties
           [ -n "$COLLAB_GOOGLE_CLIENT_ID" ] && echo "COLLAB_GOOGLE_CLIENT_ID=$COLLAB_GOOGLE_CLIENT_ID" >> local.properties
+          true # an unset optional value above must not fail the step
 
       - name: Tests
         run: .\gradlew.bat :shared:jvmTest :desktopUi:jvmTest :desktopApp:test "-Pbitchord.version=${{ steps.version.outputs.value }}"
@@ -341,6 +344,7 @@ jobs:
           [ -n "$LISTEN_TOGETHER_SERVER" ] && echo "LISTEN_TOGETHER_SERVER=$LISTEN_TOGETHER_SERVER" >> local.properties
           [ -n "$COLLAB_SERVER" ] && echo "COLLAB_SERVER=$COLLAB_SERVER" >> local.properties
           [ -n "$COLLAB_GOOGLE_CLIENT_ID" ] && echo "COLLAB_GOOGLE_CLIENT_ID=$COLLAB_GOOGLE_CLIENT_ID" >> local.properties
+          true # an unset optional value above must not fail the step
 
       - run: chmod +x gradlew scripts/macos/package-macos.py scripts/macos/verify-macos-artifacts.py
 
@@ -401,7 +405,7 @@ jobs:
           COREPACK_INTEGRITY_KEYS: '0'
           VITE_PARTY_SERVER_URL: ${{ secrets.LISTEN_TOGETHER_SERVER || vars.LISTEN_TOGETHER_SERVER || 'https://bitchord-listen-together.onrender.com' }}
           VITE_LISTEN_TOGETHER_URL: ${{ secrets.LISTEN_TOGETHER_SERVER || vars.LISTEN_TOGETHER_SERVER || 'https://bitchord-listen-together.onrender.com' }}
-          VITE_COLLAB_SERVER_URL: ${{ secrets.COLLAB_SERVER || vars.COLLAB_SERVER || secrets.LISTEN_TOGETHER_SERVER || vars.LISTEN_TOGETHER_SERVER || 'https://bitchord-listen-together.onrender.com' }}
+          VITE_COLLAB_SERVER_URL: ${{ secrets.COLLAB_SERVER || vars.COLLAB_SERVER || '' }}
           VITE_COLLAB_GOOGLE_CLIENT_ID: ${{ secrets.COLLAB_GOOGLE_CLIENT_ID || vars.COLLAB_GOOGLE_CLIENT_ID || '' }}
         run: |
           pnpm install --frozen-lockfile

@@ -217,7 +217,7 @@ inspect_apk() {
 
   OUT_V2="$(printf '%s\n' "$sig_out" | sed -n 's/^Verified using v2 scheme (APK Signature Scheme v2):[[:space:]]*\([a-z]*\).*/\1/p' | head -n1)"
   OUT_V3="$(printf '%s\n' "$sig_out" | sed -n 's/^Verified using v3 scheme (APK Signature Scheme v3):[[:space:]]*\([a-z]*\).*/\1/p' | head -n1)"
-  OUT_CERT="$(printf '%s\n' "$sig_out" | sed -n 's/^Signer #1 certificate SHA-256 digest:[[:space:]]*\([0-9A-Fa-f:[:space:]]*\)$/\1/p' | head -n1)"
+  OUT_CERT="$(printf '%s\n' "$sig_out" | sed -n 's/^\(Signer #1\|V[0-9.]* Signer:\) certificate SHA-256 digest:[[:space:]]*\([0-9A-Fa-f:[:space:]]*\)$/\2/p' | head -n1)"
   OUT_CERT="$(normalize_sha256 "$OUT_CERT")"
 
   if ! badging_out="$("$AAPT2_BIN" dump badging "$apk" 2>&1)"; then
