@@ -174,3 +174,38 @@ export function formatCollabDeepLink(token: string, serverOrigin?: string | null
   const query = cleanServer ? `?server=${encodeURIComponent(cleanServer)}` : '';
   return `bitchord://collab/invite/${encodeURIComponent(cleanToken)}${query}`;
 }
+
+function protoVarint(value: number): number[] {
+  const out: number[] = [];
+  let rest = value;
+  while (rest >= 0x80) {
+    out.push((rest & 0x7f) | 0x80);
+    rest >>>= 7;
+  }
+  out.push(rest);
+  return out;
+}
+
+function innertubeParams(bytes: number[]): string {
+  let binary = '';
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '%3D');
+}
+
+/**
+ * `browse` params carrying a YouTube Music invite link's `jct`, byte for byte what
+ * music.youtube.com's server builds for `/playlist?list=…&jct=…`: field 39 holds the token,
+ * field 88 a fixed `{1: 600}`. The playlist page requested with these carries the invite
+ * dialog and its join command.
+ */
+export function ytmInviteBrowseParams(jct: string): string {
+  const token = Array.from(new TextEncoder().encode(jct));
+  return innertubeParams([0xba, 0x02, ...protoVarint(token.length), ...token, 0xc2, 0x05, 0x03, 0x08, 0xd8, 0x04]);
+}
+
+/** `get_panel` params for a playlist's `PAplaylist_collaborate` panel: field 138 wrapping the playlist id. */
+export function ytmCollaboratorsPanelParams(rawPlaylistId: string): string {
+  const id = Array.from(new TextEncoder().encode(rawPlaylistId.replace(/^VL/, '')));
+  const inner = [0x0a, ...protoVarint(id.length), ...id];
+  return innertubeParams([0xd2, 0x08, ...protoVarint(inner.length), ...inner]);
+}

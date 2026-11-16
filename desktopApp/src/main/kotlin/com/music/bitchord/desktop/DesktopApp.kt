@@ -4190,6 +4190,20 @@ fun BitChordDesktopApp() {
                                     }
                                 },
                                 contentPadding = sharedPagePadding,
+                                onEditCover = { collab ->
+                                    scope.launch {
+                                        DesktopCollab.pickAndUploadCover(collab.id)?.let { problem ->
+                                            withContext(Dispatchers.Main) {
+                                                javax.swing.JOptionPane.showMessageDialog(
+                                                    null,
+                                                    problem,
+                                                    "Playlist cover",
+                                                    javax.swing.JOptionPane.WARNING_MESSAGE,
+                                                )
+                                            }
+                                        }
+                                    }
+                                },
                             )
                         }
                         openedArtist != null -> DesktopArtistPage(
@@ -6873,7 +6887,7 @@ private fun DesktopSettingsScreen(
 /** The line at the foot of the settings sheet, as Android has it. */
 @Composable
 private fun DesktopSettingsFooter(onLicenses: () -> Unit) {
-    val version = remember { System.getProperty("bitchord.version") ?: "1.10.3" }
+    val version = remember { System.getProperty("bitchord.version") ?: "1.10.5" }
     var easterEggTaps by remember { mutableStateOf(0) }
     val easterEggActive = easterEggTaps > 0
     val linkStyles = TextLinkStyles(

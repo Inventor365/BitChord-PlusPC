@@ -7,6 +7,7 @@ import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.ResponseException
 import io.ktor.client.plugins.timeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.HttpRequestBuilder
@@ -1286,7 +1287,12 @@ object Innertube {
      * Collaborators cannot edit PRIVATE playlists on YouTube Music, so [ensureUnlisted] promotes
      * PRIVATE playlists to UNLISTED first.
      */
-    suspend fun enablePlaylistCollaboration(playlistId: String, ensureUnlisted: Boolean = true): String {
+    suspend fun enablePlaylistCollaboration(
+        playlistId: String,
+        ensureUnlisted: Boolean = true,
+        /** How many times to ask while a new playlist settles; 1 is a single quick try. */
+        maxAttempts: Int = 14,
+    ): String {
         val rawId = playlistId.removePrefix("VL")
         // Promote PRIVATE -> UNLISTED ONCE up front (never inside the loop: YouTube takes up to
         // ~18s to propagate UNLISTED before ACTION_CREATE_COLLABORATION_INVITE_LINK succeeds).
@@ -1301,7 +1307,7 @@ object Innertube {
             }
         }
         var lastError: Throwable? = null
-        for (attempt in 0 until 14) {
+        for (attempt in 0 until maxAttempts) {
             if (attempt > 0 && settleRetryDelayMs > 0L) {
                 delay(settleRetryDelayMs)
             }
@@ -1348,108 +1354,205 @@ object Innertube {
     }
 
     /**
-     * Authoritative check whether the signed-in account has write/collaborator access to [playlistId]
-     * (either owns it, or YouTube Music lists it in `playlist/get_add_to_playlist`).
-     * Never confuses a read-only viewer (`isCollaborative == true`) with an accepted collaborator.
+     * The ids of every playlist YouTube Music will let the signed-in account add a track to —
+     * the ones it owns and the collaborative ones it has joined — read from the same
+     * `playlist/get_add_to_playlist` call the web client's "Save to playlist" dialog makes.
+     *
+     * The web client asks with the track being saved (`videoIds`), so that is asked first;
+     * the `playlistId` form (saving a whole album) is the fallback. A read-only viewer of a
+     * collaborative playlist never appears here, which is what makes this the authority on
+     * whether a join took.
      */
-    suspend fun getEditablePlaylistIdsForCurrentUser(): Set<String> {
+    suspend fun getEditablePlaylistIdsForCurrentUser(probeVideoId: String? = null): Set<String> {
         if (!hasSession) return emptySet()
-        return runCatching {
-            val resp = postMusic("playlist/get_add_to_playlist") {
-                put("playlistId", "LM")
+        val ids = HashSet<String>()
+        val probe = probeVideoId?.trim()?.takeIf { YT_VIDEO_ID.matches(it) } ?: ADD_TO_PLAYLIST_PROBE_VIDEO_ID
+        runCatching {
+            postMusic("playlist/get_add_to_playlist") {
+                putJsonArray("videoIds") { add(probe) }
+                put("excludeWatchLater", true)
             }
-            InnertubeParser.parseAddToPlaylistIds(resp)
-        }.getOrDefault(emptySet())
-    }
-
-    suspend fun isEditablePlaylistForCurrentUser(playlistId: String): Boolean {
-        if (!hasSession) return false
-        val rawId = playlistId.removePrefix("VL")
-        val owned = runCatching {
-            val browse = browse("VL$rawId")
-            InnertubeParser.parseYtmCollabHeader(browse, rawId)?.owned == true
-        }.getOrDefault(false)
-        if (owned) return true
-        return rawId in getEditablePlaylistIdsForCurrentUser()
+        }.onSuccess { ids += InnertubeParser.parseAddToPlaylistIds(it) }
+        if (ids.isEmpty()) {
+            runCatching {
+                postMusic("playlist/get_add_to_playlist") {
+                    put("playlistId", "LM")
+                    put("excludeWatchLater", true)
+                }
+            }.onSuccess { ids += InnertubeParser.parseAddToPlaylistIds(it) }
+        }
+        return ids
     }
 
     /**
-     * Joins a YouTube Music collaborative playlist via its `jct` invite token, retrying across
-     * YouTube's ~15s invite-token propagation window, verifying write/collaborator access, and
-     * saving the playlist to Library only once collaboration membership is active.
+     * Whether the signed-in account can write to [playlistId]: it owns it, YouTube Music hands
+     * it edit commands for it, or lists it among the playlists it may add to. Never confuses a
+     * read-only viewer of a collaborative playlist with an accepted collaborator.
      */
-    suspend fun joinCollaborativePlaylist(playlistId: String, joinCollaborationToken: String) {
+    suspend fun isEditablePlaylistForCurrentUser(playlistId: String): Boolean {
+        if (!hasSession) return false
+        val rawId = playlistId.removePrefix("VL")
+        val page = runCatching { browse("VL$rawId") }.getOrNull()
+        if (page != null) {
+            if (InnertubeParser.parseYtmCollabHeader(page, rawId)?.owned == true) return true
+            if (InnertubeParser.hasPlaylistEditAffordance(page, rawId)) return true
+        }
+        val probe = page?.let { InnertubeParser.parsePlaylistShelf(it)?.songs?.firstOrNull()?.videoId }
+        return rawId in getEditablePlaylistIdsForCurrentUser(probe)
+    }
+
+    /** How [joinCollaborativePlaylist] ended. */
+    enum class CollabJoinOutcome {
+        /** This call made the account a collaborator. */
+        JOINED,
+
+        /** The account already owned or collaborated on the playlist before this call. */
+        ALREADY_COLLABORATOR,
+    }
+
+    /**
+     * A join YouTube Music refused, worded for a dialog. The raw response body stays in
+     * [cause] for the log; [message] never carries it.
+     */
+    class CollabJoinException(
+        message: String,
+        val httpStatus: Int?,
+        cause: Throwable?,
+    ) : IllegalStateException(message, cause)
+
+    /**
+     * Joins a YouTube Music collaborative playlist via its `jct` invite token.
+     *
+     * The call itself is `ACTION_JOIN_COLLABORATION` on `browse/edit_playlist`, and its
+     * failures are ambiguous: YouTube Music answers **401 "You are not authorized to edit this
+     * playlist"** both when the account is *already* a collaborator and while a freshly minted
+     * token has not reached the replica answering (up to ~20s). So a refusal is never taken at
+     * its word — write access is checked after it, and the join is retried across the
+     * propagation window, through the invite page the web client itself loads
+     * ([joinViaInvitePage]) and through the `WEB` client, before it is reported as failed.
+     */
+    suspend fun joinCollaborativePlaylist(playlistId: String, joinCollaborationToken: String): CollabJoinOutcome {
+        requireSession()
         val rawId = playlistId.removePrefix("VL")
         val cleanJct = joinCollaborationToken.trim()
         require(cleanJct.isNotEmpty()) { "Invite link is missing a YouTube Music collaboration token (jct)." }
 
-        var joined = false
+        suspend fun finish(outcome: CollabJoinOutcome): CollabJoinOutcome {
+            runCatching { ratePlaylist(rawId, saved = true) }
+            return outcome
+        }
+
         var lastErr: Throwable? = null
-        for (attempt in 0 until 8) {
+        for (attempt in 0 until JOIN_ATTEMPTS) {
             if (attempt > 0 && settleRetryDelayMs > 0L) {
                 delay(settleRetryDelayMs)
             }
             val primary = runCatching {
-                editPlaylist(rawId, includeOnBehalfOfUser = true) {
-                    addJsonObject {
-                        put("action", "ACTION_JOIN_COLLABORATION")
-                        put("joinCollaborationToken", cleanJct)
-                    }
-                }
+                editPlaylist(rawId) { joinCollaborationAction(cleanJct) }
             }
-            if (primary.isSuccess) {
-                joined = true
-                break
-            }
+            if (primary.isSuccess) return finish(CollabJoinOutcome.JOINED)
             lastErr = primary.exceptionOrNull()
 
-            // Check if this account is ALREADY the owner or an accepted collaborator with write access
+            // 401 is what an account that is already in gets, so look before believing it.
             if (isEditablePlaylistForCurrentUser(rawId)) {
-                joined = true
-                break
-            }
-
-            // On first failure, refresh session scope and try without raw-Gaia onBehalfOfUser if set
-            if (attempt == 0) {
-                runCatching { refreshSessionScope() }
-                if (channelOverride != null || scope?.dataSyncId != null) {
-                    val bare = runCatching {
-                        editPlaylist(rawId, includeOnBehalfOfUser = false) {
-                            addJsonObject {
-                                put("action", "ACTION_JOIN_COLLABORATION")
-                                put("joinCollaborationToken", cleanJct)
-                            }
-                        }
-                    }
-                    if (bare.isSuccess || isEditablePlaylistForCurrentUser(rawId)) {
-                        joined = true
-                        break
-                    }
-                }
-            }
-
-            val msg = lastErr?.message.orEmpty()
-            val retryable = msg.contains("400") ||
-                msg.contains("403") ||
-                msg.contains("409") ||
-                msg.contains("500") ||
-                msg.contains("503") ||
-                msg.contains("PRECONDITION", ignoreCase = true) ||
-                msg.contains("STATUS_FAILED", ignoreCase = true)
-            if (!retryable) break
-        }
-
-        if (!joined && !isEditablePlaylistForCurrentUser(rawId)) {
-            val detailMsg = lastErr?.message.orEmpty()
-            if (detailMsg.contains("403") || detailMsg.contains("PERMISSION_DENIED", ignoreCase = true)) {
-                throw IllegalStateException(
-                    "YouTube Music refused the collaboration invite (403 PERMISSION_DENIED). " +
-                        "Make sure your Google account has an active YouTube channel and ask the owner for a fresh invite link if sharing was turned off.",
+                return finish(
+                    if (attempt == 0) CollabJoinOutcome.ALREADY_COLLABORATOR else CollabJoinOutcome.JOINED,
                 )
             }
-            throw (lastErr ?: IllegalStateException("Could not join this collaborative playlist on YouTube Music."))
+
+            // The other doors, tried on alternate rounds so a token that is merely still
+            // propagating is not hammered through four paths every couple of seconds.
+            if (attempt % 2 == 0) {
+                if (attempt == 0) {
+                    runCatching { refreshSessionScope() }
+                    if (channelOverride != null || scope?.dataSyncId != null) {
+                        val bare = runCatching {
+                            editPlaylist(rawId, includeOnBehalfOfUser = false) { joinCollaborationAction(cleanJct) }
+                        }
+                        if (bare.isSuccess) return finish(CollabJoinOutcome.JOINED)
+                    }
+                }
+                if (runCatching { joinViaInvitePage(rawId, cleanJct) }.getOrDefault(false)) {
+                    return finish(CollabJoinOutcome.JOINED)
+                }
+                if (runCatching { joinViaYouTubeWeb(rawId, cleanJct) }.getOrDefault(false)) {
+                    return finish(CollabJoinOutcome.JOINED)
+                }
+                if (isEditablePlaylistForCurrentUser(rawId)) return finish(CollabJoinOutcome.JOINED)
+            }
+
+            if (!isRetryableJoinFailure(lastErr)) break
         }
-        runCatching { ratePlaylist(rawId, saved = true) }
+
+        Log.d(TAG, "collab join refused for $rawId: ${lastErr?.message}")
+        throw CollabJoinException(describeJoinFailure(lastErr), httpStatusOf(lastErr), lastErr)
+    }
+
+    private fun JsonArrayBuilder.joinCollaborationAction(jct: String) {
+        addJsonObject {
+            put("action", "ACTION_JOIN_COLLABORATION")
+            put("joinCollaborationToken", jct)
+        }
+    }
+
+    /**
+     * The join the way music.youtube.com does it when an invite link is opened: the server
+     * folds the link's `jct` into the playlist page's `browse` params
+     * ([collaborationInviteBrowseParams]) and answers with an invite dialog whose accept
+     * button carries the join command. That command is run exactly as served.
+     */
+    private suspend fun joinViaInvitePage(rawId: String, jct: String): Boolean {
+        val page = postMusic("browse") {
+            put("browseId", "VL$rawId")
+            put("params", collaborationInviteBrowseParams(jct))
+        }
+        for (command in InnertubeParser.parseCollaborationJoinCommands(page, rawId)) {
+            val accepted = runCatching {
+                val response = postMusic(command.endpoint) {
+                    command.body.forEach { (key, value) -> put(key, value) }
+                }
+                val status = response["status"]?.jsonPrimitive?.contentOrNull
+                status == null || status.contains("SUCCEEDED")
+            }.getOrDefault(false)
+            if (accepted) return true
+        }
+        return false
+    }
+
+    /** The same join through `www.youtube.com`'s `WEB` client, which shares the playlist backend. */
+    private suspend fun joinViaYouTubeWeb(rawId: String, jct: String): Boolean {
+        val response = postYouTubeWeb("browse/edit_playlist") {
+            put("playlistId", rawId)
+            putJsonArray("actions") { joinCollaborationAction(jct) }
+        }
+        val status = response["status"]?.jsonPrimitive?.contentOrNull
+        return status == null || status.contains("SUCCEEDED")
+    }
+
+    /** The HTTP status a failed call was answered with, or null if it never got an answer. */
+    fun httpStatusOf(error: Throwable?): Int? =
+        (error as? ResponseException)?.response?.status?.value
+
+    private fun isRetryableJoinFailure(error: Throwable?): Boolean {
+        val status = httpStatusOf(error)
+        if (status != null) return status in RETRYABLE_JOIN_STATUSES
+        val msg = error?.message.orEmpty()
+        return msg.contains("PRECONDITION", ignoreCase = true) || msg.contains("STATUS_FAILED", ignoreCase = true)
+    }
+
+    private fun describeJoinFailure(error: Throwable?): String = when (httpStatusOf(error)) {
+        400, 401, 403 ->
+            "YouTube Music didn't accept this invite for the signed-in account. The link may have been " +
+                "replaced by a newer one, or sharing was turned off — ask the owner to create a fresh " +
+                "invite link and send it again. If it keeps happening, check that you're signed in with " +
+                "the Google account you want to join with and that it has a YouTube channel."
+        404 -> "This playlist can't be found on YouTube Music. It may have been deleted or made private."
+        null -> if (error is IOException) {
+            "Couldn't reach YouTube Music. Check your connection and try again."
+        } else {
+            "Could not join this collaborative playlist on YouTube Music. Try again in a moment."
+        }
+        else -> "YouTube Music couldn't complete the join right now (HTTP ${httpStatusOf(error)}). Try again in a moment."
     }
 
     /** Leaves a YouTube Music collaborative playlist and removes it from Library. */
@@ -1483,31 +1586,106 @@ object Innertube {
 
     /**
      * Fetches the `PAplaylist_collaborate` engagement panel listing active collaborators.
-     * Queries `WEB_REMIX` (`music.youtube.com`) first and falls back to `WEB` (`www.youtube.com`)
-     * when `WEB_REMIX` omits `playlistCollaborationViewModel` rows.
+     *
+     * Asked of `WEB_REMIX` first, with the params the playlist header carried and then the ones
+     * built from the playlist id ([collaboratorsPanelParams]) when the header had none; then of
+     * `WEB` (`www.youtube.com`), whose playlist page can carry its own panel params or the
+     * roster inline. The first answer that actually lists collaborators wins.
      */
     suspend fun getCollaboratorsPanel(params: String?, playlistId: String? = null): JsonObject {
         requireSession()
-        val musicPanel = runCatching {
-            postMusic("get_panel") {
-                put("panelId", "PAplaylist_collaborate")
-                if (!params.isNullOrBlank()) put("params", params)
-                if (!playlistId.isNullOrBlank()) put("playlistId", playlistId.removePrefix("VL"))
-            }
-        }.getOrNull()
-        if (musicPanel != null && InnertubeParser.parseCollaboratorsPanel(musicPanel).isNotEmpty()) {
-            return musicPanel
+        val rawId = playlistId?.removePrefix("VL")?.takeIf { it.isNotBlank() }
+        val candidates = listOfNotNull(
+            params?.takeIf { it.isNotBlank() },
+            rawId?.let(::collaboratorsPanelParams),
+        ).distinct()
+
+        var firstAnswer: JsonObject? = null
+        suspend fun rosterFrom(request: suspend () -> JsonObject): JsonObject? {
+            val panel = runCatching { request() }.getOrNull() ?: return null
+            if (firstAnswer == null) firstAnswer = panel
+            return panel.takeIf { InnertubeParser.parseCollaboratorsPanel(it).isNotEmpty() }
         }
-        val webPanel = runCatching {
+
+        for (candidate in candidates.ifEmpty { listOf(null) }) {
+            rosterFrom {
+                postMusic("get_panel") {
+                    put("panelId", COLLABORATE_PANEL_ID)
+                    candidate?.let { put("params", it) }
+                    rawId?.let { put("playlistId", it) }
+                }
+            }?.let { return it }
+        }
+
+        rosterFrom {
             postYouTubeWeb("get_panel") {
-                put("panelId", "PAplaylist_collaborate")
-                if (!params.isNullOrBlank()) put("params", params)
+                put("panelId", COLLABORATE_PANEL_ID)
+                candidates.firstOrNull()?.let { put("params", it) }
             }
-        }.getOrNull()
-        if (webPanel != null && InnertubeParser.parseCollaboratorsPanel(webPanel).isNotEmpty()) {
-            return webPanel
+        }?.let { return it }
+
+        if (rawId != null) {
+            val webPage = runCatching { postYouTubeWeb("browse") { put("browseId", "VL$rawId") } }.getOrNull()
+            if (webPage != null) {
+                if (InnertubeParser.parseCollaboratorsPanel(webPage, strict = true).isNotEmpty()) return webPage
+                val webParams = InnertubeParser.parseCollaboratorsPanelParams(webPage)
+                if (!webParams.isNullOrBlank() && webParams !in candidates) {
+                    rosterFrom {
+                        postYouTubeWeb("get_panel") {
+                            put("panelId", COLLABORATE_PANEL_ID)
+                            put("params", webParams)
+                        }
+                    }?.let { return it }
+                }
+            }
         }
-        return musicPanel ?: webPanel ?: buildJsonObject {}
+        return firstAnswer ?: buildJsonObject {}
+    }
+
+    private const val COLLABORATE_PANEL_ID = "PAplaylist_collaborate"
+
+    /** Rounds of [joinCollaborativePlaylist]; with [settleRetryDelayMs] this spans the ~20s token propagation. */
+    private const val JOIN_ATTEMPTS = 7
+
+    private val RETRYABLE_JOIN_STATUSES = setOf(400, 401, 403, 404, 409, 429, 500, 502, 503)
+
+    /** Any catalogue track; `get_add_to_playlist` only needs something to "save" to list the targets. */
+    private const val ADD_TO_PLAYLIST_PROBE_VIDEO_ID = "dQw4w9WgXcQ"
+
+    /**
+     * `browse` params carrying an invite link's `jct`, byte for byte what music.youtube.com's
+     * server builds for `/playlist?list=…&jct=…`: field 39 holds the token, field 88 a fixed
+     * `{1: 600}`. URL-safe base64 with the padding percent-encoded, as the page embeds it.
+     */
+    internal fun collaborationInviteBrowseParams(jct: String): String {
+        val token = jct.toByteArray(Charsets.UTF_8)
+        val bytes = byteArrayOf(0xBA.toByte(), 0x02) + protoVarint(token.size) + token +
+            byteArrayOf(0xC2.toByte(), 0x05, 0x03, 0x08, 0xD8.toByte(), 0x04)
+        return innertubeParams(bytes)
+    }
+
+    /**
+     * `get_panel` params for a playlist's `PAplaylist_collaborate` panel — field 138 wrapping
+     * the playlist id, which is all the header's own `showEngagementPanelEndpoint` params hold.
+     */
+    internal fun collaboratorsPanelParams(rawPlaylistId: String): String {
+        val id = rawPlaylistId.removePrefix("VL").toByteArray(Charsets.UTF_8)
+        val inner = byteArrayOf(0x0A) + protoVarint(id.size) + id
+        return innertubeParams(byteArrayOf(0xD2.toByte(), 0x08) + protoVarint(inner.size) + inner)
+    }
+
+    private fun innertubeParams(bytes: ByteArray): String =
+        Base64.getUrlEncoder().encodeToString(bytes).replace("=", "%3D")
+
+    private fun protoVarint(value: Int): ByteArray {
+        val out = ArrayList<Byte>(2)
+        var rest = value
+        while (rest >= 0x80) {
+            out.add(((rest and 0x7F) or 0x80).toByte())
+            rest = rest ushr 7
+        }
+        out.add(rest.toByte())
+        return out.toByteArray()
     }
 
     private suspend fun postYouTubeWeb(

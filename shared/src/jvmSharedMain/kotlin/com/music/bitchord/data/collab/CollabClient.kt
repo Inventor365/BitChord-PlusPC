@@ -52,6 +52,12 @@ class CollabApiException(
 data class CollabConvertResult(
     val playlist: CollabPlaylistDetail,
     val alreadyConverted: Boolean = false,
+    /** How many songs the source playlist had. Zero when the backend did not say. */
+    val requestedTrackCount: Int = 0,
+    /** How many of them are in the collaborative playlist now. */
+    val migratedTrackCount: Int = 0,
+    /** Titles of the songs that could not be carried over. */
+    val skippedTitles: List<String> = emptyList(),
 )
 
 @Serializable

@@ -5,9 +5,11 @@
 - **GitHub Repository**: `https://github.com/Inventor365/BitChord-PlusPC.git` (`origin`, branch `main`)
 - **OTA Manifest Repository**: `https://github.com/Inventor365/Bitchord-OTA.git` (currently serving **`v1.10.1`**, `versionCode = 42`)
 - **Latest Published GitHub Release**: **`v1.10.1`** (`versionCode = 42`, all 21 platform binaries + `SHA256SUMS.txt` uploaded)
-- **Current `main` Working Version**: **`1.10.3` (`versionCode = 44`, `desktopVersionCode = 44`)**
-  - **IMPORTANT FOR NEXT APK BUILD**: The user has already sideloaded **`1.10.3` (`versionCode = 44`)** onto their physical test phones (from `/serverhive2/yukia/bitchord/build/apk-preview-1.10.3/`). Bump to **`1.10.4` (`versionCode = 45`)** when building the next test APK so Android upgrades in-place without `INSTALL_FAILED_VERSION_DOWNGRADE`.
+- **Current Working Version**: **`1.10.5` (`versionCode = 46`, `desktopVersionCode = 46`)**
+  - Signed test APKs: `/serverhive2/yukia/bitchord/build/apk-preview-1.10.5/`, verified with `scripts/verify-android-upgrade.sh` against `build/apk-preview-1.10.4/`.
+  - The user sideloaded **`1.10.4`** and confirmed collaborative playlists (create, invite, join) work on real devices. Once `1.10.5` has been sideloaded, bump to **`1.10.6` (`versionCode = 47`)** for the next test APK.
   - Do **not** push to `Inventor365/Bitchord-OTA` until the matching GitHub Release APKs/installers are uploaded on `Inventor365/BitChord-PlusPC`, otherwise live users' OTA checks would 404 on the download URL.
+  - **Known hazard**: root `ota.json` on `main` advertises `1.10.3`, which has no GitHub Release. `AppUpdateChecker` / `DesktopUpdateChecker` use `raw.githubusercontent.com/Inventor365/BitChord-PlusPC/main/ota.json` as a fallback source, so if the OTA repository is unreachable live users are offered a download that 404s. It was left as found; decide whether to set it back to `1.10.1` until a release exists.
 
 ---
 
@@ -32,74 +34,31 @@
 
 ---
 
-## 3. Immediate Open Issues to Fix Next (With Exact Evidence & Root-Cause Blueprint)
+## 3. Collaborative Playlists — What Was Fixed in `1.10.4` and What Still Needs Real Devices
 
-Two real-device screenshots from `v1.10.3` (`versionCode = 44`) capture the exact remaining issues in **Zero-Config YouTube Music Collaborative Playlists**:
-- `/tmp/f14a00fa-b17f-492b-aa0c-4e684ff7994c.jpg` (Joining device error on **Accept & Join Playlist**)
-- `/tmp/02c5d104-6f33-4eb0-9fae-941580caea4c.png` (Owner device **Invite / Members / Sharing & Rules** modal)
+`1.10.4` changes are verified against `SimulatedInnertubeCollabEnvTest`, `CollabInnertubeProtocolTest` and the web `collab.test.ts` only. **Nothing here has been run against real YouTube Music accounts yet** — do the two-device check below before releasing.
 
-### What Already Works Confirmed on Real Devices
-- Creating collaborative playlists on YouTube Music (including emoji titles & blank descriptions) works.
-- Minting real YouTube Music collaboration invite links (`https://music.youtube.com/playlist?list=PLErqBdLwkATE&jct=L1_yAKqFkzT...`) works.
-- Direct `bitchord://collab/ytm/<playlistId>?jct=<token>` link generation & clipboard auto-preview work.
+### Verified Protocol Facts (checked against the live service or real captured responses — rely on these)
+- **The join call is right**: `browse/edit_playlist` with `{"action": "ACTION_JOIN_COLLABORATION", "joinCollaborationToken": <jct>}` is exactly what `ytmusicapi` (`join_collaborative_playlist`) sends and tests against real accounts.
+- **`401 "You are not authorized to edit this playlist."` is ambiguous.** `ytmusicapi` documents it as the answer to an account that is *already* a collaborator; its tests also wait ~15s after enabling collaboration before joining. So a 401 must be followed by a write-access check and a retry, never shown as final (`Innertube.joinCollaborativePlaylist`).
+- **How music.youtube.com itself consumes an invite link**: the web client has no `jct` handling in JavaScript. The *server* folds `jct` into the playlist page's `browse` params: protobuf field 39 = token, then fixed bytes `C2 05 03 08 D8 04`, URL-safe base64 with `=` as `%3D`. Captured from the live server (e.g. `jct=AbCdEfGhIjKlMnOpQrStUv` -> `ugIWQWJDZEVmR2hJaktsTW5PcFFyU3RVdsIFAwjYBA%3D%3D`); implemented as `Innertube.collaborationInviteBrowseParams` / `ytmInviteBrowseParams`. The page then carries a dialog (`collaborativePlaylistInviteMessageViewModel`) whose button holds the join command.
+  - **Not verified**: the exact shape of that dialog's join command for a signed-in non-member (it needs a real session to see). `InnertubeParser.parseCollaborationJoinCommands` reads a `playlistEditEndpoint` whose actions join, or a POST command named like a collaboration join; if the real shape differs, capture it and extend the parser.
+- **Collaborators panel params are just the playlist id**: protobuf field 138 `{1: playlistId}` (real header sample from `ytmusicapi` test data: `PLxyTaDz8f5PBc-8kE36gvB-eflhODG2dw` -> `0ggkCiJQTHh5VGFEejhmNVBCYy04a0UzNmd2Qi1lZmxoT0RHMmR3`). `Innertube.collaboratorsPanelParams` builds them when the header has none.
+- **Panel shape** (from the web client's renderer): `playlistCollaborationViewModel.playlistCollaborators[].contentListItemViewModel { title.content, avatar.avatarViewModel, rendererContext }`.
+- **A just-created playlist refuses edits** (`409`, sometimes `400` for collaboration) for up to ~20s (`ytmusicapi` `retry_playlist_edit`). `CollabManager.addSongsReliably` waits that out.
 
----
+### Two-Device Check To Run on `1.10.4`
+1. **Fresh join**: owner creates a collaborative playlist and an invite; a second Google account joins from BitChord. Expect success within ~20s and `Members (2)` on the owner's device.
+2. **Re-join**: the second account taps the same invite again (or from a reinstall). Expect "already a member", not an error.
+3. **Stale link**: owner taps *Create & Copy Invite Link* again, then the old link is used. Check whether YouTube Music still honours the old token and what the dialog says.
+4. **Convert a playlist of 150+ songs** and confirm the song count matches the source.
+5. **Rename and change the cover** as owner; confirm the second device sees both.
+6. If a join still fails, capture the response of `browse` with the invite params for a non-member — that shows the real join command.
 
-### Issue A — Joining via BitChord (`Accept & Join Playlist`) Fails With `HTTP 401 UNAUTHENTICATED: "You are not authorized to edit this playlist."`
-**Screenshot**: `/tmp/f14a00fa-b17f-492b-aa0c-4e684ff7994c.jpg`
-
-**Observed Error in `CollabJoinInviteDialog`**:
-```json
-Client request (POST https://music.youtube.com/youtubei/v1/browse/edit_playlist?prettyPrint=false&hl=en) invalid: 401.
-Text: "{
-  "error": {
-    "code": 401,
-    "message": "You are not authorized to edit this playlist.",
-    "errors": [{
-      "message": "You are not authorized to edit this playlist.",
-      "domain": "global",
-      "reason": "unauthorized"
-    }],
-    "status": "UNAUTHENTICATED"
-  }
-}"
-```
-
-**Relevant Files**:
-- `shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/innertube/Innertube.kt` (`joinCollaborativePlaylist` lines `1378–1458`, `isEditablePlaylistForCurrentUser` lines `1355–1374`, `postYouTubeWeb` lines `1515–1562`)
-- `shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/innertube/InnertubeParser.kt` (`parseAddToPlaylistIds` lines `2046–2056`)
-- `shared/src/jvmSharedMain/kotlin/com/music/bitchord/data/collab/CollabManager.kt` (`acceptInvite` lines `890–916`)
-
-**Exact Root Causes & Fix Plan**:
-1. **Case 1 — Joining Device Is *Already* a Collaborator (`HTTP 401` is YouTube's documented "already joined" response!)**:
-   - `ytmusicapi` (`ytmusicapi/mixins/playlists.py`, `join_collaborative_playlist`) explicitly documents:
-     > *"If you're already a collaborator, an Unauthorized (401) server error is raised."*
-   - In `Innertube.joinCollaborativePlaylist`, when `editPlaylist` (`ACTION_JOIN_COLLABORATION`) threw Ktor `ClientRequestException` (`401`), two things went wrong:
-     1. `isEditablePlaylistForCurrentUser(rawId)` called `postMusic("playlist/get_add_to_playlist") { put("playlistId", "LM") }`. On `WEB_REMIX`, `get_add_to_playlist` expects `putJsonArray("videoIds") { add("dQw4w9WgXcQ") }` (not `"playlistId": "LM"`, or check both!) and can wrap playlist IDs in `addToPlaylistItemRenderer` / `musicTwoRowItemRenderer` / `playlistAddToOptionRenderer.serviceEndpoint.playlistEditEndpoint.playlistId`. Because `isEditablePlaylistForCurrentUser` returned `false`, the code did not recognize that the user was already a collaborator!
-     2. In `Innertube.joinCollaborativePlaylist` line `1430`, `retryable` checked `400`, `403`, `409`, `500`, `503` — **not `401`** — so it broke out of the loop immediately and threw the raw Ktor `401` JSON string into the UI!
-2. **Case 2 — Joining a Fresh Collaborative Playlist Where the User Is *Not* Yet a Collaborator (`WEB_REMIX` vs `WEB` / Web Page Endpoint)**:
-   - Remember the user's earlier observation: *"if the invite link is clicked - it opens youtube music and if a person adds this playlist to youtube music, bitchord shows them added"*.
-   - Verify whether `music.youtube.com/youtubei/v1/browse/edit_playlist` (`WEB_REMIX`, client ID `67`) rejects `ACTION_JOIN_COLLABORATION` with `401 You are not authorized to edit this playlist` for non-owners whereas **`www.youtube.com/youtubei/v1/browse/edit_playlist` (`WEB` client via `postYouTubeWeb`, client ID `1`, `Origin: https://www.youtube.com`)** OR the `serviceEndpoint` inside `GET https://music.youtube.com/playlist?list=$rawId&jct=$cleanJct` / `GET https://www.youtube.com/playlist?list=$rawId&jct=$cleanJct` (`ytInitialData` — look for `ACTION_JOIN_COLLABORATION` or `playlistEditEndpoint.params` or `confirmDialogRenderer` accept button command!) is what actually executes the join!
-   - **Recommended multi-strategy join in `Innertube.joinCollaborativePlaylist`**:
-     1. Try `WEB_REMIX` `browse/edit_playlist` (`ACTION_JOIN_COLLABORATION`).
-     2. If `401` / `403` / `400`, try **`postYouTubeWeb("browse/edit_playlist")`** (`https://www.youtube.com/youtubei/v1/browse/edit_playlist` with `clientName = "WEB"`, `SAPISIDHASH` for `https://www.youtube.com`) with `ACTION_JOIN_COLLABORATION`!
-     3. Also fetch `GET https://www.youtube.com/playlist?list=$rawId&jct=$cleanJct` (with `Cookie` + `WEB_USER_AGENT`) and parse `ytInitialData` for any `playlistEditEndpoint` (`params` + `actions` / `clientParams`) or `serviceEndpoint` attached to the `"Collaborate"` / `"Join"` button and execute that exact endpoint!
-     4. Verify write access afterward via `playlist/get_add_to_playlist` with `videoIds = ["dQw4w9WgXcQ"]` (and/or check if the current user's channel appears in `getCollaboratorsPanel`), and if on Android all API-only join paths are gated by YouTube, offer an optional 1-tap offscreen/sheet `WebView` fallback loading `https://music.youtube.com/playlist?list=$rawId&jct=$cleanJct` with the user's existing `BrowserSession.installGoogleCookies(cookie)`.
-     5. Sanitize Ktor `ClientRequestException` messages so raw JSON payloads are never dumped onto dialogs.
-
----
-
-### Issue B — `CollabInviteAndManageDialog` Tab Chip Wrapping & Live Collaborator Count (`Members (1)`)
-**Screenshot**: `/tmp/02c5d104-6f33-4eb0-9fae-941580caea4c.png`
-
-1. **UI Layout Wrap on `"Sharing & Rules"` Chip**:
-   - **File**: `sharedUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/collab/CollabPlaylistsUi.kt` lines `1474–1490` (and mirror `desktopUi/src/jvmSharedMain/kotlin/com/music/bitchord/ui/collab/CollabPlaylistsUi.kt`).
-   - **Cause**: `Row` contains 3 `FilterChip`s (`Invite Link`, `Members (1)`, `Sharing & Rules`) + `Spacer(Modifier.weight(1f))` + `Refresh` `IconButton` without `horizontalScroll`, squeezing `"Sharing & Rules"` into 4 vertical lines (`Shari / ng & / Rule / s`).
-   - **Fix**: Move the `Refresh` `IconButton` up into the modal title `Row` (next to the `Close` `X` icon at line `1463`) and add `.horizontalScroll(rememberScrollState())` + `maxLines = 1, softWrap = false` on the `FilterChip` labels.
-2. **Owner Member Count & Roster Sync (`Members (1)` -> `Members (2)`)**:
-   - Once Device B genuinely joins (fixing Issue A), verify `Innertube.getCollaboratorsPanel` (`Innertube.kt:1485–1507`) and `InnertubeParser.parseCollaboratorsPanel` (`InnertubeParser.kt:1943–1979`) against real `WEB` `get_panel` responses:
-     - Note that on YouTube `WEB`, `POST /youtubei/v1/get_panel` can wrap `playlistCollaborationViewModel` inside `actions[0].updateEngagementPanelAction.content.sectionListRenderer...` or `engagementPanels[0].engagementPanelSectionListRenderer.content...` (`collectRenderers` already walks the full JSON tree, so verify `params` passed to `get_panel` — on `WEB`, `browse("VL$rawId")` via `postYouTubeWeb("browse")` may carry a `WEB`-specific `showEngagementPanelEndpoint.globalConfiguration.params` distinct from `WEB_REMIX`'s `params`!).
-     - Calling `postYouTubeWeb("browse") { put("browseId", "VL$rawId") }` when `meta.isCollaborative` is true lets you read both the `WEB` header facepile/collaborator dialog (`DialogView` -> `ListView` -> `ListItemView`, see `LuanRT/YouTube.js` commit `049f9a6`) AND the `WEB`-scoped `panelParams` for `postYouTubeWeb("get_panel")`!
+### Not Done (deliberate)
+- No WebView join fallback on Android. If API joins turn out to be gated for some accounts, the fallback is a `WebView` on `https://music.youtube.com/playlist?list=<id>&jct=<token>` with the app's Google cookies.
+- "Make Collaborative" still makes a copy rather than enabling collaboration on the original playlist in place.
+- Phones whose status-bar "island" only shows media from an allow-list of apps cannot be fixed from inside the app.
 
 ---
 

@@ -61,11 +61,13 @@ import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
 import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import androidx.media3.session.CommandButton
+import androidx.core.app.NotificationCompat
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 import androidx.media3.session.MediaLibraryService.LibraryParams
+import androidx.media3.session.MediaNotification
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
@@ -1395,11 +1397,28 @@ class PlaybackService : MediaLibraryService() {
         QualityUpgrade.forgetLastSession()
 
         setMediaNotificationProvider(
-            DefaultMediaNotificationProvider.Builder(this)
-                .setChannelId(CHANNEL_ID)
-                .setChannelName(R.string.playback_channel_name)
-                .build()
-                .apply { setSmallIcon(R.drawable.ic_notification_logo) },
+            // The stock provider, with the notification filed under the category Android
+            // reserves for playback transport. Media3 leaves the category unset; the system
+            // player never needed it, but vendor surfaces that pick "the app that is playing"
+            // out of the posted notifications — island and capsule status bars, always-on
+            // display players — do sort by it, and an uncategorised media notification is one
+            // some of them pass over.
+            object : DefaultMediaNotificationProvider(
+                this,
+                { DefaultMediaNotificationProvider.DEFAULT_NOTIFICATION_ID },
+                CHANNEL_ID,
+                R.string.playback_channel_name,
+            ) {
+                override fun addNotificationActions(
+                    mediaSession: MediaSession,
+                    mediaButtons: ImmutableList<CommandButton>,
+                    builder: NotificationCompat.Builder,
+                    actionFactory: MediaNotification.ActionFactory,
+                ): IntArray {
+                    builder.setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+                    return super.addNotificationActions(mediaSession, mediaButtons, builder, actionFactory)
+                }
+            }.apply { setSmallIcon(R.drawable.ic_notification_logo) },
         )
 
         // Both the player screen and notification route their Shuffle command

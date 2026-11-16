@@ -142,6 +142,11 @@ class SimulatedInnertubeCollabEnvTest {
             avatarUrl = "https://yt3.ggpht.com/pranav",
         )
 
+        // Signing in starts a library refresh in the background. Let it finish first, or it can
+        // browse the new playlist and take the one 404 this test stages for the create.
+        awaitBackgroundLibraryRefresh()
+        sim.browseFailuresRemaining.set(1)
+
         val seedSong = Song(
             videoId = "yKNxeF4KMsY",
             title = "Yellow",
@@ -512,6 +517,354 @@ class SimulatedInnertubeCollabEnvTest {
 
         ownerMgr.unsubscribePlaylist(created.id)
     }
+
+    private suspend fun awaitBackgroundLibraryRefresh() {
+        repeat(200) {
+            if (sim.recordedRequests.any { it.path.contains("/playlist/get_add_to_playlist") }) {
+                kotlinx.coroutines.delay(60L)
+                return
+            }
+            kotlinx.coroutines.delay(10L)
+        }
+    }
+
+    private fun managerFor(actor: String, dirName: String = "collab_${actor.lowercase()}"): CollabManager {
+        val dir = createTempDirectory(dirName).toFile()
+        val manager = CollabManager(storageFileProvider = { dir.resolve("state.json") })
+        actAs(actor)
+        manager.syncAppGoogleAccount(
+            signedIn = true,
+            accountId = "acct_${actor.lowercase()}",
+            displayName = actor,
+            email = "${actor.lowercase()}@example.com",
+            avatarUrl = "https://yt3.ggpht.com/${actor.lowercase()}",
+        )
+        return manager
+    }
+
+    private fun actAs(actor: String) {
+        sim.activeActorName = actor
+        sim.activeActorAvatar = "https://yt3.ggpht.com/${actor.lowercase()}"
+    }
+
+    private suspend fun sharedPlaylist(owner: CollabManager): Pair<CollabPlaylistDetail, String> {
+        val created = owner.createPlaylist(
+            title = "Road Trip",
+            initialSongs = listOf(Song(videoId = "aaaaaaaaaaa", title = "Owner Song", artist = "Artist", thumbnailUrl = null)),
+        ).getOrThrow()
+        val invite = owner.createInvite(created.id).getOrThrow()
+        return created to invite.inviteUrl
+    }
+
+    /**
+     * The v1.10.3 screenshot: `edit_playlist` answered the join with
+     * `401 "You are not authorized to edit this playlist."`. YouTube Music says exactly that
+     * while a freshly minted `jct` has not reached the replica answering, so it has to be
+     * waited out — it used to end the attempt on the spot and land on screen as raw JSON.
+     */
+    @Test
+    fun joinAnswered401WhileInviteTokenPropagatesIsRetriedUntilItLands() = runBlocking {
+        val owner = managerFor("Pranav")
+        val (created, inviteUrl) = sharedPlaylist(owner)
+        val rawId = created.id.removePrefix("ytm:")
+
+        val guest = managerFor("Saksham")
+        sim.joinUnauthorizedRemaining.set(3)
+        val joined = guest.acceptInvite(inviteUrl).getOrElse { fail("join should outlast the 401s: ${it.message}", it) }
+
+        assertFalse(joined.alreadyMember)
+        assertTrue(sim.playlists.getValue(rawId).collaborators.any { it.second == "Saksham" })
+        assertEquals(0, sim.joinUnauthorizedRemaining.get().coerceAtLeast(0))
+        // Write access is checked the way the web client's "Save to playlist" dialog asks.
+        assertTrue(
+            sim.recordedRequests.any { call ->
+                call.path.contains("/playlist/get_add_to_playlist") && (call.body["videoIds"] as? JsonArray).orEmpty().isNotEmpty()
+            },
+        )
+        val added = guest.addSongs(created.id, listOf(Song(videoId = "bbbbbbbbbbb", title = "Guest Song", artist = "Artist", thumbnailUrl = null)))
+        assertTrue(added.isSuccess, "a joined collaborator can add songs")
+    }
+
+    /**
+     * 401 is also what an account that is *already* a collaborator gets for joining again.
+     * A second device, or a reinstall, signed in as the same person must be let in, not shown
+     * an error — which needs the write-access check to actually see the membership.
+     */
+    @Test
+    fun rejoiningAsAnExistingCollaboratorIsRecognisedDespiteThe401() = runBlocking {
+        val owner = managerFor("Pranav")
+        val (created, inviteUrl) = sharedPlaylist(owner)
+
+        val firstDevice = managerFor("Saksham", "collab_saksham_phone")
+        firstDevice.acceptInvite(inviteUrl).getOrThrow()
+
+        // A second install for the same account: nothing remembered locally.
+        val secondDevice = managerFor("Saksham", "collab_saksham_tablet")
+        val again = secondDevice.acceptInvite(inviteUrl).getOrElse {
+            fail("an existing collaborator must be let back in, got: ${it.message}", it)
+        }
+        assertTrue(again.alreadyMember)
+        assertEquals(created.id, again.playlist.id)
+        assertEquals(CollabRole.EDITOR.name, again.playlist.myRole)
+
+        // The owner opening their own invite link is the same case.
+        actAs("Pranav")
+        val ownerTap = owner.acceptInvite(inviteUrl).getOrThrow()
+        assertTrue(ownerTap.alreadyMember)
+    }
+
+    /**
+     * When the hand-built join is refused outright, the join is made the way
+     * music.youtube.com makes it: the playlist page is requested with the invite's `jct` folded
+     * into its `browse` params, and the join command its invite dialog carries is run as served.
+     */
+    @Test
+    fun joinFallsBackToTheInvitePagesOwnJoinCommand() = runBlocking {
+        val owner = managerFor("Pranav")
+        val (created, inviteUrl) = sharedPlaylist(owner)
+        val rawId = created.id.removePrefix("ytm:")
+        val jct = CollabInviteLink.parse(inviteUrl)!!.ytmJoinToken!!
+
+        val guest = managerFor("Saksham")
+        sim.joinOnlyThroughInvitePage = true
+        sim.recordedRequests.clear()
+        val joined = guest.acceptInvite(inviteUrl).getOrElse { fail("invite-page join should succeed: ${it.message}", it) }
+
+        assertFalse(joined.alreadyMember)
+        assertTrue(sim.playlists.getValue(rawId).collaborators.any { it.second == "Saksham" })
+        assertTrue(
+            sim.recordedRequests.any { call ->
+                call.path.contains("/youtubei/v1/browse?") &&
+                    call.body["params"]?.jsonPrimitive?.contentOrNull == Innertube.collaborationInviteBrowseParams(jct)
+            },
+            "the playlist page must be requested with the invite's params",
+        )
+        assertTrue(
+            sim.recordedRequests.none { it.path.contains("/youtubei/v1/feedback") },
+            "the dialog's decline command must never be run",
+        )
+    }
+
+    /** A join YouTube Music really does refuse reads as a sentence, never as the response body. */
+    @Test
+    fun refusedJoinIsExplainedInWordsNotRawJson() = runBlocking {
+        val owner = managerFor("Pranav")
+        val (created, _) = sharedPlaylist(owner)
+        val rawId = created.id.removePrefix("ytm:")
+
+        val guest = managerFor("Saksham")
+        sim.wrongTokenStatus = 401
+        val refused = guest.acceptInvite("https://music.youtube.com/playlist?list=$rawId&jct=replaced_by_newer_link")
+        val error = refused.exceptionOrNull() ?: fail("a stale invite must not join")
+
+        val shown = error.toCollabUserMessage()
+        assertFalse(shown.contains("{") || shown.contains("youtubei") || shown.contains("Client request"), shown)
+        assertTrue(shown.contains("invite", ignoreCase = true), shown)
+        assertTrue(guest.playlists.value.none { it.id == created.id })
+        assertTrue(sim.playlists.getValue(rawId).collaborators.none { it.second == "Saksham" })
+    }
+
+    /**
+     * The roster panel is asked for with params built from the playlist id when the header
+     * offers none, so the owner's "Members (1)" becomes "Members (2)" once someone joins.
+     */
+    @Test
+    fun ownerRosterGrowsUsingPanelParamsBuiltFromThePlaylistId() = runBlocking {
+        sim.omitHeaderPanelParams = true
+        sim.getPanelRequiresParams = true
+
+        val owner = managerFor("Pranav")
+        val (created, inviteUrl) = sharedPlaylist(owner)
+        assertEquals(1, owner.loadPlaylistDetail(created.id).getOrThrow().members.size)
+
+        val guest = managerFor("Saksham")
+        guest.acceptInvite(inviteUrl).getOrThrow()
+
+        actAs("Pranav")
+        val refreshed = owner.loadPlaylistDetail(created.id).getOrThrow()
+        assertEquals(2, refreshed.memberCount)
+        assertTrue(refreshed.members.any { it.displayName == "Saksham" && it.role == CollabRole.EDITOR.name })
+        assertTrue(refreshed.members.any { it.displayName == "Pranav" && it.role == CollabRole.OWNER.name })
+    }
+
+    private fun seedSourcePlaylist(id: String, count: Int, owner: String = "Pranav"): List<String> {
+        val pl = SimulatedYtmServer.SimPlaylist(id = id, title = "Everything I Like", description = "", privacy = "PRIVATE", ownerName = owner)
+        val ids = (1..count).map { "src_%07d".format(it) }
+        ids.forEachIndexed { index, vid ->
+            pl.tracks.add(SimulatedYtmServer.SimTrack("src_svid_$index", vid, "Source Song ${index + 1}", "Artist", owner, null))
+        }
+        sim.playlists[id] = pl
+        return ids
+    }
+
+    /**
+     * Converting a long YouTube Music playlist. The screen that starts the conversion has only
+     * the first page of it loaded; the new playlist refuses edits with 409 while it settles;
+     * and one of the songs is one YouTube Music will no longer add. Every other song has to
+     * arrive, in order, and the one that could not has to be named rather than lost quietly.
+     */
+    @Test
+    fun convertingALongPlaylistMigratesEverySongAcrossPagesSettlingAndABadTrack() = runBlocking {
+        val owner = managerFor("Pranav")
+        val sourceIds = seedSourcePlaylist("PL_source_long", 230)
+        val unavailable = sourceIds[120]
+        sim.unavailableVideoIds.add(unavailable)
+        sim.addVideoSettlingRemaining.set(6)
+
+        val firstPageOnly = sourceIds.take(100).mapIndexed { index, vid ->
+            Song(videoId = vid, title = "Source Song ${index + 1}", artist = "Artist", thumbnailUrl = null)
+        }
+        val converted = owner.convertPersonalPlaylist(
+            sourcePlaylistId = "VLPL_source_long",
+            sourceType = "ytm",
+            title = "Everything We Like",
+            songs = firstPageOnly,
+        ).getOrElse { fail("conversion failed: ${it.message}", it) }
+
+        val expected = sourceIds - unavailable
+        val rawId = converted.playlist.id.removePrefix("ytm:")
+        assertEquals(expected, sim.playlists.getValue(rawId).tracks.map { it.videoId }, "every available song, in the source's order")
+        assertEquals(230, converted.requestedTrackCount)
+        assertEquals(229, converted.migratedTrackCount)
+        assertEquals(listOf("Source Song 121"), converted.skippedTitles)
+        assertEquals(229, converted.playlist.tracks.size, "the detail reads every page, not just the first")
+        assertEquals(229, converted.playlist.trackCount)
+        assertEquals(230, sim.playlists.getValue("PL_source_long").tracks.size, "the original is left as it was")
+
+        // Opening it later reads all pages again.
+        assertEquals(229, owner.loadPlaylistDetail(converted.playlist.id).getOrThrow().tracks.size)
+    }
+
+    /** A song YouTube Music refuses among the ones sent with `playlist/create` must not sink the conversion. */
+    @Test
+    fun conversionSurvivesAnUnavailableSongAmongTheFirstFifty() = runBlocking {
+        val owner = managerFor("Pranav")
+        val sourceIds = seedSourcePlaylist("PL_source_bad_seed", 120)
+        sim.unavailableVideoIds.addAll(listOf(sourceIds[10], sourceIds[77]))
+
+        val converted = owner.convertPersonalPlaylist(
+            sourcePlaylistId = "PL_source_bad_seed",
+            sourceType = "ytm",
+            title = "Still Converts",
+            songs = emptyList(),
+        ).getOrElse { fail("conversion failed: ${it.message}", it) }
+
+        val rawId = converted.playlist.id.removePrefix("ytm:")
+        assertEquals(sourceIds - setOf(sourceIds[10], sourceIds[77]), sim.playlists.getValue(rawId).tracks.map { it.videoId })
+        assertEquals(118, converted.migratedTrackCount)
+        assertEquals(2, converted.skippedTitles.size)
+    }
+
+    /**
+     * Converting a playlist that was converted before does not make a second copy — and it
+     * brings across what the copy is missing, whether the source grew or the earlier
+     * conversion stopped short.
+     */
+    @Test
+    fun convertingAgainTopsUpWhatTheCollaborativeCopyIsMissing() = runBlocking {
+        val owner = managerFor("Pranav")
+        seedSourcePlaylist("PL_source_growing", 60)
+        val first = owner.convertPersonalPlaylist("PL_source_growing", "ytm", "Growing", songs = emptyList()).getOrThrow()
+        val rawId = first.playlist.id.removePrefix("ytm:")
+        assertEquals(60, first.playlist.tracks.size)
+
+        // The copy lost its tail (as conversions before this fix could), and the source gained three.
+        val copy = sim.playlists.getValue(rawId)
+        repeat(20) { copy.tracks.removeAt(copy.tracks.lastIndex) }
+        val source = sim.playlists.getValue("PL_source_growing")
+        listOf("new_0000001", "new_0000002", "new_0000003").forEachIndexed { index, vid ->
+            source.tracks.add(SimulatedYtmServer.SimTrack("new_svid_$index", vid, "New Song ${index + 1}", "Artist", "Pranav", null))
+        }
+
+        val second = owner.convertPersonalPlaylist("PL_source_growing", "ytm", "Growing", songs = emptyList()).getOrThrow()
+        assertTrue(second.alreadyConverted)
+        assertEquals(first.playlist.id, second.playlist.id)
+        assertEquals(source.tracks.map { it.videoId }.toSet(), copy.tracks.map { it.videoId }.toSet())
+        assertEquals(63, second.playlist.tracks.size)
+        assertEquals(63, second.migratedTrackCount)
+    }
+
+    /** The owner can rename the playlist, and a page that still serves the old title does not undo it on screen. */
+    @Test
+    fun ownerRenamesPlaylistAndALaggingPageDoesNotRevertIt() = runBlocking {
+        val owner = managerFor("Pranav")
+        val (created, _) = sharedPlaylist(owner)
+        val rawId = created.id.removePrefix("ytm:")
+
+        val renamed = owner.updatePlaylistMetadata(created.id, title = "  Summer <3 Mix ", description = "Windows down").getOrThrow()
+        assertEquals("Summer ‹3 Mix", renamed.title)
+        assertEquals("Summer ‹3 Mix", sim.playlists.getValue(rawId).title)
+        assertEquals("Windows down", sim.playlists.getValue(rawId).description)
+
+        // A replica that has not caught up yet answers the next refresh.
+        sim.playlists.getValue(rawId).title = "Road Trip"
+        assertEquals("Summer ‹3 Mix", owner.loadPlaylistDetail(created.id).getOrThrow().title)
+        assertEquals("Summer ‹3 Mix", owner.playlists.value.first { it.id == created.id }.title)
+        assertTrue(owner.details.value.getValue(created.id).activities.any { it.action == "playlist.update" })
+    }
+
+    /**
+     * A song added from the search panel is on screen at once and stays there while YouTube's
+     * page has not caught up — it used to vanish until the playlist was closed and reopened.
+     */
+    @Test
+    fun addedSongStaysOnScreenWhileThePageStillListsTheOldPlaylist() = runBlocking {
+        val owner = managerFor("Pranav")
+        val (created, _) = sharedPlaylist(owner)
+        val rawId = created.id.removePrefix("ytm:")
+
+        val after = owner.addSongs(created.id, listOf(Song(videoId = "ccccccccccc", title = "Love Me Not", artist = "Ravyn Lenae", thumbnailUrl = null))).getOrThrow()
+        assertTrue(after.tracks.any { it.trackId == "ccccccccccc" })
+
+        // The page answering the next refreshes is a replica that has not seen the add yet.
+        val simPlaylist = sim.playlists.getValue(rawId)
+        val row = simPlaylist.tracks.first { it.videoId == "ccccccccccc" }
+        simPlaylist.tracks.remove(row)
+        repeat(2) {
+            val refreshed = owner.loadPlaylistDetail(created.id, allPages = false).getOrThrow()
+            assertTrue(refreshed.tracks.any { it.trackId == "ccccccccccc" && it.title == "Love Me Not" }, "the added song must not drop off the screen")
+            assertEquals(2, refreshed.trackCount)
+        }
+
+        // Once the page lists it, there is exactly one of it.
+        simPlaylist.tracks.add(row)
+        val settled = owner.loadPlaylistDetail(created.id).getOrThrow()
+        assertEquals(1, settled.tracks.count { it.trackId == "ccccccccccc" })
+
+        // A refused add is taken back off the screen.
+        sim.unavailableVideoIds.add("ddddddddddd")
+        val refused = owner.addSongs(created.id, listOf(Song(videoId = "ddddddddddd", title = "Gone", artist = "Nobody", thumbnailUrl = null)))
+        assertTrue(refused.isFailure)
+        assertTrue(owner.details.value.getValue(created.id).tracks.none { it.trackId == "ddddddddddd" })
+        assertTrue(owner.loadPlaylistDetail(created.id).getOrThrow().tracks.none { it.trackId == "ddddddddddd" })
+    }
+
+    /**
+     * Creating a playlist does not wait out YouTube Music's settling for the invite link — that
+     * is fetched in the background — and asking for the link again reuses the one already known.
+     */
+    @Test
+    fun creationDoesNotWaitForTheInviteLinkAndTheLinkIsReused() = runBlocking {
+        val owner = managerFor("Pranav")
+        sim.collabFailuresRemaining.set(3) // still settling when the playlist is created
+        val created = owner.createPlaylist(title = "Quick").getOrThrow()
+        val inviteCalls = {
+            sim.recordedRequests.count { call ->
+                call.path.contains("/browse/edit_playlist") &&
+                    call.body.toString().contains("ACTION_CREATE_COLLABORATION_INVITE_LINK")
+            }
+        }
+        // Usable straight away, link or no link.
+        assertEquals("Quick", created.title)
+
+        val first = owner.createInvite(created.id).getOrThrow()
+        assertTrue(first.inviteUrl.contains("jct="))
+        kotlinx.coroutines.delay(300L) // let the background link fetch finish or stand down
+        val callsAfterFirst = inviteCalls()
+        val second = owner.createInvite(created.id).getOrThrow()
+        assertEquals(first.inviteUrl, second.inviteUrl)
+        assertEquals(callsAfterFirst, inviteCalls(), "a known link is handed out without another request")
+    }
 }
 
 internal enum class CreateResponseMode {
@@ -572,6 +925,12 @@ internal class SimulatedYtmServer : Dispatcher() {
     @Volatile var gateUnlistedCreate: Boolean = false
     @Volatile var rejectNextJoinAsAlreadyMember: Boolean = false
     @Volatile var omitWebRemixGetPanel: Boolean = false
+
+    /** The playlist header's collaborate button carries no `get_panel` params. */
+    @Volatile var omitHeaderPanelParams: Boolean = false
+
+    /** `get_panel` answers only to params, never to a bare `playlistId`. */
+    @Volatile var getPanelRequiresParams: Boolean = false
     @Volatile var customJctSuffix: String? = null
     @Volatile var activeActorName: String = "Pranav"
     @Volatile var activeActorAvatar: String = "https://yt3.ggpht.com/pranav"
@@ -581,6 +940,35 @@ internal class SimulatedYtmServer : Dispatcher() {
     val browseFailuresRemaining = AtomicInteger(0)
     val joinFailuresRemaining = AtomicInteger(0)
     val addVideoAclFailuresRemaining = AtomicInteger(0)
+
+    /** 401s served to a valid join while the freshly minted token "propagates". */
+    val joinUnauthorizedRemaining = AtomicInteger(0)
+
+    /** What a join with a token that is not the playlist's is answered with. */
+    @Volatile var wrongTokenStatus: Int = 403
+
+    /** Only the join command served on the invite page is honoured; a hand-built one gets 401. */
+    @Volatile var joinOnlyThroughInvitePage: Boolean = false
+
+    /** `get_add_to_playlist` lists nothing unless asked the way the web client asks (`videoIds`). */
+    @Volatile var addToPlaylistRequiresVideoIds: Boolean = true
+
+    /** 409s served to `ACTION_ADD_VIDEO` while a just-created playlist "settles". */
+    val addVideoSettlingRemaining = AtomicInteger(0)
+
+    /** Tracks YouTube Music will not add; a batch carrying one is refused whole. */
+    val unavailableVideoIds: MutableSet<String> = ConcurrentHashMap.newKeySet()
+
+    /** Rows per playlist page, as YouTube Music pages them. */
+    @Volatile var browsePageSize: Int = 100
+
+    private fun unauthorizedToEdit(): MockResponse = MockResponse().setResponseCode(401).setBody(
+        """{"error":{"code":401,"message":"You are not authorized to edit this playlist.","errors":[{"message":"You are not authorized to edit this playlist.","domain":"global","reason":"unauthorized"}],"status":"UNAUTHENTICATED"}}""",
+    )
+
+    private fun isMember(pl: SimPlaylist): Boolean =
+        pl.ownerName.equals(activeActorName, ignoreCase = true) ||
+            pl.collaborators.any { it.second.equals(activeActorName, ignoreCase = true) }
     override fun dispatch(request: RecordedRequest): MockResponse {
         val path = request.path.orEmpty()
         if (path == "/" || path.startsWith("/?")) {
@@ -636,7 +1024,7 @@ internal class SimulatedYtmServer : Dispatcher() {
             }
 
             path.contains("/youtubei/v1/playlist/create") -> handleCreatePlaylist(bodyObj)
-            path.contains("/youtubei/v1/playlist/get_add_to_playlist") -> handleGetAddToPlaylist()
+            path.contains("/youtubei/v1/playlist/get_add_to_playlist") -> handleGetAddToPlaylist(bodyObj)
             path.contains("/youtubei/v1/browse/edit_playlist") -> handleEditPlaylist(bodyObj)
             path.contains("/youtubei/v1/browse") -> handleBrowse(bodyObj)
             path.contains("/youtubei/v1/get_panel") -> handleGetPanel(bodyObj)
@@ -714,6 +1102,10 @@ internal class SimulatedYtmServer : Dispatcher() {
             if (!Regex("^[A-Za-z0-9_-]{11}$").matches(vid)) {
                 return MockResponse().setResponseCode(400)
                     .setBody("""{"error":{"code":400,"message":"Invalid videoId: $vid","status":"INVALID_ARGUMENT"}}""")
+            }
+            if (vid in unavailableVideoIds) {
+                return MockResponse().setResponseCode(400)
+                    .setBody("""{"error":{"code":400,"message":"Request contains an invalid argument.","status":"INVALID_ARGUMENT"}}""")
             }
             val svid = "svid_${seq.incrementAndGet()}"
             pl.tracks.add(SimTrack(svid, vid, "Track $vid", "Artist", activeActorName, activeActorAvatar))
@@ -800,11 +1192,17 @@ internal class SimulatedYtmServer : Dispatcher() {
                         return MockResponse().setResponseCode(400)
                             .setBody("""{"error":{"code":400,"message":"Already collaborator","status":"FAILED_PRECONDITION"}}""")
                     }
+                    // Real YouTube Music: an account that is already in is told it may not edit.
+                    if (isMember(pl)) return unauthorizedToEdit()
                     val token = act["joinCollaborationToken"]?.jsonPrimitive?.contentOrNull
                     if (token != pl.jct) {
-                        return MockResponse().setResponseCode(403)
-                            .setBody("""{"error":{"code":403,"message":"Sorry, something went wrong.","status":"PERMISSION_DENIED"}}""")
+                        if (wrongTokenStatus == 401) return unauthorizedToEdit()
+                        return MockResponse().setResponseCode(wrongTokenStatus)
+                            .setBody("""{"error":{"code":$wrongTokenStatus,"message":"Sorry, something went wrong.","status":"PERMISSION_DENIED"}}""")
                     }
+                    if (joinUnauthorizedRemaining.getAndDecrement() > 0) return unauthorizedToEdit()
+                    val servedByInvitePage = body["params"]?.jsonPrimitive?.contentOrNull == INVITE_PAGE_GRANT
+                    if (joinOnlyThroughInvitePage && !servedByInvitePage) return unauthorizedToEdit()
                     if (pl.collaborators.none { it.second.equals(activeActorName, ignoreCase = true) }) {
                         pl.collaborators.add(Triple("UC_collab_${activeActorName.lowercase()}", activeActorName, activeActorAvatar))
                     }
@@ -828,6 +1226,15 @@ internal class SimulatedYtmServer : Dispatcher() {
                             .setBody("""{"error":{"code":403,"message":"Sorry, something went wrong.","status":"PERMISSION_DENIED"}}""")
                     }
                     val vid = act["addedVideoId"]?.jsonPrimitive?.contentOrNull.orEmpty()
+                    if (actEl === actions.first() && addVideoSettlingRemaining.getAndDecrement() > 0) {
+                        return MockResponse().setResponseCode(409)
+                            .setBody("""{"error":{"code":409,"message":"The operation was aborted.","status":"ABORTED"}}""")
+                    }
+                    val batchIds = actions.mapNotNull { it.jsonObject["addedVideoId"]?.jsonPrimitive?.contentOrNull }
+                    if (batchIds.any { it in unavailableVideoIds }) {
+                        return MockResponse().setResponseCode(400)
+                            .setBody("""{"error":{"code":400,"message":"Request contains an invalid argument.","status":"INVALID_ARGUMENT"}}""")
+                    }
                     val dedupe = act["dedupeOption"]?.jsonPrimitive?.contentOrNull
                     val alreadyHas = pl.tracks.any { it.videoId == vid }
                     if (alreadyHas && dedupe != "DEDUPE_OPTION_SKIP") {
@@ -896,6 +1303,24 @@ internal class SimulatedYtmServer : Dispatcher() {
 
     private fun handleBrowse(body: JsonObject): MockResponse {
         val browseId = body["browseId"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        val continuation = body["continuation"]?.jsonPrimitive?.contentOrNull
+        if (continuation != null && continuation.startsWith("cont|")) {
+            val (_, contPid, contOffset) = continuation.split("|")
+            val contPl = playlists[contPid] ?: return okJson(buildJsonObject {})
+            return okJson(
+                buildJsonObject {
+                    putJsonArray("onResponseReceivedActions") {
+                        add(
+                            buildJsonObject {
+                                putJsonObject("appendContinuationItemsAction") {
+                                    put("continuationItems", trackRowsPage(contPl, contOffset.toInt()))
+                                }
+                            },
+                        )
+                    }
+                },
+            )
+        }
         if (browseId == "FEmusic_liked_playlists") {
             val items = buildJsonArray {
                 playlists.values.filter { activeActorName.lowercase() in it.savedByActors }.forEach { pl ->
@@ -997,7 +1422,9 @@ internal class SimulatedYtmServer : Dispatcher() {
                                     putJsonObject("innertubeCommand") {
                                         putJsonObject("showEngagementPanelEndpoint") {
                                             putJsonObject("identifier") { put("tag", "PAplaylist_collaborate") }
-                                            putJsonObject("globalConfiguration") { put("params", "panel_$pid") }
+                                            if (!omitHeaderPanelParams) {
+                                                putJsonObject("globalConfiguration") { put("params", "panel_$pid") }
+                                            }
                                         }
                                     }
                                 }
@@ -1008,8 +1435,142 @@ internal class SimulatedYtmServer : Dispatcher() {
             }
         }
 
-        val trackItems = buildJsonArray {
-            pl.tracks.forEach { t ->
+        val trackItems = trackRowsPage(pl, 0)
+
+        val inviteParams = body["params"]?.jsonPrimitive?.contentOrNull
+        val servesInviteDialog = inviteParams != null && pl.jct != null && !isMember(pl) &&
+            inviteParams == Innertube.collaborationInviteBrowseParams(pl.jct!!)
+        val root = buildJsonObject {
+            if (servesInviteDialog) {
+                putJsonArray("actions") {
+                    add(
+                        buildJsonObject {
+                            putJsonObject("openPopupAction") {
+                                putJsonObject("popup") {
+                                    putJsonObject("dialogViewModel") {
+                                        putJsonObject("content") {
+                                            putJsonObject("collaborativePlaylistInviteMessageViewModel") {
+                                                putJsonObject("inviteMessage") { put("content", "${pl.ownerName} invited you to collaborate") }
+                                                putJsonObject("accountName") { put("content", activeActorName) }
+                                            }
+                                        }
+                                        putJsonArray("buttons") {
+                                            add(
+                                                buildJsonObject {
+                                                    putJsonObject("buttonViewModel") {
+                                                        put("title", "Cancel")
+                                                        putJsonObject("onTap") {
+                                                            putJsonObject("innertubeCommand") {
+                                                                putJsonObject("commandMetadata") {
+                                                                    putJsonObject("webCommandMetadata") {
+                                                                        put("sendPost", true)
+                                                                        put("apiUrl", "/youtubei/v1/feedback")
+                                                                    }
+                                                                }
+                                                                putJsonObject("declinePlaylistCollaborationCommand") { put("playlistId", pl.id) }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                            )
+                                            add(
+                                                buildJsonObject {
+                                                    putJsonObject("buttonViewModel") {
+                                                        put("title", "Join")
+                                                        putJsonObject("onTap") {
+                                                            putJsonObject("innertubeCommand") {
+                                                                putJsonObject("commandMetadata") {
+                                                                    putJsonObject("webCommandMetadata") {
+                                                                        put("sendPost", true)
+                                                                        put("apiUrl", "/youtubei/v1/browse/edit_playlist")
+                                                                    }
+                                                                }
+                                                                putJsonObject("playlistEditEndpoint") {
+                                                                    put("playlistId", pl.id)
+                                                                    put("params", INVITE_PAGE_GRANT)
+                                                                    putJsonArray("actions") {
+                                                                        add(
+                                                                            buildJsonObject {
+                                                                                put("action", "ACTION_JOIN_COLLABORATION")
+                                                                                put("joinCollaborationToken", pl.jct)
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                    )
+                }
+            }
+            putJsonObject("contents") {
+                putJsonObject("twoColumnBrowseResultsRenderer") {
+                    putJsonArray("tabs") {
+                        add(
+                            buildJsonObject {
+                                putJsonObject("tabRenderer") {
+                                    putJsonObject("content") {
+                                        putJsonObject("sectionListRenderer") {
+                                            putJsonArray("contents") {
+                                                add(
+                                                    buildJsonObject {
+                                                        if (isOwned) {
+                                                            putJsonObject("musicEditablePlaylistDetailHeaderRenderer") {
+                                                                put("playlistId", pl.id)
+                                                                putJsonObject("editHeader") {
+                                                                    putJsonObject("musicPlaylistEditHeaderRenderer") {
+                                                                        put("privacy", pl.privacy)
+                                                                    }
+                                                                }
+                                                                putJsonObject("header") {
+                                                                    put("musicResponsiveHeaderRenderer", headerObj)
+                                                                }
+                                                            }
+                                                        } else {
+                                                            put("musicResponsiveHeaderRenderer", headerObj)
+                                                        }
+                                                    },
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                        )
+                    }
+                    putJsonObject("secondaryContents") {
+                        putJsonObject("sectionListRenderer") {
+                            putJsonArray("contents") {
+                                add(
+                                    buildJsonObject {
+                                        putJsonObject("musicPlaylistShelfRenderer") {
+                                            put("playlistId", pl.id)
+                                            put("contents", trackItems)
+                                        }
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return okJson(root)
+    }
+
+    /** One page of a playlist's rows, with the token for the next when there is one. */
+    private fun trackRowsPage(pl: SimPlaylist, offset: Int): JsonArray {
+        val page = pl.tracks.drop(offset).take(browsePageSize)
+        val nextOffset = offset + page.size
+        return buildJsonArray {
+            page.forEach { t ->
                 add(
                     buildJsonObject {
                         putJsonObject("musicResponsiveListItemRenderer") {
@@ -1094,68 +1655,27 @@ internal class SimulatedYtmServer : Dispatcher() {
                     },
                 )
             }
-        }
-
-        val root = buildJsonObject {
-            putJsonObject("contents") {
-                putJsonObject("twoColumnBrowseResultsRenderer") {
-                    putJsonArray("tabs") {
-                        add(
-                            buildJsonObject {
-                                putJsonObject("tabRenderer") {
-                                    putJsonObject("content") {
-                                        putJsonObject("sectionListRenderer") {
-                                            putJsonArray("contents") {
-                                                add(
-                                                    buildJsonObject {
-                                                        if (isOwned) {
-                                                            putJsonObject("musicEditablePlaylistDetailHeaderRenderer") {
-                                                                put("playlistId", pl.id)
-                                                                putJsonObject("editHeader") {
-                                                                    putJsonObject("musicPlaylistEditHeaderRenderer") {
-                                                                        put("privacy", pl.privacy)
-                                                                    }
-                                                                }
-                                                                putJsonObject("header") {
-                                                                    put("musicResponsiveHeaderRenderer", headerObj)
-                                                                }
-                                                            }
-                                                        } else {
-                                                            put("musicResponsiveHeaderRenderer", headerObj)
-                                                        }
-                                                    },
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            },
-                        )
-                    }
-                    putJsonObject("secondaryContents") {
-                        putJsonObject("sectionListRenderer") {
-                            putJsonArray("contents") {
-                                add(
-                                    buildJsonObject {
-                                        putJsonObject("musicPlaylistShelfRenderer") {
-                                            put("playlistId", pl.id)
-                                            put("contents", trackItems)
-                                        }
-                                    },
-                                )
+            if (nextOffset < pl.tracks.size) {
+                add(
+                    buildJsonObject {
+                        putJsonObject("continuationItemRenderer") {
+                            putJsonObject("continuationEndpoint") {
+                                putJsonObject("continuationCommand") { put("token", "cont|${pl.id}|$nextOffset") }
                             }
                         }
-                    }
-                }
+                    },
+                )
             }
         }
-        return okJson(root)
     }
 
-    private fun handleGetAddToPlaylist(): MockResponse {
+    private fun handleGetAddToPlaylist(body: JsonObject): MockResponse {
+        val askedLikeWebClient = (body["videoIds"] as? JsonArray).orEmpty().isNotEmpty()
         val writable = playlists.values.filter { pl ->
-            pl.ownerName.equals(activeActorName, ignoreCase = true) ||
-                (!pl.closedToContributions && pl.collaborators.any { it.second.equals(activeActorName, ignoreCase = true) })
+            (askedLikeWebClient || !addToPlaylistRequiresVideoIds) && (
+                pl.ownerName.equals(activeActorName, ignoreCase = true) ||
+                    (!pl.closedToContributions && pl.collaborators.any { it.second.equals(activeActorName, ignoreCase = true) })
+                )
         }
         val resp = buildJsonObject {
             putJsonArray("contents") {
@@ -1187,7 +1707,9 @@ internal class SimulatedYtmServer : Dispatcher() {
             return okJson(buildJsonObject {})
         }
         val params = body["params"]?.jsonPrimitive?.contentOrNull.orEmpty()
-        val pid = params.removePrefix("panel_").ifBlank { body["playlistId"]?.jsonPrimitive?.contentOrNull.orEmpty() }
+        val pid = playlists.keys.firstOrNull { Innertube.collaboratorsPanelParams(it) == params }
+            ?: params.takeIf { it.startsWith("panel_") }?.removePrefix("panel_")
+            ?: (if (getPanelRequiresParams) "" else body["playlistId"]?.jsonPrimitive?.contentOrNull.orEmpty())
         val pl = playlists[pid] ?: return okJson(buildJsonObject {})
         val resp = buildJsonObject {
             putJsonObject("playlistCollaborationViewModel") {
@@ -1307,6 +1829,10 @@ internal class SimulatedYtmServer : Dispatcher() {
             }
         }
         return okJson(resp)
+    }
+
+    private companion object {
+        const val INVITE_PAGE_GRANT = "invite_page_grant"
     }
 
     private fun okJson(obj: JsonObject): MockResponse =

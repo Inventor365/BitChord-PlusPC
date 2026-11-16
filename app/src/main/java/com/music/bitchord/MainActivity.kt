@@ -2457,6 +2457,26 @@ private fun BitChordApp(
     val notifyPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { /* Refusing costs the progress notification, not the download. */ }
+    // Asked the first time something plays, not only at the first download. Playback itself
+    // never needed the permission, which is how this went unasked — but the lock-screen
+    // controls, the notification-shade player and the status-bar "island" several vendor
+    // skins draw are all built from the media notification, and on Android 13+ those skins
+    // hide it from an app that was never granted this. The phone then plays BitChord without
+    // showing that anything is playing. Once per install: Android's own dialog already stops
+    // appearing after a second refusal, and this should not be the app that asks every launch.
+    val nowPlayingForPrompt = player.song?.videoId
+    LaunchedEffect(nowPlayingForPrompt) {
+        if (nowPlayingForPrompt == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return@LaunchedEffect
+        val granted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) return@LaunchedEffect
+        val prompts = context.getSharedPreferences("bitchord_prompts", Context.MODE_PRIVATE)
+        if (prompts.getBoolean("asked_playback_notifications", false)) return@LaunchedEffect
+        prompts.edit().putBoolean("asked_playback_notifications", true).apply()
+        runCatching { notifyPermission.launch(Manifest.permission.POST_NOTIFICATIONS) }
+    }
     val storagePermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -3329,6 +3349,19 @@ private fun BitChordApp(
                                         webSession = if (signedIn) WebSessionMode.SWITCH_CHANNEL else WebSessionMode.SIGN_IN
                                     } else {
                                         showCollabAuthDialog = true
+                                    }
+                                },
+                                // A YouTube Music collaborative playlist is a YouTube Music
+                                // playlist, so its cover goes through the same picker and
+                                // upload a personal playlist's does.
+                                onEditCover = { collab ->
+                                    if (collab.id.startsWith("ytm:") && !coverArtUploading) {
+                                        viewModel.clearCoverArtOutcome()
+                                        coverArtUploadFailed = false
+                                        coverArtPlaylistTitle = collab.title
+                                        coverArtAccountId = activeAccountId
+                                        coverArtProfileId = activeProfileId
+                                        coverArtPlaylistId = collab.id.removePrefix("ytm:")
                                     }
                                 },
                                 contentPadding = listPadding,
@@ -5917,6 +5950,10 @@ private fun BitChordApp(
                 val outcome = coverArtOutcome ?: return@LaunchedEffect
                 outcome.fold(
                     onSuccess = { refreshed ->
+                        // The collaborative playlist screen keeps its own copy of the header.
+                        coverArtPlaylistId?.let { changedId ->
+                            scope.launch { AndroidCollab.manager.refreshAfterExternalEdit(changedId) }
+                        }
                         coverArtPlaylistId = null
                         Toast.makeText(
                             context,
