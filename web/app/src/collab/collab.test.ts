@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { derivePkceChallengeS256 } from './auth';
+import { derivePkceChallengeS256, syncYtExtensionToCollab, useCollabAuth } from './auth';
 import { sanitizeCollabServerUrl } from './config';
 import { cleanCollabInviteToken, formatCollabDeepLink, formatCollabInviteUrl, parseCollabInviteLink } from './inviteLink';
 import {
@@ -530,5 +530,25 @@ describe('playlist conversion mapping, PKCE S256, and socket backoff', () => {
     expect(computeReconnectDelayMs(1, () => 0)).toBe(1000);
     expect(computeReconnectDelayMs(2, () => 0)).toBe(2000);
     expect(computeReconnectDelayMs(20, () => 1)).toBe(30_000);
+  });
+
+  it('parses YouTube Music ?list=...&jct=... invite links and syncs extension Google sign-in automatically', () => {
+    const ytm = parseCollabInviteLink('https://music.youtube.com/playlist?list=PLQwVIlKxHM6qv-o99&jct=kM9wXdRj2p8v_qL3sHBkTz');
+    expect(ytm).not.toBeNull();
+    expect(ytm?.ytmPlaylistId).toBe('PLQwVIlKxHM6qv-o99');
+    expect(ytm?.ytmJoinToken).toBe('kM9wXdRj2p8v_qL3sHBkTz');
+
+    // Plain non-collaborative YTM playlist URL without jct= is not parsed as an invite
+    expect(parseCollabInviteLink('https://music.youtube.com/playlist?list=PLQwVIlKxHM6qv-o99')).toBeNull();
+
+    syncYtExtensionToCollab({
+      signedIn: true,
+      id: 'UC_pranav_123',
+      name: 'Pranav',
+      email: 'pranav@example.com',
+      avatarUrl: 'https://yt3.ggpht.com/avatar',
+    });
+    expect(useCollabAuth.getState().user?.displayName).toBe('Pranav');
+    expect(useCollabAuth.getState().user?.email).toBe('pranav@example.com');
   });
 });

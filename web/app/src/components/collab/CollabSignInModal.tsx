@@ -11,6 +11,7 @@ import {
 import {
   DEFAULT_COLLAB_SERVER_URL,
   DEFAULT_GOOGLE_CLIENT_ID,
+  isNativeYtmCollabMode,
   resolveCollabServerUrl,
   resolveGoogleClientId,
   useCollabConfig,
@@ -38,7 +39,8 @@ function CollabSignInDialog({ reason, onClose }: { reason: string; onClose: () =
 
   const effectiveClientId = resolveGoogleClientId();
   const effectiveServer = resolveCollabServerUrl();
-  const [showConfig, setShowConfig] = useState(!effectiveClientId);
+  const nativeMode = isNativeYtmCollabMode();
+  const [showConfig, setShowConfig] = useState(!nativeMode && !effectiveClientId);
   const [serverDraft, setServerDraft] = useState(configState.serverUrl);
   const [clientDraft, setClientDraft] = useState(configState.googleClientId);
   const gisContainerRef = useRef<HTMLDivElement>(null);
@@ -137,27 +139,45 @@ function CollabSignInDialog({ reason, onClose }: { reason: string; onClose: () =
           )}
 
           <div className="mt-5 flex flex-col items-center gap-2.5">
-            {effectiveClientId && <div ref={gisContainerRef} className="min-h-[40px]" />}
-
-            <button
-              type="button"
-              disabled={signingIn || !effectiveClientId}
-              onClick={() => void startGooglePkceSignIn({ mode: 'popup' }).catch(() => {})}
-              className="inline-flex h-10 w-full max-w-[280px] items-center justify-center gap-2 rounded-pill bg-key-bg px-5 type-body-emphasized text-white hover:opacity-95 disabled:opacity-45"
-            >
-              <GoogleGlyph />
-              <span>{signingIn ? 'Signing in with Google…' : 'Continue with Google (OAuth PKCE)'}</span>
-            </button>
-
-            {effectiveClientId && (
-              <button
-                type="button"
-                disabled={signingIn}
-                onClick={() => void startGooglePkceSignIn({ mode: 'redirect' }).catch(() => {})}
-                className="type-callout text-secondary hover:text-primary hover:underline"
-              >
-                Popup blocked? Sign in via full-page redirect
-              </button>
+            {nativeMode ? (
+              <>
+                <a
+                  href="https://music.youtube.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={onClose}
+                  className="inline-flex h-10 w-full max-w-[300px] items-center justify-center gap-2 rounded-pill bg-key-bg px-5 type-body-emphasized text-white hover:opacity-95"
+                >
+                  <GoogleGlyph />
+                  <span>Sign in on YouTube Music</span>
+                </a>
+                <p className="text-center type-callout text-secondary">
+                  Once signed into Google on music.youtube.com with the BitChord companion extension enabled, Collaborative Playlists work automatically with zero setup.
+                </p>
+              </>
+            ) : (
+              <>
+                {effectiveClientId && <div ref={gisContainerRef} className="min-h-[40px]" />}
+                <button
+                  type="button"
+                  disabled={signingIn || !effectiveClientId}
+                  onClick={() => void startGooglePkceSignIn({ mode: 'popup' }).catch(() => {})}
+                  className="inline-flex h-10 w-full max-w-[280px] items-center justify-center gap-2 rounded-pill bg-key-bg px-5 type-body-emphasized text-white hover:opacity-95 disabled:opacity-45"
+                >
+                  <GoogleGlyph />
+                  <span>{signingIn ? 'Signing in with Google…' : 'Continue with Google (OAuth PKCE)'}</span>
+                </button>
+                {effectiveClientId && (
+                  <button
+                    type="button"
+                    disabled={signingIn}
+                    onClick={() => void startGooglePkceSignIn({ mode: 'redirect' }).catch(() => {})}
+                    className="type-callout text-secondary hover:text-primary hover:underline"
+                  >
+                    Popup blocked? Sign in via full-page redirect
+                  </button>
+                )}
+              </>
             )}
           </div>
 

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { initCollabAuth } from '@/collab/auth';
+import { initCollabAuth, syncYtExtensionToCollab } from '@/collab/auth';
 import { CollabSignInModalHost } from '@/components/collab/CollabSignInModal';
 import { resumeSession } from '@/party/listenTogether';
 import { startPartySync } from '@/party/partySync';
@@ -10,6 +10,7 @@ import { Outlet } from 'react-router';
 import { PrefetchLink } from '@/components/PrefetchLink';
 import { config } from '@/config';
 import { useExtension } from '@/extension/useExtension';
+import { useYtAuth } from '@/extension/useYtAuth';
 import { isMobileBrowser } from '@/lib/platform';
 import { useUi } from '@/state/ui';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
@@ -43,6 +44,19 @@ export function AppShell() {
   // Counts this tab in the "listening now" figure beside the phone and PC apps.
   useEffect(() => startLivePresence(), []);
   const extension = useExtension();
+  const ytAuthStatus = useYtAuth();
+  useEffect(() => {
+    if (ytAuthStatus.state !== 'ready') return;
+    const auth = ytAuthStatus.auth;
+    const acct = auth.active ? auth.accounts.find((a) => a.authUser === auth.active?.authUser) : null;
+    syncYtExtensionToCollab({
+      signedIn: auth.signedIn,
+      id: auth.active?.id,
+      name: auth.active?.name,
+      email: acct?.email ?? null,
+      avatarUrl: auth.active?.avatarUrl ?? acct?.avatarUrl ?? null,
+    });
+  }, [ytAuthStatus]);
   const bannerDismissed = useUi((s) => s.installBannerDismissed);
   const dismissBanner = useUi((s) => s.dismissInstallBanner);
   const fullScreen = useUi((s) => s.fullScreen);

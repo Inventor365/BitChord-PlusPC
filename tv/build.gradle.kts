@@ -65,7 +65,7 @@ val listenTogetherServer: String = (
 val collabServer: String = (
     localProps.getProperty("COLLAB_SERVER")?.trim()?.takeIf { it.isNotEmpty() }
         ?: envProp("COLLAB_SERVER")
-        ?: listenTogetherServer
+        ?: ""
     ).trim().trimEnd('/')
 
 val collabGoogleClientId: String = (
@@ -103,8 +103,8 @@ android {
         // Haze falls back to a translucent scrim below that.
         minSdk = 26
         targetSdk = 36
-        versionCode = 41
-        versionName = "1.10.0"
+        versionCode = 42
+        versionName = "1.10.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

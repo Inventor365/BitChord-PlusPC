@@ -1059,6 +1059,15 @@ private fun BitChordApp(
     val googleAccounts by viewModel.googleAccounts.collectAsStateWithLifecycle()
     val activeAccountId by viewModel.activeAccountId.collectAsStateWithLifecycle()
     val activeProfileId by viewModel.activeProfileId.collectAsStateWithLifecycle()
+    LaunchedEffect(signedIn, account, selectedChannelName, activeAccountId) {
+        AndroidCollab.manager.syncAppGoogleAccount(
+            signedIn = signedIn,
+            accountId = activeAccountId ?: account?.email,
+            displayName = selectedChannelName?.takeIf { it.isNotBlank() } ?: account?.name,
+            email = account?.email,
+            avatarUrl = account?.thumbnailUrl,
+        )
+    }
     val historyState by viewModel.history.collectAsStateWithLifecycle()
     val lyrics by viewModel.lyrics.collectAsStateWithLifecycle()
     val lyricsSource by viewModel.lyricsSource.collectAsStateWithLifecycle()
@@ -3297,7 +3306,13 @@ private fun BitChordApp(
                                         )
                                     }
                                 },
-                                onOpenAuthDialog = { showCollabAuthDialog = true },
+                                onOpenAuthDialog = {
+                                    if (AndroidCollab.manager.isNativeYouTubeMode) {
+                                        webSession = WebSessionMode.SIGN_IN
+                                    } else {
+                                        showCollabAuthDialog = true
+                                    }
+                                },
                                 contentPadding = listPadding,
                             )
                         } else if (pageRoute == AppRoute.Discord) {
@@ -6123,7 +6138,14 @@ private fun BitChordApp(
                 initialArtworkUrl = collabConvertArtwork,
                 existingSongs = collabConvertSongs,
                 onDismiss = { showCollabCreateOrConvert = false },
-                onOpenAuthDialog = { showCollabAuthDialog = true },
+                onOpenAuthDialog = {
+                    if (AndroidCollab.manager.isNativeYouTubeMode) {
+                        showCollabCreateOrConvert = false
+                        webSession = WebSessionMode.SIGN_IN
+                    } else {
+                        showCollabAuthDialog = true
+                    }
+                },
                 onCreated = { created ->
                     showCollabCreateOrConvert = false
                     navigator.push(AppRoute.CollabPlaylist(created.id))
@@ -6135,7 +6157,13 @@ private fun BitChordApp(
                 manager = AndroidCollab.manager,
                 initialInviteInput = collabJoinInitialInput,
                 onDismiss = { showCollabJoinDialog = false },
-                onOpenAuthDialog = { showCollabAuthDialog = true },
+                onOpenAuthDialog = {
+                    if (AndroidCollab.manager.isNativeYouTubeMode) {
+                        webSession = WebSessionMode.SIGN_IN
+                    } else {
+                        showCollabAuthDialog = true
+                    }
+                },
                 onJoined = { joined ->
                     showCollabJoinDialog = false
                     navigator.push(AppRoute.CollabPlaylist(joined.id))
@@ -6146,6 +6174,7 @@ private fun BitChordApp(
             CollabGoogleAuthDialog(
                 manager = AndroidCollab.manager,
                 onDismiss = { showCollabAuthDialog = false },
+                onOpenAppGoogleSignIn = { webSession = WebSessionMode.SIGN_IN },
             )
         }
 

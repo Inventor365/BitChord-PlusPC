@@ -1,5 +1,20 @@
 import { useCollabAuth } from './auth';
-import { resolveCollabServerUrl } from './config';
+import { isNativeYtmCollabMode, resolveCollabServerUrl } from './config';
+import { parseCollabInviteLink } from './inviteLink';
+import {
+  YTM_COLLAB_PREFIX,
+  ytmAcceptInvite,
+  ytmAddCollabTracks,
+  ytmConvertToCollabPlaylist,
+  ytmCreateCollabPlaylist,
+  ytmCreateInvite,
+  ytmFetchPlaylistDetail,
+  ytmListCollabPlaylists,
+  ytmListInvites,
+  ytmPreviewInvite,
+  ytmRemoveCollabTrack,
+  ytmStopSharing,
+} from './ytmCollab';
 import {
   deriveMemberAvatars,
   normalizeActivity,
@@ -208,6 +223,11 @@ async function collabRequest<T>(
 // ---- Playlist Lifecycle & Conversion Endpoints -------------------------------------
 
 export async function listCollabPlaylists(options?: { includeStopped?: boolean }): Promise<CollabPlaylistSummary[]> {
+  if (isNativeYtmCollabMode()) {
+    const list = await ytmListCollabPlaylists();
+    saveCachedCollabSummaries(list);
+    return list;
+  }
   const userId = useCollabAuth.getState().user?.id ?? null;
   const query = options?.includeStopped !== false ? '?includeStopped=true' : '';
   const data = await collabRequest<{ playlists: unknown[] }>(`/api/collab/playlists${query}`);
@@ -228,6 +248,11 @@ export async function createCollabPlaylist(params: {
   permissions?: CollabPermissionsPatch;
   tracks?: CollabTrackInput[];
 }): Promise<CollabPlaylistDetail> {
+  if (isNativeYtmCollabMode()) {
+    const detail = await ytmCreateCollabPlaylist(params);
+    saveCachedCollabDetail(detail);
+    return detail;
+  }
   const userId = useCollabAuth.getState().user?.id ?? null;
   const data = await collabRequest<{ playlist: unknown }>('/api/collab/playlists', {
     method: 'POST',
@@ -247,6 +272,11 @@ export async function createCollabPlaylist(params: {
 export async function convertToCollabPlaylist(
   input: ConvertCollabPlaylistInput,
 ): Promise<{ playlist: CollabPlaylistDetail; alreadyConverted: boolean }> {
+  if (isNativeYtmCollabMode()) {
+    const res = await ytmConvertToCollabPlaylist(input);
+    saveCachedCollabDetail(res.playlist);
+    return res;
+  }
   const userId = useCollabAuth.getState().user?.id ?? null;
   const data = await collabRequest<{ playlist: unknown; alreadyConverted?: boolean }>(
     '/api/collab/playlists/convert',
@@ -261,6 +291,11 @@ export async function convertToCollabPlaylist(
 }
 
 export async function getCollabPlaylist(playlistId: string): Promise<CollabPlaylistDetail> {
+  if (isNativeYtmCollabMode() || playlistId.startsWith(YTM_COLLAB_PREFIX)) {
+    const detail = await ytmFetchPlaylistDetail(playlistId);
+    saveCachedCollabDetail(detail);
+    return detail;
+  }
   const userId = useCollabAuth.getState().user?.id ?? null;
   const data = await collabRequest<{ playlist: unknown }>(
     `/api/collab/playlists/${encodeURIComponent(playlistId)}`,
@@ -294,6 +329,11 @@ export async function updateCollabPlaylist(
 }
 
 export async function stopSharingCollabPlaylist(playlistId: string): Promise<CollabPlaylistDetail> {
+  if (isNativeYtmCollabMode() || playlistId.startsWith(YTM_COLLAB_PREFIX)) {
+    const detail = await ytmStopSharing(playlistId);
+    saveCachedCollabDetail(detail);
+    return detail;
+  }
   const userId = useCollabAuth.getState().user?.id ?? null;
   const data = await collabRequest<{ ok: boolean; playlist: unknown }>(
     `/api/collab/playlists/${encodeURIComponent(playlistId)}/stop-sharing`,
@@ -318,6 +358,11 @@ export async function addCollabTracks(
   playlistId: string,
   params: { tracks: CollabTrackInput[]; position?: number; opId?: string },
 ): Promise<{ playlist: CollabPlaylistDetail; added: CollabTrackEntry[]; tracks: CollabTrackEntry[] }> {
+  if (isNativeYtmCollabMode() || playlistId.startsWith(YTM_COLLAB_PREFIX)) {
+    const res = await ytmAddCollabTracks(playlistId, params.tracks);
+    saveCachedCollabDetail(res.playlist);
+    return res;
+  }
   const userId = useCollabAuth.getState().user?.id ?? null;
   const data = await collabRequest<{ playlist: unknown; added: CollabTrackEntry[] }>(
     `/api/collab/playlists/${encodeURIComponent(playlistId)}/tracks`,
@@ -336,6 +381,13 @@ export async function removeCollabTrack(
   entryId: string,
   opId?: string,
 ): Promise<CollabPlaylistDetail> {
+  if (isNativeYtmCollabMode() || playlistId.startsWith(YTM_COLLAB_PREFIX)) {
+    const cur = getCachedCollabDetail(playlistId);
+    const vid = cur?.tracks.find((t) => t.entryId === entryId)?.trackId;
+    const detail = await ytmRemoveCollabTrack(playlistId, entryId, vid);
+    saveCachedCollabDetail(detail);
+    return detail;
+  }
   const userId = useCollabAuth.getState().user?.id ?? null;
   const query = opId ? `?opId=${encodeURIComponent(opId)}` : '';
   const data = await collabRequest<{ playlist: unknown }>(
@@ -443,6 +495,9 @@ export async function createCollabInvite(
   playlistId: string,
   params: { role: 'EDITOR' | 'VIEWER'; expiresInSec?: number; maxUses?: number },
 ): Promise<CollabInviteView> {
+  if (isNativeYtmCollabMode() || playlistId.startsWith(YTM_COLLAB_PREFIX)) {
+    return ytmCreateInvite(playlistId);
+  }
   return collabRequest<CollabInviteView>(`/api/collab/playlists/${encodeURIComponent(playlistId)}/invites`, {
     method: 'POST',
     body: JSON.stringify(params),
@@ -450,6 +505,9 @@ export async function createCollabInvite(
 }
 
 export async function listCollabInvites(playlistId: string): Promise<CollabInviteView[]> {
+  if (isNativeYtmCollabMode() || playlistId.startsWith(YTM_COLLAB_PREFIX)) {
+    return ytmListInvites(playlistId);
+  }
   const data = await collabRequest<{ invites: CollabInviteView[] }>(
     `/api/collab/playlists/${encodeURIComponent(playlistId)}/invites`,
   );
@@ -467,6 +525,10 @@ export async function previewCollabInvite(
   token: string,
   serverOverride?: string | null,
 ): Promise<CollabInvitePreview> {
+  const parsedPreview = parseCollabInviteLink(token);
+  if (parsedPreview?.ytmPlaylistId) {
+    return ytmPreviewInvite(parsedPreview.ytmPlaylistId);
+  }
   return collabRequest<CollabInvitePreview>(
     `/api/collab/invites/${encodeURIComponent(token)}/preview`,
     { method: 'GET' },
@@ -478,6 +540,12 @@ export async function acceptCollabInvite(
   token: string,
   serverOverride?: string | null,
 ): Promise<{ playlist: CollabPlaylistDetail; alreadyMember: boolean }> {
+  const parsedAccept = parseCollabInviteLink(token);
+  if (parsedAccept?.ytmPlaylistId && parsedAccept?.ytmJoinToken) {
+    const res = await ytmAcceptInvite(parsedAccept.ytmPlaylistId, parsedAccept.ytmJoinToken);
+    saveCachedCollabDetail(res.playlist);
+    return res;
+  }
   const userId = useCollabAuth.getState().user?.id ?? null;
   const data = await collabRequest<{ playlist: unknown; alreadyMember: boolean }>(
     `/api/collab/invites/${encodeURIComponent(token)}/accept`,

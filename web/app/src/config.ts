@@ -10,10 +10,6 @@ export const config = {
   androidAppUrl: import.meta.env.VITE_ANDROID_APP_URL || 'https://github.com/Inventor365/BitChord-PlusPC/releases/latest',
   /** BitChord's Listen Together server. vite.config.ts refuses a production build without it. */
   partyServerUrl: import.meta.env.VITE_PARTY_SERVER_URL ?? '',
-  collabServerUrl:
-    import.meta.env.VITE_COLLAB_SERVER_URL ||
-    import.meta.env.VITE_LISTEN_TOGETHER_URL ||
-    import.meta.env.VITE_PARTY_SERVER_URL ||
-    '',
+  collabServerUrl: import.meta.env.VITE_COLLAB_SERVER_URL || '',
   googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '',
 } as const;

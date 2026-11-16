@@ -4,7 +4,7 @@
 
 <img src="Logo.png" alt="BitChord app icon" width="180" />
 
-# BitChord PlusPC (`v1.10.0`)
+# BitChord PlusPC (`v1.10.1`)
 
 ### Multiplatform Music Client with Native Desktop, Collaborative Playlists & Lossless Audio
 **Android · Android Auto · Android TV · Wear OS · macOS · Windows · Linux · Web**
@@ -77,14 +77,14 @@ BitChord PlusPC builds upon Kushagra Singh's upstream [`kushagrasinghx/BitChord`
 
 ## 3. Supported Platforms
 
-| Platform | Architectures | Artifacts on [GitHub Releases (`v1.10.0`)](https://github.com/Inventor365/BitChord-PlusPC/releases/latest) |
+| Platform | Architectures | Artifacts on [GitHub Releases (`v1.10.1`)](https://github.com/Inventor365/BitChord-PlusPC/releases/latest) |
 | :--- | :--- | :--- |
-| **Android Phone, Tablet & Auto** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChord-v1.10.0.apk`, `BitChord-v1.10.0_<abi>.apk` |
-| **Android TV / Fire TV** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChordTV-v1.10.0.apk`, `BitChordTV-v1.10.0_<abi>.apk` |
-| **Wear OS 3+** | Universal (`arm64-v8a`, `armeabi-v7a`) | `BitChordWear-v1.10.0.apk` *(also embedded inside the Phone APK)* |
-| **macOS 12+** | Apple Silicon (`arm64`) & Intel (`x64`) | `BitChord-1.10.0-macos-{arm64,x64}.{dmg,pkg,zip}` |
-| **Windows 10 / 11** | `x64` | `BitChord-1.10.0-windows-x64-setup.exe`, `.msi`, `-portable.zip` |
-| **Linux** | `x86_64` / `amd64` | `BitChord-1.10.0-linux-x86_64.AppImage`, `-linux-amd64.deb`, `-linux-x86_64.rpm` |
+| **Android Phone, Tablet & Auto** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChord-v1.10.1.apk`, `BitChord-v1.10.1_<abi>.apk` |
+| **Android TV / Fire TV** | Universal, `arm64-v8a`, `armeabi-v7a`, `x86_64` | `BitChordTV-v1.10.1.apk`, `BitChordTV-v1.10.1_<abi>.apk` |
+| **Wear OS 3+** | Universal (`arm64-v8a`, `armeabi-v7a`) | `BitChordWear-v1.10.1.apk` *(also embedded inside the Phone APK)* |
+| **macOS 12+** | Apple Silicon (`arm64`) & Intel (`x64`) | `BitChord-1.10.1-macos-{arm64,x64}.{dmg,pkg,zip}` |
+| **Windows 10 / 11** | `x64` | `BitChord-1.10.1-windows-x64-setup.exe`, `.msi`, `-portable.zip` |
+| **Linux** | `x86_64` / `amd64` | `BitChord-1.10.1-linux-x86_64.AppImage`, `-linux-amd64.deb`, `-linux-x86_64.rpm` |
 | **Web & Extension** | Chrome / Chromium (MV3) & Firefox | `web/app/` SPA + `web/extension/` companion extension |
 | **Backend Server** | Go 1.27+ (`linux/amd64`, `linux/arm64`, Docker) | `backend/` (Listen Together + Presence + Collaborative Playlists) |
 
@@ -93,33 +93,33 @@ BitChord PlusPC builds upon Kushagra Singh's upstream [`kushagrasinghx/BitChord`
 ## 4. Installation Instructions
 
 ### Android (Phone, Android Auto, Android TV & Wear OS)
-1. Download `BitChord-v1.10.0.apk` (universal) or the matching ABI split (`arm64-v8a` for modern phones) from [Releases](https://github.com/Inventor365/BitChord-PlusPC/releases/latest).
+1. Download `BitChord-v1.10.1.apk` (universal) or the matching ABI split (`arm64-v8a` for modern phones) from [Releases](https://github.com/Inventor365/BitChord-PlusPC/releases/latest).
 2. Open the APK and allow installation from your browser/file manager if prompted.
-3. **Android TV**: Install `BitChordTV-v1.10.0.apk` via Downloader, LocalSend, or `adb install -r BitChordTV-v1.10.0.apk`.
-4. **Wear OS**: Open **Settings → Wear OS** in the BitChord phone app to push the bundled watch app over Wi-Fi debugging, or run `adb -s <watch-ip>:<port> install -r BitChordWear-v1.10.0.apk`.
+3. **Android TV**: Install `BitChordTV-v1.10.1.apk` via Downloader, LocalSend, or `adb install -r BitChordTV-v1.10.1.apk`.
+4. **Wear OS**: Open **Settings → Wear OS** in the BitChord phone app to push the bundled watch app over Wi-Fi debugging, or run `adb -s <watch-ip>:<port> install -r BitChordWear-v1.10.1.apk`.
 
 ### macOS (`.dmg`, `.pkg`, and `.zip`)
 1. Pick **`arm64`** for Apple Silicon (`M1`/`M2`/`M3`/`M4`) or **`x64`** for Intel Macs:
-   - **`.dmg` (Recommended)**: Open `BitChord-1.10.0-macos-<arch>.dmg` and drag **BitChord** to **Applications**.
-   - **`.pkg` (Installer)**: Open `BitChord-1.10.0-macos-<arch>.pkg` and follow the macOS Installer wizard to install `/Applications/BitChord.app`.
-   - **`.zip` (Portable)**: Extract `BitChord-1.10.0-macos-<arch>.zip` and move `BitChord.app` to `/Applications`.
+   - **`.dmg` (Recommended)**: Open `BitChord-1.10.1-macos-<arch>.dmg` and drag **BitChord** to **Applications**.
+   - **`.pkg` (Installer)**: Open `BitChord-1.10.1-macos-<arch>.pkg` and follow the macOS Installer wizard to install `/Applications/BitChord.app`.
+   - **`.zip` (Portable)**: Extract `BitChord-1.10.1-macos-<arch>.zip` and move `BitChord.app` to `/Applications`.
 2. **First Launch (Unsigned Build Note)**: Community builds are ad-hoc Mach-O signed (`LC_CODE_SIGNATURE`) and not Apple-notarized. If macOS Gatekeeper blocks the first launch, right-click `BitChord.app` → **Open**, or run:
    ```bash
    xattr -cr /Applications/BitChord.app
    ```
 
 ### Windows
-- **Installer (`.exe` / `.msi`)**: Run `BitChord-1.10.0-windows-x64-setup.exe` or `BitChord-1.10.0-windows-x64.msi`.
-- **Portable (`.zip`)**: Extract `BitChord-1.10.0-windows-x64-portable.zip` anywhere and launch `BitChord\BitChord.exe`.
+- **Installer (`.exe` / `.msi`)**: Run `BitChord-1.10.1-windows-x64-setup.exe` or `BitChord-1.10.1-windows-x64.msi`.
+- **Portable (`.zip`)**: Extract `BitChord-1.10.1-windows-x64-portable.zip` anywhere and launch `BitChord\BitChord.exe`.
 
 ### Linux
 - **AppImage (Universal)**:
   ```bash
-  chmod +x BitChord-1.10.0-linux-x86_64.AppImage
-  ./BitChord-1.10.0-linux-x86_64.AppImage
+  chmod +x BitChord-1.10.1-linux-x86_64.AppImage
+  ./BitChord-1.10.1-linux-x86_64.AppImage
   ```
-- **Debian / Ubuntu (`.deb`)**: `sudo apt install ./BitChord-1.10.0-linux-amd64.deb`
-- **Fedora / RHEL / openSUSE (`.rpm`)**: `sudo dnf install ./BitChord-1.10.0-linux-x86_64.rpm`
+- **Debian / Ubuntu (`.deb`)**: `sudo apt install ./BitChord-1.10.1-linux-amd64.deb`
+- **Fedora / RHEL / openSUSE (`.rpm`)**: `sudo dnf install ./BitChord-1.10.1-linux-x86_64.rpm`
 
 ### Web App & Companion Browser Extension
 ```bash

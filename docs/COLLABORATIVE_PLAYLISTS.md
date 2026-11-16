@@ -6,15 +6,14 @@ Collaborative Playlists are completely decoupled from **Listen Together** (`part
 
 ---
 
-## 1. Security & Google OpenID Connect Identity
+## 1. Dual-Engine Architecture: Zero-Config YouTube Music + Optional Self-Hosted Server
 
 - **Guest Mode Unchanged**: Browsing, searching, local playback, streaming, scrobbling, and Listen Together continue to work in Guest Mode without signing in.
-- **Verified Google Identity for Collaboration**: Creating a collaborative playlist, converting a personal playlist, joining via an invite link, or editing tracks requires a server-verified Google OpenID Connect identity:
-  1. Clients obtain a genuine Google ID Token (Google Identity Services on Web) or complete an **OAuth 2.0 Authorization Code + PKCE (S256)** browser/loopback flow (`PkceGoogleAuth` on Android & Desktop, popup/redirect on Web).
-  2. The backend (`backend/auth/oidc.go`) verifies RS256 signatures against Google's rotating JWKS (`https://www.googleapis.com/oauth2/v3/certs`), enforcing `alg == "RS256"`, `iss` (`https://accounts.google.com` or `accounts.google.com`), `aud` (`COLLAB_GOOGLE_CLIENT_IDS`), `exp`, `iat`, and `sub`.
-  3. Raw Google passwords are never requested or stored. Self-declared usernames, emails, and client-supplied contributor fields are ignored.
-  4. Verified Google `sub` claims map 1:1 to persistent `usr_<hex>` internal user IDs. The server issues 256-bit `bcs_<64-hex>` session tokens and persists only `SHA-256(token)` on disk with configurable TTL (`COLLAB_SESSION_TTL_MS`, default 30 days) and instant logout revocation (`POST /api/collab/auth/logout`).
-
+- **Default Zero-Config Mode (Built-In Google / YouTube Music Sign-In)**:
+  - Signing into BitChord once with your Google / YouTube Music account (Android WebView, Desktop browser/WebView, or Web companion extension) **immediately activates Collaborative Playlists** with zero extra server URL or OAuth Client ID setup.
+  - Uses YouTube Music's native `browse/edit_playlist` collaboration protocol (`ACTION_CREATE_COLLABORATION_INVITE_LINK`, `ACTION_JOIN_COLLABORATION`, `ACTION_SET_CLOSED_TO_CONTRIBUTIONS`, and `PAplaylist_collaborate` collaborator facepile/panel) and interoperates directly with official `https://music.youtube.com/playlist?list=...&jct=...` invite links.
+- **Optional Self-Hosted PlusPC Collaboration Server Mode (`backend/`)**:
+  - Advanced self-hosters who configure a custom Collaboration Server URL (`https://...`) authenticate via server-verified Google OpenID Connect (`backend/auth/oidc.go`, RS256 JWKS + OAuth 2.0 PKCE S256) with 256-bit `bcs_<64-hex>` session tokens and `/ws/collab` WebSocket sync.
 ---
 
 ## 2. Converting Existing Personal Playlists ("Make Collaborative")

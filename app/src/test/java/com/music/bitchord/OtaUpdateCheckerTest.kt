@@ -24,9 +24,9 @@ class OtaUpdateCheckerTest {
             fetchExternalText = { "Build date: 30/10/2026\n- Verified OTA" },
         )
         assertNotNull(phoneInfo)
-        assertEquals("1.10.0", phoneInfo!!.version)
-        assertEquals("https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.0/BitChord-v1.10.0.apk", phoneInfo.apkUrl)
-        assertTrue(phoneInfo.notes.orEmpty().contains("BitChord v1.10.0"))
+        assertEquals("1.10.1", phoneInfo!!.version)
+        assertEquals("https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.1/BitChord-v1.10.1.apk", phoneInfo.apkUrl)
+        assertTrue(phoneInfo.notes.orEmpty().contains("BitChord v1.10.1"))
         assertTrue(phoneInfo.notes.orEmpty().contains("Verified OTA"))
 
         val tvInfo = AppUpdateChecker.parseOtaPayload(
@@ -35,8 +35,8 @@ class OtaUpdateCheckerTest {
             supportedAbis = listOf("armeabi-v7a"),
         )
         assertNotNull(tvInfo)
-        assertEquals("1.10.0", tvInfo!!.version)
-        assertEquals("https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.0/BitChordTV-v1.10.0.apk", tvInfo.apkUrl)
+        assertEquals("1.10.1", tvInfo!!.version)
+        assertEquals("https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.1/BitChordTV-v1.10.1.apk", tvInfo.apkUrl)
     }
 
     @Test

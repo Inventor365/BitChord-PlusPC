@@ -3,6 +3,8 @@ import { sanitizeCollabServerUrl } from './config';
 export interface ParsedCollabInvite {
   token: string;
   serverOrigin: string | null;
+  ytmPlaylistId?: string | null;
+  ytmJoinToken?: string | null;
 }
 
 const TOKEN_PATTERN = /^bci_[A-Za-z0-9_-]{8,124}$/;
@@ -27,6 +29,12 @@ export function parseCollabInviteLink(rawInput: string): ParsedCollabInvite | nu
   const directToken = cleanCollabInviteToken(input);
   if (directToken) {
     return { token: directToken, serverOrigin: null };
+  }
+  if (input.startsWith('ytm:')) {
+    const parts = input.split(':');
+    if (parts.length === 3 && parts[1] && parts[2]) {
+      return { token: input, serverOrigin: null, ytmPlaylistId: parts[1], ytmJoinToken: parts[2] };
+    }
   }
 
   // Relative path: /collab/invite/bci_...
@@ -76,6 +84,24 @@ export function parseCollabInviteLink(rawInput: string): ParsedCollabInvite | nu
   try {
     const parsed = new URL(input);
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    const host = parsed.hostname.toLowerCase();
+    if (
+      host === 'music.youtube.com' ||
+      host === 'www.youtube.com' ||
+      host === 'youtube.com' ||
+      host === 'm.youtube.com'
+    ) {
+      const listId = parsed.searchParams.get('list')?.replace(/^VL/, '').trim();
+      const jct = parsed.searchParams.get('jct')?.trim();
+      if (listId && jct) {
+        return {
+          token: `ytm:${listId}:${jct}`,
+          serverOrigin: null,
+          ytmPlaylistId: listId,
+          ytmJoinToken: jct,
+        };
+      }
+    }
     const match = parsed.pathname.match(/\/collab\/invite\/([^/?#]+)\/?$/);
     const token = match ? cleanCollabInviteToken(decodeURIComponent(match[1]!)) : null;
     if (!token) return null;

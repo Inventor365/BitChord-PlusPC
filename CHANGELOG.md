@@ -4,6 +4,17 @@ All notable changes to **BitChord PlusPC** (`https://github.com/Inventor365/BitC
 
 ---
 
+## [1.10.1] — 2026-11-16 (`versionCode = 42`)
+
+### Fixed
+- **Zero-Config Collaborative Playlists with Built-In Google Sign-In**:
+  - Signing into BitChord with your Google / YouTube Music account (Android, Desktop, or Web companion extension) now **automatically unlocks Collaborative Playlists out of the box** — zero separate sign-in, zero `Google OAuth Client ID`, and zero custom server URL required.
+  - Removed the accidental fallback of `COLLAB_SERVER` to the upstream Listen Together URL (`bitchord-listen-together.onrender.com`), which caused 404 responses and prompted users for developer OAuth credentials.
+- **Native YouTube Music Collaborative Playlist Engine (`Innertube` + `CollabManager` + `ytmCollab.ts`)**:
+  - Creates and converts collaborative playlists directly on YouTube Music (`ACTION_CREATE_COLLABORATION_INVITE_LINK`), mints and joins standard `https://music.youtube.com/playlist?list=...&jct=...` collaboration links (`ACTION_JOIN_COLLABORATION`), discovers existing collaborative playlists (`PAplaylist_collaborate` facepile & engagement panel), parses collaborator avatars and track attribution, and supports closing collaboration (`ACTION_SET_CLOSED_TO_CONTRIBUTIONS`) while preserving optional self-hosted PlusPC Collaboration Server mode under **Advanced Settings**.
+
+---
+
 ## [1.10.0] — 2026-11-15 (`versionCode = 41`)
 
 ### Added

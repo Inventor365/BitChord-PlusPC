@@ -13,6 +13,10 @@ import java.io.File
 
 /**
  * Android singleton wiring for BitChord Collaborative Playlists + Deep-Link Invite relay.
+ *
+ * Defaults `defaultServerUrl` to `BuildConfig.COLLAB_SERVER` (`""` unless explicitly configured),
+ * so Collaborative Playlists work out of the box using the user's BitChord Google / YouTube Music
+ * login with zero extra server or OAuth Client ID setup.
  */
 object AndroidCollab {
 
@@ -25,7 +29,9 @@ object AndroidCollab {
                 appContext?.let { File(it.filesDir, "collab/collab_state.json") }
             },
             defaultServerUrl = {
-                readBuildConfigString("COLLAB_SERVER").ifBlank { BuildConfig.LISTEN_TOGETHER_SERVER }
+                readBuildConfigString("COLLAB_SERVER")
+                    .takeUnless { it.contains("bitchord-listen-together.onrender.com", ignoreCase = true) }
+                    .orEmpty()
             },
             defaultGoogleClientId = {
                 readBuildConfigString("COLLAB_GOOGLE_CLIENT_ID")
@@ -66,7 +72,9 @@ object CollabInviteIntent {
 
         val parsed = CollabInviteLink.parse(candidate) ?: return false
         intent.putExtra(EXTRA_CONSUMED, true)
-        AndroidCollab.manager.adoptServerOriginIfUnset(parsed.serverOrigin)
+        if (!parsed.isYouTubeMusicInvite) {
+            AndroidCollab.manager.adoptServerOriginIfUnset(parsed.serverOrigin)
+        }
         _pending.value = parsed
         return true
     }

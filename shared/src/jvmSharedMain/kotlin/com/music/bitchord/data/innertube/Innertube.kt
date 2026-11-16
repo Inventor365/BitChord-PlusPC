@@ -1119,6 +1119,110 @@ object Innertube {
         }
     }
 
+    val hasSession: Boolean get() = !cookie.isNullOrBlank()
+
+    suspend fun setPlaylistDescription(playlistId: String, description: String) {
+        editPlaylist(playlistId) {
+            addJsonObject {
+                put("action", "ACTION_SET_PLAYLIST_DESCRIPTION")
+                put("playlistDescription", description)
+            }
+        }
+    }
+
+    suspend fun setPlaylistPrivacy(playlistId: String, privacy: PlaylistPrivacy) {
+        editPlaylist(playlistId) {
+            addJsonObject {
+                put("action", "ACTION_SET_PLAYLIST_PRIVACY")
+                put("playlistPrivacy", privacy.apiValue)
+            }
+        }
+    }
+
+    /**
+     * Enables native YouTube Music collaboration on [playlistId] and returns the shareable
+     * `https://music.youtube.com/playlist?list=...&jct=...` invite URL.
+     * Collaborators cannot edit PRIVATE playlists on YouTube Music, so [ensureUnlisted] promotes
+     * PRIVATE playlists to UNLISTED first.
+     */
+    suspend fun enablePlaylistCollaboration(playlistId: String, ensureUnlisted: Boolean = true): String {
+        val rawId = playlistId.removePrefix("VL")
+        if (ensureUnlisted) {
+            runCatching {
+                editPlaylist(rawId) {
+                    addJsonObject {
+                        put("action", "ACTION_SET_PLAYLIST_PRIVACY")
+                        put("playlistPrivacy", PlaylistPrivacy.UNLISTED.apiValue)
+                    }
+                }
+            }
+        }
+        val response = editPlaylist(rawId) {
+            addJsonObject {
+                put("action", "ACTION_CREATE_COLLABORATION_INVITE_LINK")
+            }
+        }
+        val directLink = response["collaborationInviteLink"]?.jsonPrimitive?.contentOrNull
+            ?: findString(response, "collaborationInviteLink")
+        if (!directLink.isNullOrBlank()) {
+            return if (directLink.startsWith("http")) {
+                directLink.replace("https://www.youtube.com/", "https://music.youtube.com/")
+            } else {
+                "https://music.youtube.com/playlist?list=$rawId&jct=$directLink"
+            }
+        }
+        val jct = findString(response, "joinCollaborationToken")
+        if (!jct.isNullOrBlank()) {
+            return "https://music.youtube.com/playlist?list=$rawId&jct=$jct"
+        }
+        return "https://music.youtube.com/playlist?list=$rawId"
+    }
+
+    /** Joins a YouTube Music collaborative playlist via its `jct` invite token and saves it to Library. */
+    suspend fun joinCollaborativePlaylist(playlistId: String, joinCollaborationToken: String) {
+        val rawId = playlistId.removePrefix("VL")
+        runCatching {
+            editPlaylist(rawId) {
+                addJsonObject {
+                    put("action", "ACTION_JOIN_COLLABORATION")
+                    put("joinCollaborationToken", joinCollaborationToken)
+                }
+            }
+        }.onFailure { err ->
+            // If already a collaborator, YouTube may answer UNAUTHORIZED/FAILED_PRECONDITION; verify via browse.
+            val msg = err.message.orEmpty()
+            if (!msg.contains("UNAUTHORIZED", ignoreCase = true) && !msg.contains("ALREADY", ignoreCase = true)) {
+                throw err
+            }
+        }
+        runCatching { ratePlaylist(rawId, saved = true) }
+    }
+
+    /** Closes a YouTube Music collaborative playlist to further collaborator contributions. */
+    suspend fun closePlaylistCollaboration(playlistId: String, makePrivate: Boolean = true) {
+        val rawId = playlistId.removePrefix("VL")
+        runCatching {
+            editPlaylist(rawId) {
+                addJsonObject {
+                    put("action", "ACTION_SET_CLOSED_TO_CONTRIBUTIONS")
+                    put("closedToContributions", true)
+                }
+            }
+        }
+        if (makePrivate) {
+            runCatching { setPlaylistPrivacy(rawId, PlaylistPrivacy.PRIVATE) }
+        }
+    }
+
+    /** Fetches the `PAplaylist_collaborate` engagement panel listing active collaborators. */
+    suspend fun getCollaboratorsPanel(params: String?): JsonObject {
+        requireSession()
+        return postMusic("get_panel") {
+            put("panelId", "PAplaylist_collaborate")
+            if (!params.isNullOrBlank()) put("params", params)
+        }
+    }
+
     /**
      * Resumable upload followed by a separate playlist mutation; neither is retried.
      * Protocol: Metrolist d84670c, InnerTube.kt:648-700 / EditPlaylistBody.kt:49-65.

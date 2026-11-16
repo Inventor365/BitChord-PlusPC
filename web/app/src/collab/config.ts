@@ -38,8 +38,12 @@ function readStoredConfig(): StoredCollabConfig {
     const raw = localStorage.getItem(COLLAB_CONFIG_KEY);
     if (!raw) return { serverUrl: '', googleClientId: '' };
     const parsed = JSON.parse(raw) as Partial<StoredCollabConfig>;
+    const rawServer = typeof parsed.serverUrl === 'string' ? parsed.serverUrl.trim() : '';
+    const cleanedServer = /bitchord-listen-together\.onrender\.com|bitchord\.kushagrasingh\.in/i.test(rawServer)
+      ? ''
+      : rawServer;
     return {
-      serverUrl: typeof parsed.serverUrl === 'string' ? parsed.serverUrl.trim() : '',
+      serverUrl: cleanedServer,
       googleClientId: typeof parsed.googleClientId === 'string' ? parsed.googleClientId.trim() : '',
     };
   } catch {
@@ -101,8 +105,17 @@ export function resolveCollabServerUrl(overrideOrigin?: string | null): string {
   return '';
 }
 
+/** True when no custom Collaboration Server URL is configured (uses native YouTube Music collaboration). */
+export function isNativeYtmCollabMode(overrideOrigin?: string | null): boolean {
+  if (sanitizeCollabServerUrl(overrideOrigin)) return false;
+  if (sanitizeCollabServerUrl(useCollabConfig.getState().serverUrl)) return false;
+  if (DEFAULT_COLLAB_SERVER_URL) return false;
+  return true;
+}
+
 /** Converts an HTTP(S) collab server base URL into its `/ws/collab` WebSocket URL. */
 export function resolveCollabWsUrl(overrideOrigin?: string | null): string | null {
+  if (isNativeYtmCollabMode(overrideOrigin)) return null;
   const base = resolveCollabServerUrl(overrideOrigin);
   if (!base) return null;
   try {

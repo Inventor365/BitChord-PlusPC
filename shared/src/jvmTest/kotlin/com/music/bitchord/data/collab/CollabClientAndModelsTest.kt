@@ -39,6 +39,15 @@ class CollabClientAndModelsTest {
         assertNull(bare.serverOrigin)
 
         // Rejects insecure non-loopback HTTP and malformed tokens
+
+        val ytmInvite = CollabInviteLink.parse("https://music.youtube.com/playlist?list=PLQwVIlKxHM6qv-o99&jct=kM9wXdRj2p8v_qL3sHBkTz")
+        assertNotNull(ytmInvite)
+        assertTrue(ytmInvite.isYouTubeMusicInvite)
+        assertEquals("PLQwVIlKxHM6qv-o99", ytmInvite.ytmPlaylistId)
+        assertEquals("kM9wXdRj2p8v_qL3sHBkTz", ytmInvite.ytmJoinToken)
+
+        // Non-collaborative YouTube Music playlist URLs without jct= must NOT be hijacked as invites
+        assertNull(CollabInviteLink.parse("https://music.youtube.com/playlist?list=PLQwVIlKxHM6qv-o99"))
         assertNull(CollabInviteLink.normalizeServerOrigin("http://evil.example.com"))
         assertNull(CollabInviteLink.parse("https://collab.example.com/collab/invite/short"))
     }
@@ -231,5 +240,26 @@ class CollabClientAndModelsTest {
         } finally {
             server.shutdown()
         }
+    }
+
+    @Test
+    fun syncAppGoogleAccountActivatesZeroConfigNativeModeImmediately() {
+        val manager = CollabManager(
+            storageFileProvider = { null },
+            defaultServerUrl = { "" },
+        )
+        assertTrue(manager.isNativeYouTubeMode)
+        assertFalse(manager.isAuthenticated)
+
+        manager.syncAppGoogleAccount(
+            signedIn = true,
+            accountId = "UC_pranav_123",
+            displayName = "Pranav",
+            email = "pranav@example.com",
+            avatarUrl = "https://yt3.ggpht.com/avatar",
+        )
+        assertTrue(manager.isAuthenticated)
+        assertEquals("Pranav", manager.currentUser?.displayName)
+        assertEquals("pranav@example.com", manager.currentUser?.email)
     }
 }

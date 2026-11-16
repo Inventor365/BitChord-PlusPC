@@ -5,7 +5,8 @@ import java.io.File
 
 /**
  * Desktop singleton wiring for BitChord Collaborative Playlists.
- * Stores local JSON snapshot + Google OIDC session token inside the OS-standard BitChord config directory.
+ * Defaults `defaultServerUrl` to `bitchord.collab.server` (`""` unless explicitly configured), so
+ * signing into BitChord with Google immediately enables Collaborative Playlists out of the box.
  */
 internal object DesktopCollab {
 
@@ -24,8 +25,10 @@ internal object DesktopCollab {
         CollabManager(
             storageFileProvider = { storageFile },
             defaultServerUrl = {
-                System.getProperty("bitchord.collab.server")?.takeIf { it.isNotBlank() }
-                    ?: System.getProperty("bitchord.listentogether.server").orEmpty()
+                System.getProperty("bitchord.collab.server")
+                    ?.trim()
+                    ?.takeUnless { it.contains("bitchord-listen-together.onrender.com", ignoreCase = true) }
+                    .orEmpty()
             },
             defaultGoogleClientId = {
                 System.getProperty("bitchord.collab.googleClientId").orEmpty()

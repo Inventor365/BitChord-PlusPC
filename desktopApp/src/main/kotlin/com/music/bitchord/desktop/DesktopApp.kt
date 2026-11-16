@@ -741,6 +741,17 @@ fun BitChordDesktopApp() {
     // saved.
     var youtubeSignedIn by remember { mutableStateOf(false) }
     // Set by an edit that the library feed has not caught up with yet.
+    LaunchedEffect(youtubeSignedIn, activeAccount, activeProfileId) {
+        val prof = activeAccount?.profiles?.firstOrNull { it.profileId == activeProfileId }
+            ?: activeAccount?.profiles?.firstOrNull()
+        DesktopCollab.manager.syncAppGoogleAccount(
+            signedIn = youtubeSignedIn,
+            accountId = prof?.handle?.takeIf { it.isNotBlank() } ?: activeAccount?.accountId,
+            displayName = prof?.name?.takeIf { it.isNotBlank() } ?: activeAccount?.name,
+            email = activeAccount?.email,
+            avatarUrl = prof?.avatar?.takeIf { it.isNotBlank() } ?: activeAccount?.avatar,
+        )
+    }
     var libraryStale by remember { mutableStateOf(false) }
     // Bumped when the session changes underneath, so the loader below re-runs without anything it
     // is keyed on having to change to something and back.
@@ -3628,7 +3639,14 @@ fun BitChordDesktopApp() {
                             initialArtworkUrl = collabConvertArtwork,
                             existingSongs = collabConvertSongs,
                             onDismiss = { showCollabCreateOrConvert = false },
-                            onOpenAuthDialog = { showCollabAuthDialog = true },
+                            onOpenAuthDialog = {
+                                if (DesktopCollab.manager.isNativeYouTubeMode) {
+                                    showCollabCreateOrConvert = false
+                                    overlays.signIn = true
+                                } else {
+                                    showCollabAuthDialog = true
+                                }
+                            },
                             onCreated = { created ->
                                 showCollabCreateOrConvert = false
                                 openedArtist = null
@@ -3642,7 +3660,13 @@ fun BitChordDesktopApp() {
                         CollabJoinInviteDialog(
                             manager = DesktopCollab.manager,
                             onDismiss = { showCollabJoinDialog = false },
-                            onOpenAuthDialog = { showCollabAuthDialog = true },
+                            onOpenAuthDialog = {
+                                if (DesktopCollab.manager.isNativeYouTubeMode) {
+                                    overlays.signIn = true
+                                } else {
+                                    showCollabAuthDialog = true
+                                }
+                            },
                             onJoined = { joined ->
                                 showCollabJoinDialog = false
                                 openedArtist = null
@@ -3656,6 +3680,7 @@ fun BitChordDesktopApp() {
                         CollabGoogleAuthDialog(
                             manager = DesktopCollab.manager,
                             onDismiss = { showCollabAuthDialog = false },
+                            onOpenAppGoogleSignIn = { overlays.signIn = true },
                         )
                     }
 
@@ -4157,7 +4182,13 @@ fun BitChordDesktopApp() {
                                         playSongs(ordered, idx, DesktopQueueSource(playlistTitle, PlaybackSourceType.BROWSE, "collab:$openedCollabPlaylistId"))
                                     }
                                 },
-                                onOpenAuthDialog = { showCollabAuthDialog = true },
+                                onOpenAuthDialog = {
+                                    if (DesktopCollab.manager.isNativeYouTubeMode) {
+                                        overlays.signIn = true
+                                    } else {
+                                        showCollabAuthDialog = true
+                                    }
+                                },
                                 contentPadding = sharedPagePadding,
                             )
                         }
@@ -6842,7 +6873,7 @@ private fun DesktopSettingsScreen(
 /** The line at the foot of the settings sheet, as Android has it. */
 @Composable
 private fun DesktopSettingsFooter(onLicenses: () -> Unit) {
-    val version = remember { System.getProperty("bitchord.version") ?: "1.10.0" }
+    val version = remember { System.getProperty("bitchord.version") ?: "1.10.1" }
     var easterEggTaps by remember { mutableStateOf(0) }
     val easterEggActive = easterEggTaps > 0
     val linkStyles = TextLinkStyles(

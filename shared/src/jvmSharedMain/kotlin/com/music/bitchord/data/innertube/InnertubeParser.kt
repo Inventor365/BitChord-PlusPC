@@ -1867,6 +1867,144 @@ object InnertubeParser {
      * "Daily Top Music Videos".
      */
     private val VIDEO_WORD = Regex("""\bvideos?\b""", RegexOption.IGNORE_CASE)
+
+    // ---- Collaborative Playlists (PAplaylist_collaborate) -------------------
+
+    data class YtmCollabHeaderMeta(
+        val playlistId: String,
+        val title: String,
+        val description: String,
+        val thumbnailUrl: String?,
+        val owned: Boolean,
+        val privacy: String,
+        val isCollaborative: Boolean,
+        val ownerName: String,
+        val collaboratorSummary: String?,
+        val facepileAvatars: List<String>,
+        val panelParams: String?,
+    )
+
+    fun parseYtmCollabHeader(root: JsonElement, fallbackId: String): YtmCollabHeaderMeta? {
+        val editable = collectRenderers(root, "musicEditablePlaylistDetailHeaderRenderer").firstOrNull()
+        val owned = editable != null || (parsePlaylistOwned(root) == true)
+        val privacy = editable?.o("editHeader")?.o("musicPlaylistEditHeaderRenderer")?.s("privacy")
+            ?: "UNLISTED"
+        val header = editable?.o("header")?.o("musicResponsiveHeaderRenderer")
+            ?: HEADER_RENDERERS.firstNotNullOfOrNull { collectRenderers(root, it).firstOrNull() }
+            ?: return null
+
+        val title = header.o("title").runs().ifBlank { return null }
+        val description = parseDescription(root).orEmpty()
+        val thumb = collectRenderers(header, "musicThumbnailRenderer").firstOrNull()
+            .o("thumbnail").a("thumbnails").best()
+            ?: header.o("thumbnail").o("croppedSquareThumbnailRenderer").o("thumbnail").a("thumbnails").best()
+
+        val avatarStack = header.o("facepile").o("avatarStackViewModel")
+        val tapCommand = avatarStack.o("rendererContext").o("commandContext").o("onTap").o("innertubeCommand")
+        val showPanel = tapCommand.o("showEngagementPanelEndpoint")
+        val panelTag = showPanel.o("identifier").s("tag") ?: showPanel.s("panelIdentifier")
+        val isCollaborative = panelTag == "PAplaylist_collaborate" || root.findString("panelIdentifier") == "PAplaylist_collaborate"
+        val panelParams = showPanel.o("globalConfiguration").s("params") ?: showPanel.s("params")
+
+        val avatars = avatarStack.a("avatars").orEmpty().mapNotNull { av ->
+            av.o("avatarViewModel").o("image").a("sources")?.lastOrNull().s("url")
+        }
+        val collabLabel = avatarStack.o("rendererContext").o("accessibilityContext").s("label")
+        val authorText = avatarStack.o("text").s("content")
+            ?: header.o("straplineTextOne").runs().takeIf { it.isNotBlank() }
+            ?: collabLabel?.removePrefix("by ")?.substringBefore(" and ")?.trim()
+            ?: "Collaborator"
+
+        val resolvedId = editable?.s("playlistId")
+            ?: fallbackId.removePrefix("VL")
+
+        return YtmCollabHeaderMeta(
+            playlistId = resolvedId,
+            title = title,
+            description = description,
+            thumbnailUrl = thumb,
+            owned = owned,
+            privacy = privacy,
+            isCollaborative = isCollaborative,
+            ownerName = authorText,
+            collaboratorSummary = collabLabel,
+            facepileAvatars = avatars,
+            panelParams = panelParams,
+        )
+    }
+
+    /** Parses `(channelId, displayName, avatarUrl)` entries from `get_panel` (`PAplaylist_collaborate`). */
+    fun parseCollaboratorsPanel(root: JsonElement): List<Triple<String, String, String?>> {
+        val out = ArrayList<Triple<String, String, String?>>()
+        collectRenderers(root, "playlistCollaborationViewModel").forEach { vm ->
+            vm.a("playlistCollaboratorsData").orEmpty().forEach { item ->
+                val cid = item.s("externalChannelId").orEmpty()
+                val row = item.o("collaboratorContentListItem").o("contentListItemViewModel")
+                    ?: item.o("collaboratorContentListItem")
+                val name = row?.o("title")?.s("content") ?: row?.findString("content").orEmpty()
+                val avatar = row?.o("avatar")?.o("avatarViewModel")?.o("image")?.a("sources")?.lastOrNull().s("url")
+                if (name.isNotBlank()) {
+                    out.add(Triple(cid.ifBlank { "ytm:$name" }, name, avatar))
+                }
+            }
+        }
+        if (out.isEmpty()) {
+            collectRenderers(root, "contentListItemViewModel").forEach { row ->
+                val name = row.o("title").s("content").orEmpty()
+                val avatar = row.o("avatar").o("avatarViewModel").o("image").a("sources")?.lastOrNull().s("url")
+                val cid = row.findString("browseId").orEmpty()
+                if (name.isNotBlank()) {
+                    out.add(Triple(cid.ifBlank { "ytm:$name" }, name, avatar))
+                }
+            }
+        }
+        return out.distinctBy { it.first }
+    }
+
+    /**
+     * Extracts per-track contributor `(name, avatarUrl)` from `musicResponsiveListItemRenderer`
+     * rows on a YouTube Music collaborative playlist where YouTube provides contributor badges/avatars.
+     */
+    fun parsePlaylistTrackContributors(root: JsonElement): Map<String, Pair<String, String?>> {
+        val result = HashMap<String, Pair<String, String?>>()
+        val scope: JsonElement = root.o("continuationContents")
+            ?: root.o("contents").o("twoColumnBrowseResultsRenderer").o("secondaryContents")
+            ?: root
+        collectRenderers(scope, "musicResponsiveListItemRenderer").forEach { row ->
+            val key = row.o("playlistItemData").s("playlistSetVideoId")
+                ?: row.o("playlistItemData").s("videoId")
+                ?: return@forEach
+            // Check avatarViewModel / contributor avatar or USER_CHANNEL flexColumn
+            val avatarUrl = collectRenderers(row, "avatarViewModel").firstOrNull()
+                ?.o("image")?.a("sources")?.lastOrNull().s("url")
+            var contributorName: String? = collectRenderers(row, "avatarViewModel").firstOrNull()
+                ?.findString("label")
+                ?.removePrefix("Added by ")
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+
+            if (contributorName == null) {
+                val cols = row.a("flexColumns").orEmpty()
+                for (col in cols.drop(1)) {
+                    val runs = col.o("musicResponsiveListItemFlexColumnRenderer").o("text").a("runs").orEmpty()
+                    for (run in runs) {
+                        val pt = run.o("navigationEndpoint").o("browseEndpoint")
+                            .o("browseEndpointContextSupportedConfigs")
+                            .o("browseEndpointContextMusicConfig").s("pageType")
+                        if (pt == "MUSIC_PAGE_TYPE_USER_CHANNEL") {
+                            contributorName = run.s("text")?.takeIf { it.isNotBlank() }
+                            break
+                        }
+                    }
+                    if (contributorName != null) break
+                }
+            }
+            if (contributorName != null || avatarUrl != null) {
+                result[key] = (contributorName ?: "Collaborator") to avatarUrl
+            }
+        }
+        return result
+    }
 }
 
 // ---- Tiny JSON navigation helpers (null-safe, never throw) ------------------

@@ -1198,17 +1198,21 @@ fun MakeCollaborativeDialog(
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                "Sign in with Google required",
+                                "Sign in with Google to collaborate",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                "Collaborative playlists verify your Google identity so every contributor is accurately attributed.",
+                                if (manager.isNativeYouTubeMode) {
+                                    "Sign in to BitChord with your Google / YouTube Music account once — collaborative playlists work automatically with zero extra setup."
+                                } else {
+                                    "Sign in with Google to verify your contributor identity on your collaboration server."
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Button(onClick = onOpenAuthDialog) {
-                                Text("Configure & Sign in with Google")
+                                Text("Sign in with Google")
                             }
                         }
                     }
@@ -1701,7 +1705,7 @@ fun CollabJoinInviteDialog(
                 OutlinedTextField(
                     value = input,
                     onValueChange = { input = it; preview = null; errorText = null },
-                    label = { Text("Invite link or bci_… token") },
+                    label = { Text("YouTube Music ?list=…&jct=… link or bci_… token") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -1792,6 +1796,7 @@ fun CollabJoinInviteDialog(
 fun CollabGoogleAuthDialog(
     manager: CollabManager,
     onDismiss: () -> Unit,
+    onOpenAppGoogleSignIn: (() -> Unit)? = null,
     onRequestAndroidGoogleIdToken: ((suspend () -> String?)?) = null,
 ) {
     val scope = rememberCoroutineScope()
@@ -1800,6 +1805,7 @@ fun CollabGoogleAuthDialog(
 
     var serverUrl by remember { mutableStateOf(manager.effectiveServerUrl()) }
     var googleClientId by remember { mutableStateOf(manager.effectiveGoogleClientId()) }
+    var showCustomServer by remember { mutableStateOf(!manager.isNativeYouTubeMode) }
     var manualIdToken by remember { mutableStateOf("") }
     var showTokenPaste by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
@@ -1819,146 +1825,155 @@ fun CollabGoogleAuthDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text("Collaborative Account", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(
-                    "Collaborative playlists verify your Google identity using OpenID Connect (OAuth 2.0 + PKCE). Guest mode for music playback and browsing stays completely untouched.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
 
                 val activeUser: CollabUser? = session?.user
-                if (activeUser != null) {
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                if (!showCustomServer) {
+                    Text(
+                        "Collaborative playlists use the Google / YouTube Music account signed into BitChord automatically — no extra server or OAuth Client ID needed.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (activeUser != null) {
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
                         ) {
-                            CollaboratorAvatar(name = activeUser.displayName, avatarUrl = activeUser.avatarUrl, size = 40.dp)
-                            Spacer(Modifier.width(12.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(activeUser.displayName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                                if (activeUser.email.isNotBlank()) {
-                                    Text(activeUser.email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                CollaboratorAvatar(name = activeUser.displayName, avatarUrl = activeUser.avatarUrl, size = 40.dp)
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(activeUser.displayName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        activeUser.email.ifBlank { "Connected via BitChord Google Sign-In" },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                OutlinedButton(
+                                    onClick = { scope.launch { manager.refreshPlaylists() } },
+                                ) {
+                                    Icon(Icons.Rounded.Refresh, null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Sync")
                                 }
                             }
-                            OutlinedButton(
-                                onClick = {
-                                    scope.launch { manager.signOut() }
-                                },
-                            ) { Text("Sign Out") }
+                        }
+                    } else if (onOpenAppGoogleSignIn != null) {
+                        Button(
+                            onClick = {
+                                onDismiss()
+                                onOpenAppGoogleSignIn()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Sign in to BitChord with Google")
                         }
                     }
-                }
 
-                OutlinedTextField(
-                    value = serverUrl,
-                    onValueChange = { serverUrl = it },
-                    label = { Text("Collaboration Server URL (https://…)") },
-                    placeholder = { Text("https://your-bitchord-backend.example.com") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = googleClientId,
-                    onValueChange = { googleClientId = it },
-                    label = { Text("Google OAuth Client ID") },
-                    placeholder = { Text("xxxx.apps.googleusercontent.com") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                if (activeUser == null) {
-                    if (onRequestAndroidGoogleIdToken != null) {
+                    TextButton(onClick = { showCustomServer = true }) {
+                        Text("Advanced: Use a self-hosted Collaboration Server")
+                    }
+                } else {
+                    Text(
+                        "Self-hosted Collaboration Server mode (OpenID Connect + WebSocket). Leave Server URL blank to use built-in YouTube Music collaboration.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedTextField(
+                        value = serverUrl,
+                        onValueChange = { serverUrl = it },
+                        label = { Text("Collaboration Server URL (blank = built-in YouTube Music)") },
+                        placeholder = { Text("https://your-bitchord-backend.example.com") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    if (serverUrl.isNotBlank()) {
+                        OutlinedTextField(
+                            value = googleClientId,
+                            onValueChange = { googleClientId = it },
+                            label = { Text("Google OAuth Client ID") },
+                            placeholder = { Text("xxxx.apps.googleusercontent.com") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                         Button(
-                            enabled = !busy && serverUrl.isNotBlank() && googleClientId.isNotBlank(),
+                            enabled = !busy && googleClientId.isNotBlank(),
                             onClick = {
                                 manager.setServerUrl(serverUrl)
                                 manager.setGoogleClientId(googleClientId)
                                 busy = true
                                 errorText = null
                                 scope.launch {
-                                    val tok = runCatching { onRequestAndroidGoogleIdToken.invoke() }.getOrNull()
-                                    if (!tok.isNullOrBlank()) {
-                                        manager.signInWithGoogleIdToken(tok).fold(
-                                            onSuccess = { onDismiss() },
-                                            onFailure = { errorText = it.message },
-                                        )
+                                    val tok = onRequestAndroidGoogleIdToken?.let { runCatching { it.invoke() }.getOrNull() }
+                                    val res = if (!tok.isNullOrBlank()) {
+                                        manager.signInWithGoogleIdToken(tok)
                                     } else {
-                                        manager.signInWithBrowserPkce { url -> uriHandler.openUri(url) }.fold(
-                                            onSuccess = { onDismiss() },
-                                            onFailure = { errorText = it.message },
-                                        )
+                                        manager.signInWithBrowserPkce { url -> uriHandler.openUri(url) }
                                     }
+                                    res.fold(
+                                        onSuccess = { onDismiss() },
+                                        onFailure = { errorText = it.message },
+                                    )
                                     busy = false
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text(if (busy) "Verifying Google identity…" else "Continue with Google")
+                            Text(if (busy) "Verifying Google identity…" else "Sign in to Custom Server with Google")
+                        }
+                        TextButton(onClick = { showTokenPaste = !showTokenPaste }) {
+                            Text(if (showTokenPaste) "Hide Google ID token input" else "Paste verified Google OIDC ID token")
+                        }
+                        if (showTokenPaste) {
+                            OutlinedTextField(
+                                value = manualIdToken,
+                                onValueChange = { manualIdToken = it },
+                                label = { Text("Verified Google OIDC ID Token (JWT)") },
+                                maxLines = 3,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            OutlinedButton(
+                                enabled = !busy && manualIdToken.isNotBlank(),
+                                onClick = {
+                                    manager.setServerUrl(serverUrl)
+                                    manager.setGoogleClientId(googleClientId)
+                                    busy = true
+                                    errorText = null
+                                    scope.launch {
+                                        manager.signInWithGoogleIdToken(manualIdToken).fold(
+                                            onSuccess = { onDismiss() },
+                                            onFailure = { errorText = it.message },
+                                        )
+                                        busy = false
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) { Text("Verify ID Token") }
                         }
                     } else {
                         Button(
-                            enabled = !busy && serverUrl.isNotBlank() && googleClientId.isNotBlank(),
                             onClick = {
-                                manager.setServerUrl(serverUrl)
-                                manager.setGoogleClientId(googleClientId)
-                                busy = true
-                                errorText = null
-                                scope.launch {
-                                    manager.signInWithBrowserPkce { url -> uriHandler.openUri(url) }.fold(
-                                        onSuccess = { onDismiss() },
-                                        onFailure = { errorText = it.message },
-                                    )
-                                    busy = false
-                                }
+                                manager.setServerUrl("")
+                                showCustomServer = false
+                                onDismiss()
                             },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text(if (busy) "Waiting for browser Google sign-in…" else "Sign in with Google (Browser OAuth + PKCE)")
+                            Text("Use Built-In Google / YouTube Music Collaboration")
                         }
                     }
-
-                    TextButton(onClick = { showTokenPaste = !showTokenPaste }) {
-                        Text(if (showTokenPaste) "Hide Google ID token input" else "Have a verified Google OIDC ID token?")
-                    }
-
-                    if (showTokenPaste) {
-                        OutlinedTextField(
-                            value = manualIdToken,
-                            onValueChange = { manualIdToken = it },
-                            label = { Text("Verified Google OIDC ID Token (JWT)") },
-                            maxLines = 3,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        OutlinedButton(
-                            enabled = !busy && serverUrl.isNotBlank() && manualIdToken.isNotBlank(),
-                            onClick = {
-                                manager.setServerUrl(serverUrl)
-                                manager.setGoogleClientId(googleClientId)
-                                busy = true
-                                errorText = null
-                                scope.launch {
-                                    manager.signInWithGoogleIdToken(manualIdToken).fold(
-                                        onSuccess = { onDismiss() },
-                                        onFailure = { errorText = it.message },
-                                    )
-                                    busy = false
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text("Verify ID Token") }
-                    }
-                } else {
-                    Button(
+                    TextButton(
                         onClick = {
-                            manager.setServerUrl(serverUrl)
-                            manager.setGoogleClientId(googleClientId)
-                            onDismiss()
+                            serverUrl = ""
+                            manager.setServerUrl("")
+                            showCustomServer = false
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Save Settings") }
+                    ) {
+                        Text("Switch back to Built-In YouTube Music Mode")
+                    }
                 }
 
                 errorText?.let {

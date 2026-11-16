@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { resolveCollabServerUrl, resolveGoogleClientId } from './config';
+import { isNativeYtmCollabMode, resolveCollabServerUrl, resolveGoogleClientId } from './config';
 import type { CollabUser } from './types';
 
 const SESSION_KEY = 'bitchord:collab-session:v1';
@@ -284,7 +284,7 @@ let initializedOnce = false;
 /** Verifies any stored Bearer session against `GET /api/collab/auth/me` on app startup. */
 export async function verifyStoredCollabSession(): Promise<CollabUser | null> {
   const { token, serverUrl } = useCollabAuth.getState();
-  if (!token) return null;
+  if (!token || token === YTM_WEB_SESSION_TOKEN) return useCollabAuth.getState().user;
   useCollabAuth.setState({ verifying: true });
   try {
     const { data, baseUrl } = await authFetchJson<{ user: unknown; expiresAtMs: number }>(
@@ -323,6 +323,46 @@ export function initCollabAuth(): void {
   initializedOnce = true;
   if (useCollabAuth.getState().token) {
     void verifyStoredCollabSession();
+  }
+}
+
+export const YTM_WEB_SESSION_TOKEN = 'ytm_native_web_session';
+
+/** Syncs the browser extension's signed-in Google / YouTube Music account into Collaborative Playlists. */
+export function syncYtExtensionToCollab(params: {
+  signedIn: boolean;
+  id?: string | null;
+  name?: string | null;
+  email?: string | null;
+  avatarUrl?: string | null;
+}): void {
+  if (!isNativeYtmCollabMode()) return;
+  const current = useCollabAuth.getState();
+  if (!params.signedIn || !params.name) {
+    if (current.token === YTM_WEB_SESSION_TOKEN) {
+      useCollabAuth.setState({ token: null, expiresAtMs: 0, user: null, serverUrl: '' });
+    }
+    return;
+  }
+  const nextUser: CollabUser = {
+    id: `ytm:${params.id || params.name}`,
+    email: params.email ?? '',
+    emailVerified: true,
+    displayName: params.name,
+    avatarUrl: params.avatarUrl ?? null,
+    createdAtMs: 0,
+    updatedAtMs: Date.now(),
+  };
+  if (current.token !== YTM_WEB_SESSION_TOKEN || current.user?.id !== nextUser.id) {
+    useCollabAuth.setState({
+      token: YTM_WEB_SESSION_TOKEN,
+      expiresAtMs: 0,
+      user: nextUser,
+      serverUrl: '',
+      verifying: false,
+      signingIn: false,
+      error: null,
+    });
   }
 }
 

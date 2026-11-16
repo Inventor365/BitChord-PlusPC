@@ -2,19 +2,32 @@ package com.music.bitchord.data.collab
 
 /**
  * Parses and formats collaborative playlist invite links across Android, Desktop, and Web:
- *  - `https://<host>/collab/invite/bci_<token>`
- *  - `bitchord://collab/invite/bci_<token>?server=https://...`
- *  - `intent://collab/invite/bci_<token>?server=https://...#Intent;scheme=bitchord;end`
- *  - bare `bci_<token>` pasted into a "Join Collaborative Playlist" input.
+ *  1. Official YouTube Music / YouTube collaborative invite links (zero-server native mode):
+ *     - `https://music.youtube.com/playlist?list=PL...&jct=<token>`
+ *     - `https://www.youtube.com/playlist?list=PL...&jct=<token>`
+ *     - `https://youtube.com/playlist?list=PL...&jct=<token>`
+ *     - `bitchord://collab/ytm/<playlistId>?jct=<token>`
+ *  2. Self-hosted BitChord PlusPC backend invite links:
+ *     - `https://<host>/collab/invite/bci_<token>`
+ *     - `bitchord://collab/invite/bci_<token>?server=https://...`
+ *     - `intent://collab/invite/bci_<token>?server=https://...#Intent;scheme=bitchord;end`
+ *     - bare `bci_<token>`
  */
 data class ParsedCollabInvite(
     val token: String,
     val serverOrigin: String? = null,
-)
+    val ytmPlaylistId: String? = null,
+    val ytmJoinToken: String? = null,
+) {
+    val isYouTubeMusicInvite: Boolean
+        get() = !ytmPlaylistId.isNullOrBlank() && !ytmJoinToken.isNullOrBlank()
+}
 
 object CollabInviteLink {
 
     private val TOKEN_REGEX = Regex("""^bci_[A-Za-z0-9_-]{16,128}$""")
+    private val YTM_ID_REGEX = Regex("""^[A-Za-z0-9_-]{8,128}$""")
+    private val JCT_REGEX = Regex("""^[A-Za-z0-9_-]{6,256}$""")
 
     fun isValidToken(token: String): Boolean = TOKEN_REGEX.matches(token.trim())
 
@@ -23,11 +36,41 @@ object CollabInviteLink {
         if (isValidToken(input)) {
             return ParsedCollabInvite(token = input)
         }
+        if (input.startsWith("ytm:")) {
+            val parts = input.split(':', limit = 3)
+            if (parts.size == 3 && YTM_ID_REGEX.matches(parts[1]) && JCT_REGEX.matches(parts[2])) {
+                return ParsedCollabInvite(token = input, ytmPlaylistId = parts[1], ytmJoinToken = parts[2])
+            }
+        }
 
         val cleaned = input.substringBefore('#')
         val queryPart = cleaned.substringAfter('?', missingDelimiterValue = "")
         val pathAndOrigin = cleaned.substringBefore('?')
 
+        // 1. Check for YouTube / YouTube Music collaborative playlist link (?list=PL...&jct=...)
+        val listParam = parseQueryParam(queryPart, "list")?.removePrefix("VL")?.trim()
+        val jctParam = parseQueryParam(queryPart, "jct")?.trim()
+        if (!jctParam.isNullOrEmpty() && JCT_REGEX.matches(jctParam)) {
+            if (pathAndOrigin.startsWith("bitchord://collab/ytm/", ignoreCase = true)) {
+                val pid = pathAndOrigin.substringAfterLast('/').removePrefix("VL").trim()
+                if (YTM_ID_REGEX.matches(pid)) {
+                    return ParsedCollabInvite(
+                        token = "ytm:$pid:$jctParam",
+                        ytmPlaylistId = pid,
+                        ytmJoinToken = jctParam,
+                    )
+                }
+            }
+            if (!listParam.isNullOrEmpty() && YTM_ID_REGEX.matches(listParam) && isYouTubeHost(pathAndOrigin)) {
+                return ParsedCollabInvite(
+                    token = "ytm:$listParam:$jctParam",
+                    ytmPlaylistId = listParam,
+                    ytmJoinToken = jctParam,
+                )
+            }
+        }
+
+        // 2. Check for custom PlusPC backend bci_... invite links
         val queryServer = parseQueryParam(queryPart, "server")?.let(::normalizeServerOrigin)
 
         if (pathAndOrigin.startsWith("bitchord://collab/invite/", ignoreCase = true) ||
@@ -49,6 +92,13 @@ object CollabInviteLink {
         }
 
         return null
+    }
+
+    private fun isYouTubeHost(pathAndOrigin: String): Boolean {
+        val lower = pathAndOrigin.lowercase()
+        if (!lower.startsWith("https://") && !lower.startsWith("http://")) return false
+        val host = lower.substringAfter("://").substringBefore('/').substringBefore(':')
+        return host == "music.youtube.com" || host == "www.youtube.com" || host == "youtube.com" || host == "m.youtube.com"
     }
 
     fun normalizeServerOrigin(raw: String?): String? {

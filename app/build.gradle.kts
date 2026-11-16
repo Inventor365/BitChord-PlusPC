@@ -66,7 +66,7 @@ val listenTogetherServer: String = (
 val collabServer: String = (
     localProps.getProperty("COLLAB_SERVER")?.trim()?.takeIf { it.isNotEmpty() }
         ?: envProp("COLLAB_SERVER")
-        ?: listenTogetherServer
+        ?: ""
     ).trim().trimEnd('/')
 
 val collabGoogleClientId: String = (

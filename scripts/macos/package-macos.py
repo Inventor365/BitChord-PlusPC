@@ -412,25 +412,36 @@ def _bitmap_set_range(bitmap: bytearray, start: int, count: int, used: bool) -> 
             bitmap[b >> 3] &= ~mask
 
 
-def _bitmap_alloc_contiguous(bitmap: bytearray, total_blocks: int, needed: int, hint: int = 1) -> int:
+def _bitmap_alloc_extents(bitmap: bytearray, total_blocks: int, needed: int) -> List[Tuple[int, int]]:
     if needed == 0:
-        return 0
-    for search_start in (hint, 1):
-        run_start = -1
-        run_len = 0
-        # Never touch block 0 or total_blocks - 1 (Primary & Alternate VolumeHeader)
-        for b in range(max(1, search_start), total_blocks - 1):
-            if not _bitmap_is_set(bitmap, b):
-                if run_len == 0:
-                    run_start = b
-                run_len += 1
-                if run_len == needed:
-                    _bitmap_set_range(bitmap, run_start, needed, True)
-                    return run_start
-            else:
-                run_len = 0
+        return []
+    runs: List[Tuple[int, int]] = []
+    b = 1
+    while b < total_blocks - 1:
+        if not _bitmap_is_set(bitmap, b):
+            start = b
+            while b < total_blocks - 1 and not _bitmap_is_set(bitmap, b):
+                b += 1
+            runs.append((b - start, start))
+        else:
+            b += 1
+    # Prefer a single contiguous extent if one fits; else greedily pick largest runs (up to 8 extents)
+    for rlen, rstart in sorted(runs, key=lambda x: x[1]):
+        if rlen >= needed:
+            _bitmap_set_range(bitmap, rstart, needed, True)
+            return [(rstart, needed)]
+    runs.sort(reverse=True)
+    chosen: List[Tuple[int, int]] = []
+    rem = needed
+    for rlen, rstart in runs[:8]:
+        take = min(rlen, rem)
+        _bitmap_set_range(bitmap, rstart, take, True)
+        chosen.append((rstart, take))
+        rem -= take
+        if rem == 0:
+            return chosen
     raise PackagingError(
-        f"Base HFS+ partition does not have {needed} contiguous free blocks (totalBlocks={total_blocks})"
+        f"Base HFS+ partition does not have {needed} free blocks across <=8 extents (short by {rem})"
     )
 
 
@@ -586,14 +597,21 @@ def update_hfsplus_partition_inplace(
                     vol[osb * block_size : (osb + obc) * block_size] = b"\x00" * (obc * block_size)
 
             needed_blks = (len(new_bytes) + block_size - 1) // block_size
-            new_sb = _bitmap_alloc_contiguous(bitmap, total_blocks, needed_blks, hint=next_alloc)
+            extents = _bitmap_alloc_extents(bitmap, total_blocks, needed_blks)
             if needed_blks > 0:
                 padded = new_bytes + b"\x00" * (needed_blks * block_size - len(new_bytes))
-                vol[new_sb * block_size : (new_sb + needed_blks) * block_size] = padded
+                cursor = 0
+                for esb, ebc in extents:
+                    span = ebc * block_size
+                    vol[esb * block_size : (esb + ebc) * block_size] = padded[cursor : cursor + span]
+                    cursor += span
 
-            new_fork = struct.pack(">QII", len(new_bytes), old_clump, needed_blks)
-            new_fork += struct.pack(">II", new_sb, needed_blks) if needed_blks > 0 else (b"\x00" * 8)
-            new_fork += b"\x00" * 56
+            new_fork = bytearray(struct.pack(">QII", len(new_bytes), old_clump, needed_blks))
+            for ext_idx in range(8):
+                if ext_idx < len(extents):
+                    new_fork.extend(struct.pack(">II", extents[ext_idx][0], extents[ext_idx][1]))
+                else:
+                    new_fork.extend(b"\x00" * 8)
             cat_buf[dfork_off : dfork_off + 80] = new_fork
             updated_files += 1
         leaf_idx = f_link
