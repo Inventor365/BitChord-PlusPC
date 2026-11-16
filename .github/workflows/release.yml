@@ -8,6 +8,10 @@ on:
         description: "Version to stamp into the packages, without the leading v"
         required: true
         default: "1.10.0"
+      target:
+        description: "all, or macos to rebuild only the macOS packages (nothing is published)"
+        required: false
+        default: "all"
       draft:
         description: "Create as draft (false publishes immediately)"
         type: boolean
@@ -24,6 +28,7 @@ concurrency:
 jobs:
   android:
     name: Android · Phone, TV & Wear OS APKs
+    if: github.event_name != 'workflow_dispatch' || inputs.target != 'macos'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -128,6 +133,7 @@ jobs:
 
   linux:
     name: Linux · AppImage, deb, rpm
+    if: github.event_name != 'workflow_dispatch' || inputs.target != 'macos'
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -210,6 +216,7 @@ jobs:
 
   windows:
     name: Windows · installer, msi, portable
+    if: github.event_name != 'workflow_dispatch' || inputs.target != 'macos'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -296,10 +303,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-14
+          # macos-14 images are retired ("configuration not supported"). Apple Silicon builds
+          # on the current arm64 image; Intel builds on a real Intel runner, not under Rosetta.
+          - os: macos-15
             arch: arm64
             java_arch: aarch64
-          - os: macos-14
+          - os: macos-15-intel
             arch: x64
             java_arch: x64
     runs-on: ${{ matrix.os }}
@@ -383,6 +392,7 @@ jobs:
 
   web:
     name: Web · player & extension
+    if: github.event_name != 'workflow_dispatch' || inputs.target != 'macos'
     runs-on: ubuntu-latest
     defaults:
       run:
