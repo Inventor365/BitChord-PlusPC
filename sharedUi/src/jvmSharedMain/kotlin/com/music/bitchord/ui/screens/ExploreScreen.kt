@@ -258,6 +258,8 @@ fun MoodGenreSleeve(
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 colorFilter = tone.duotone,
+                // Held back, so words printed on a cover never compete with the tile's title.
+                alpha = ART_ALPHA,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .fillMaxHeight()
@@ -276,7 +278,7 @@ fun MoodGenreSleeve(
         Box(
             Modifier
                 .matchParentSize()
-                .background(Brush.verticalGradient(0.35f to Color.Transparent, 1f to Color.Black.copy(alpha = .38f))),
+                .background(Brush.verticalGradient(0.3f to Color.Transparent, 1f to Color.Black.copy(alpha = .5f))),
         )
         if (label != null) {
             Text(
@@ -309,6 +311,9 @@ private val MONO_LABEL = TextStyle(
     fontSize = androidx.compose.ui.unit.TextUnit(10.5f, androidx.compose.ui.unit.TextUnitType.Sp),
     letterSpacing = androidx.compose.ui.unit.TextUnit(1.5f, androidx.compose.ui.unit.TextUnitType.Sp),
 )
+
+/** How strongly a cover shows through its tile's colour. */
+private const val ART_ALPHA = 0.55f
 
 /** How much of the card's width the cover takes, from the right. */
 private const val ART_FRACTION = 0.72f

@@ -1583,4 +1583,6 @@
     <string name="onboarding_pass_title">Deixe com a sua cara</string>
     <string name="onboarding_pass_body">Seu nome vai no seu Sonara Pass.</string>
     <string name="onboarding_hello">Olá, %1$s.</string>
+    <string name="apple_music_import_title">Importar playlist do Apple Music</string>
+    <string name="apple_music_import_invalid">Isso não é um link de playlist do Spotify ou do Apple Music.</string>
 </resources>

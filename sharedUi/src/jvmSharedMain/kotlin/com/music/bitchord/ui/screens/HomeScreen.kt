@@ -916,6 +916,8 @@ internal fun NewShelfCard(
     modifier: Modifier = Modifier.width(SHELF_CARD_WIDTH),
     /** A full-colour mark drawn in place of [icon], for a card that stands for a brand. */
     logo: DrawableResource? = null,
+    /** The tile's colour; a brand's own when it stands for one. */
+    accent: Color? = null,
 ) {
     Column(
         modifier = modifier.pressScale().clickable(onClick = onClick),
@@ -925,7 +927,7 @@ internal fun NewShelfCard(
             icon = icon,
             painter = logo?.let { painterResource(it) },
             painterTint = MaterialTheme.colorScheme.onBackground,
-            accent = if (logo != null) Color(0xFF1DB954) else com.music.bitchord.ui.components.SonaraAccent,
+            accent = accent ?: if (logo != null) Color(0xFF1DB954) else com.music.bitchord.ui.components.SonaraAccent,
         )
         Spacer(Modifier.height(10.dp))
         Text(

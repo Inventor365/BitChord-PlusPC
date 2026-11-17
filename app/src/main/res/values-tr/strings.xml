@@ -1561,4 +1561,6 @@
     <string name="onboarding_pass_title">Kendine göre yap</string>
     <string name="onboarding_pass_body">Adın Sonara Pass’ine yazılır.</string>
     <string name="onboarding_hello">Merhaba, %1$s.</string>
+    <string name="apple_music_import_title">Apple Music çalma listesini içe aktar</string>
+    <string name="apple_music_import_invalid">Bu bir Spotify veya Apple Music çalma listesi bağlantısı değil.</string>
 </resources>

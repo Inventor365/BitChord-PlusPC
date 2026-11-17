@@ -820,6 +820,8 @@ private fun BitChordApp(
     var offlinePlaylistTarget by remember { mutableStateOf<Song?>(null) }
     var creatingOfflinePlaylist by remember { mutableStateOf(false) }
     var showSpotifyImportDialog by remember { mutableStateOf(false) }
+    /** Whether the import dialog was opened from the Apple Music tile. */
+    var importFromAppleMusic by rememberSaveable { mutableStateOf(false) }
     // Which album or playlist the collection menu is open on, or null when it
     // is shut. One slot for every surface that can open it — the shelves on
     // three tabs, the search rows, the artist page's carousels, the release
@@ -4095,6 +4097,10 @@ private fun BitChordApp(
                                 onShelfItemLongPress = onBrowseLongPress,
                                 onNewPlaylist = { creatingPlaylist = true },
                                 onImportSpotifyPlaylist = { showSpotifyImportDialog = true },
+                                onImportAppleMusicPlaylist = {
+                                    importFromAppleMusic = true
+                                    showSpotifyImportDialog = true
+                                },
                                 onShowAll = { shelf -> navigator.push(AppRoute.LibraryShowAll(shelf)) },
                                 replay = {
                                     LibraryReplayEntry(
@@ -5671,10 +5677,14 @@ private fun BitChordApp(
         }
 
         if (showSpotifyImportDialog) {
-            BackHandler { showSpotifyImportDialog = false }
+            BackHandler {
+                showSpotifyImportDialog = false
+                importFromAppleMusic = false
+            }
             SpotifyImportAlert(
                 hazeState = hazeState,
                 signedIn = signedIn,
+                appleMusic = importFromAppleMusic,
                 onImported = { title, privacy, songs ->
                     viewModel.createPlaylistWithVideoIds(
                         title,
@@ -5694,7 +5704,10 @@ private fun BitChordApp(
                         }
                     }
                 },
-                onDismiss = { showSpotifyImportDialog = false },
+                onDismiss = {
+                    showSpotifyImportDialog = false
+                    importFromAppleMusic = false
+                },
             )
         }
         }

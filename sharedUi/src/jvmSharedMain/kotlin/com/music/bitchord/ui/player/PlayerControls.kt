@@ -175,11 +175,10 @@ internal fun PlaybackOriginCaption(
 ) {
     val chrome = LocalPlayerChrome.current
     Text(
-        // Ticket print, as Sonara sets every small label: upper case, spaced, fixed-width.
-        text = text.uppercase(),
-        style = MaterialTheme.typography.labelSmall.copy(
-            fontFamily = FontFamily.Monospace,
-            letterSpacing = 1.3.sp,
+        // The player's own face, not the monospace labels used elsewhere: over artwork and
+        // beside the title it has to read as part of the same set.
+        text = text,
+        style = MaterialTheme.typography.labelMedium.copy(
             shadow = Shadow(
                 color = Color.Black.copy(alpha = 0.55f),
                 offset = Offset(0f, 1f),
@@ -257,7 +256,7 @@ internal fun PlayerScrubber(
             ) {
                 Text(
                     text = formatTime((shown * durationMs).toLong()),
-                    style = TIME_STYLE,
+                    style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = TABULAR_FIGURES),
                     color = timeColor,
                 )
                 Text(
@@ -266,7 +265,7 @@ internal fun PlayerScrubber(
                     } else {
                         "-" + formatTime(durationMs - (shown * durationMs).toLong())
                     },
-                    style = TIME_STYLE,
+                    style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = TABULAR_FIGURES),
                     color = timeColor,
                     modifier = Modifier.clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -938,13 +937,11 @@ private fun PlayDisc(
     }
 }
 
-/** The player's times: fixed-width, so the digits do not jostle as they tick. */
-private val TIME_STYLE = TextStyle(
-    fontFamily = FontFamily.Monospace,
-    fontWeight = FontWeight.Medium,
-    fontSize = 12.sp,
-    letterSpacing = 0.6.sp,
-)
+/**
+ * Tabular figures: in the player's own face, every digit the same width, so the times keep
+ * their place as they tick instead of shuffling a pixel each second.
+ */
+private const val TABULAR_FIGURES = "tnum"
 
 /** The skip glyphs' width, and their touch box, beside the larger play button. */
 private val PLAYER_SKIP_ICON_SIZE = 53.dp

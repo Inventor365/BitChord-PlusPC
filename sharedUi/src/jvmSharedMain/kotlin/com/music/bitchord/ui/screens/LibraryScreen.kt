@@ -1,5 +1,6 @@
 package com.music.bitchord.ui.screens
 
+import androidx.compose.material.icons.rounded.MusicNote
 import com.music.bitchord.sharedui.resources.*
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -109,6 +110,8 @@ fun LibraryScreen(
     onShelfItemLongPress: (ShelfItem) -> Unit,
     onNewPlaylist: () -> Unit,
     onImportSpotifyPlaylist: (() -> Unit)? = null,
+    /** Opens the import dialog for a public Apple Music playlist link. */
+    onImportAppleMusicPlaylist: (() -> Unit)? = null,
     /**
      * A shelf's "Show all" — every shelf's row here stops at five cards (see
      * [LibraryGridShelf]), so this is the only way to reach whatever didn't
@@ -219,6 +222,7 @@ fun LibraryScreen(
                         onItemLongPress = onShelfItemLongPress,
                         onNewPlaylist = onNewPlaylist,
                         onImportSpotifyPlaylist = onImportSpotifyPlaylist,
+                                onImportAppleMusicPlaylist = onImportAppleMusicPlaylist,
                         onShowAll = { onShowAll(emptyPlaylists) },
                     )
                 }
@@ -257,6 +261,7 @@ fun LibraryScreen(
                                 onItemLongPress = onShelfItemLongPress,
                                 onNewPlaylist = onNewPlaylist,
                                 onImportSpotifyPlaylist = onImportSpotifyPlaylist,
+                                onImportAppleMusicPlaylist = onImportAppleMusicPlaylist,
                                 onShowAll = { onShowAll(emptyPlaylists) },
                             )
                         }
@@ -271,6 +276,7 @@ fun LibraryScreen(
                                     onItemLongPress = onShelfItemLongPress,
                                     onNewPlaylist = onNewPlaylist,
                                     onImportSpotifyPlaylist = onImportSpotifyPlaylist,
+                                onImportAppleMusicPlaylist = onImportAppleMusicPlaylist,
                                     onShowAll = { onShowAll(pinnedFirst) },
                                     pinnedPlaylists = pinnedPlaylists,
                                 )
@@ -432,6 +438,7 @@ private fun PlaylistShelf(
     onItemLongPress: (ShelfItem) -> Unit,
     onNewPlaylist: () -> Unit,
     onImportSpotifyPlaylist: (() -> Unit)? = null,
+    onImportAppleMusicPlaylist: (() -> Unit)? = null,
     onShowAll: () -> Unit,
     pinnedPlaylists: List<String> = emptyList(),
 ) {
@@ -450,6 +457,15 @@ private fun PlaylistShelf(
                     subtitle = stringResource(Res.string.import_spotify_subtitle),
                     onClick = onImportSpotifyPlaylist,
                     logo = Res.drawable.spotify_logo,
+                )
+            }
+            if (onImportAppleMusicPlaylist != null) {
+                NewShelfCard(
+                    icon = androidx.compose.material.icons.Icons.Rounded.MusicNote,
+                    label = stringResource(Res.string.import_apple_music),
+                    subtitle = stringResource(Res.string.import_spotify_subtitle),
+                    onClick = onImportAppleMusicPlaylist,
+                    accent = APPLE_MUSIC_RED,
                 )
             }
         }
@@ -625,3 +641,6 @@ private fun HomeShelf.sortedForLibrary(sort: LibrarySort): HomeShelf = when (sor
 
 /** The library feed whose cards are the account's own — see [PlaylistShelf]. */
 private const val PLAYLISTS = YtMusicRepository.PLAYLISTS_SHELF
+
+/** Apple Music's red, for the tile that imports from it. */
+private val APPLE_MUSIC_RED = androidx.compose.ui.graphics.Color(0xFFFA2D48)

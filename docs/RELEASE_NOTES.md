@@ -1,4 +1,18 @@
-# Sonara `v2.1.1` (`versionCode = 50`)
+# Sonara `v2.1.2` (`versionCode = 51`)
+
+**Import from Apple Music, a calmer player, clearer tiles.**
+
+## What's new in 2.1.2
+
+- **Import Apple Music playlists.** A new *Import Apple Music* tile beside *Import Spotify* in Library. Paste a public playlist link (`music.apple.com/…/playlist/…`, editorial or shared from your library); its songs are matched on YouTube Music and saved as a new playlist, with any that couldn't be found listed. Either link works in either dialog, on Android and desktop.
+- **The player's type, back in one family.** *Playing from …* and the elapsed and remaining times are set in the player's own face again rather than in monospace; the times use tabular figures, so they still hold their place as they tick.
+- **Explore and Search tiles** hold their cover art further back, so words printed on a cover never compete with the tile's own title.
+- **Category pages** carry the same *EXPLORE · N PLAYLISTS* label as Explore.
+- The development build is named *Sonara Dev* everywhere, including the permission prompts.
+
+---
+
+## Sonara `v2.1.1`
 
 **Explore and the player join the redesign; collaborative playlists find every playlist, ride out YouTube's hiccups, and stay compatible with BitChord PlusPC.**
 

@@ -1497,4 +1497,6 @@
     <string name="onboarding_pass_title">Biến nó thành của bạn</string>
     <string name="onboarding_pass_body">Tên bạn sẽ có trên Sonara Pass của bạn.</string>
     <string name="onboarding_hello">Xin chào, %1$s.</string>
+    <string name="apple_music_import_title">Nhập danh sách phát Apple Music</string>
+    <string name="apple_music_import_invalid">Đây không phải liên kết danh sách phát Spotify hoặc Apple Music.</string>
 </resources>

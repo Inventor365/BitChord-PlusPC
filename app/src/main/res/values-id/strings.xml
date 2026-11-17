@@ -1555,4 +1555,6 @@
     <string name="onboarding_pass_title">Jadikan milikmu</string>
     <string name="onboarding_pass_body">Namamu akan tertulis di Sonara Pass-mu.</string>
     <string name="onboarding_hello">Halo, %1$s.</string>
+    <string name="apple_music_import_title">Impor playlist Apple Music</string>
+    <string name="apple_music_import_invalid">Itu bukan tautan playlist Spotify atau Apple Music.</string>
 </resources>

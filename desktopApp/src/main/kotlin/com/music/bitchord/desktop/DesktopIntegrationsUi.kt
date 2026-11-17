@@ -493,12 +493,15 @@ internal fun DesktopSpotifyImportDialog(
     var unmatched by remember { mutableStateOf<List<SpotifyImportTrack>?>(null) }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
-    val title = DesktopStrings["spotify_import_title", "Import Spotify playlist"]
+    val title = DesktopStrings["spotify_or_apple_import_title", "Import a Spotify or Apple Music playlist"]
 
     fun start() {
         if (working) return
-        val id = SpotifyImporter.extractPlaylistId(link) ?: run {
-            status = DesktopStrings["spotify_import_invalid", "That isn't a Spotify playlist link."]
+        // An Apple Music link is read by its own importer; the matching is shared.
+        val appleUrl = com.music.bitchord.data.spotify.AppleMusicImporter.extractPlaylistUrl(link)
+        val id = if (appleUrl == null) SpotifyImporter.extractPlaylistId(link) else null
+        if (appleUrl == null && id == null) {
+            status = DesktopStrings["apple_music_import_invalid", "That isn't a Spotify or Apple Music playlist link."]
             failed = true
             return
         }
@@ -507,7 +510,11 @@ internal fun DesktopSpotifyImportDialog(
         status = DesktopStrings["spotify_import_fetching", "Reading the Spotify playlist…"]
         scope.launch {
             try {
-                val (name, tracks) = SpotifyImporter.fetchPlaylistTracks(id)
+                val (name, tracks) = if (appleUrl != null) {
+                    com.music.bitchord.data.spotify.AppleMusicImporter.fetchPlaylist(appleUrl).let { it.title to it.tracks }
+                } else {
+                    SpotifyImporter.fetchPlaylistTracks(id!!)
+                }
                 val (songs, missed) = SpotifyImporter.resolveToSongs(tracks) { done, total ->
                     status = DesktopStrings.format("spotify_import_matching", done, total, fallback = "Matching songs %1\$d of %2\$d")
                 }
@@ -558,7 +565,7 @@ internal fun DesktopSpotifyImportDialog(
                     if (failed) status = null
                     failed = false
                 },
-                placeholder = DesktopStrings["spotify_import_hint", "open.spotify.com/playlist/…"],
+                placeholder = "open.spotify.com/playlist/… or music.apple.com/…/playlist/…",
                 enabled = !working,
                 onSubmit = ::start,
                 modifier = Modifier.focusRequester(focus),

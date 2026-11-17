@@ -1578,4 +1578,6 @@
     <string name="onboarding_pass_title">इसे अपना बनाएँ</string>
     <string name="onboarding_pass_body">आपका नाम आपके Sonara Pass पर होगा।</string>
     <string name="onboarding_hello">नमस्ते, %1$s.</string>
+    <string name="apple_music_import_title">Apple Music प्लेलिस्ट इम्पोर्ट करें</string>
+    <string name="apple_music_import_invalid">यह Spotify या Apple Music प्लेलिस्ट का लिंक नहीं है।</string>
 </resources>

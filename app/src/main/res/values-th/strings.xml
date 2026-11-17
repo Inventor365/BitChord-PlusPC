@@ -1562,4 +1562,6 @@
     <string name="onboarding_pass_title">ทำให้เป็นของคุณ</string>
     <string name="onboarding_pass_body">ชื่อของคุณจะอยู่บน Sonara Pass ของคุณ</string>
     <string name="onboarding_hello">สวัสดี %1$s</string>
+    <string name="apple_music_import_title">นำเข้าเพลย์ลิสต์ Apple Music</string>
+    <string name="apple_music_import_invalid">นี่ไม่ใช่ลิงก์เพลย์ลิสต์ของ Spotify หรือ Apple Music</string>
 </resources>

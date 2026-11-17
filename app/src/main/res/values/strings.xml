@@ -1456,4 +1456,7 @@
     <string name="edit_metadata">Edit metadata</string>
     <string name="metadata_updated">Metadata updated</string>
     <string name="metadata_update_failed">Failed to update metadata</string>
+    <string name="apple_music_import_title">Import Apple Music playlist</string>
+    <string name="apple_music_import_invalid">That isn\'t a Spotify or Apple Music playlist link.</string>
+    <string name="apple_music_import_hint" translatable="false">music.apple.com/…/playlist/…</string>
 </resources>

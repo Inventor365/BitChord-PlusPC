@@ -1610,4 +1610,6 @@
     <string name="onboarding_pass_title">Сделайте его своим</string>
     <string name="onboarding_pass_body">Ваше имя появится на вашем Sonara Pass.</string>
     <string name="onboarding_hello">Привет, %1$s.</string>
+    <string name="apple_music_import_title">Импорт плейлиста Apple Music</string>
+    <string name="apple_music_import_invalid">Это не ссылка на плейлист Spotify или Apple Music.</string>
 </resources>

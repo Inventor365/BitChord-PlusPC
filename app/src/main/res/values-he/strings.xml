@@ -1583,4 +1583,6 @@
     <string name="onboarding_pass_title">הפכו אותו לשלכם</string>
     <string name="onboarding_pass_body">השם שלכם יופיע על ה־Sonara Pass שלכם.</string>
     <string name="onboarding_hello">שלום, %1$s.</string>
+    <string name="apple_music_import_title">ייבוא פלייליסט מ־Apple Music</string>
+    <string name="apple_music_import_invalid">זה לא קישור לפלייליסט של Spotify או Apple Music.</string>
 </resources>

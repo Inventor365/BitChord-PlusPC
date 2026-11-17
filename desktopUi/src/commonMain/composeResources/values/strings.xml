@@ -219,4 +219,5 @@
     <string name="greeting_named">%1$s, %2$s</string>
     <string name="search_empty_title">What do you want to hear?</string>
     <string name="browse_categories">Browse categories</string>
+    <string name="import_apple_music">Import Apple Music</string>
 </resources>

@@ -41,6 +41,7 @@ import com.music.bitchord.data.model.PlaylistPrivacy
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.spotify.SpotifyImportTrack
 import com.music.bitchord.data.spotify.SpotifyImporter
+import com.music.bitchord.data.spotify.AppleMusicImporter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.CancellationException
@@ -75,6 +76,11 @@ fun SpotifyImportAlert(
     /** Called once the songs are matched; [privacy] is meaningful only when signed in. */
     onImported: (title: String, privacy: PlaylistPrivacy, songs: List<Song>) -> Unit,
     onDismiss: () -> Unit,
+    /**
+     * Opened from the Apple Music tile: titled and hinted for an Apple Music link. Either kind
+     * of link is accepted in either mode — the importer is chosen by the link itself.
+     */
+    appleMusic: Boolean = false,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -88,9 +94,12 @@ fun SpotifyImportAlert(
     var unmatched by remember { mutableStateOf<List<SpotifyImportTrack>?>(null) }
 
     fun start() {
-        val id = SpotifyImporter.extractPlaylistId(link)
-        if (id == null) {
-            status = context.getString(R.string.spotify_import_invalid)
+        val appleUrl = AppleMusicImporter.extractPlaylistUrl(link)
+        val id = if (appleUrl == null) SpotifyImporter.extractPlaylistId(link) else null
+        if (appleUrl == null && id == null) {
+            status = context.getString(
+                if (appleMusic) R.string.apple_music_import_invalid else R.string.spotify_import_invalid,
+            )
             failed = true
             return
         }
@@ -104,7 +113,11 @@ fun SpotifyImportAlert(
         status = context.getString(R.string.spotify_import_fetching)
         scope.launch {
             try {
-                val (name, tracks) = SpotifyImporter.fetchPlaylistTracks(id)
+                val (name, tracks) = if (appleUrl != null) {
+                    AppleMusicImporter.fetchPlaylist(appleUrl).let { it.title to it.tracks }
+                } else {
+                    SpotifyImporter.fetchPlaylistTracks(id!!)
+                }
                 val (songs, missed) = SpotifyImporter.resolveToSongs(tracks, effectiveLanguage) { done, total ->
                     status = context.getString(R.string.spotify_import_matching, done, total)
                 }
@@ -131,7 +144,7 @@ fun SpotifyImportAlert(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = stringResource(R.string.spotify_import_title),
+                text = stringResource(if (appleMusic) R.string.apple_music_import_title else R.string.spotify_import_title),
                 style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.W600),
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
@@ -187,7 +200,7 @@ fun SpotifyImportAlert(
                             failed = false
                         }
                     },
-                    placeholder = stringResource(R.string.spotify_import_hint),
+                    placeholder = stringResource(if (appleMusic) R.string.apple_music_import_hint else R.string.spotify_import_hint),
                     enabled = !working,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { if (link.isNotBlank() && !working) start() }),

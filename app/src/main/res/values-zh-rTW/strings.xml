@@ -1572,4 +1572,6 @@
     <string name="onboarding_pass_title">打造專屬於你</string>
     <string name="onboarding_pass_body">你的名字會印在你的 Sonara Pass 上。</string>
     <string name="onboarding_hello">你好，%1$s。</string>
+    <string name="apple_music_import_title">匯入 Apple Music 播放清單</string>
+    <string name="apple_music_import_invalid">這不是 Spotify 或 Apple Music 播放清單連結。</string>
 </resources>

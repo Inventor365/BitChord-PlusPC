@@ -1556,4 +1556,6 @@
     <string name="onboarding_pass_title">あなただけのものに</string>
     <string name="onboarding_pass_body">あなたの名前が Sonara Pass に入ります。</string>
     <string name="onboarding_hello">こんにちは、%1$sさん。</string>
+    <string name="apple_music_import_title">Apple Music のプレイリストを読み込む</string>
+    <string name="apple_music_import_invalid">Spotify または Apple Music のプレイリストのリンクではありません。</string>
 </resources>

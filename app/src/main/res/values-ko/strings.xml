@@ -1429,4 +1429,6 @@
     <string name="onboarding_pass_title">나만의 것으로</string>
     <string name="onboarding_pass_body">이름이 Sonara Pass에 새겨집니다.</string>
     <string name="onboarding_hello">안녕하세요, %1$s님.</string>
+    <string name="apple_music_import_title">Apple Music 플레이리스트 가져오기</string>
+    <string name="apple_music_import_invalid">Spotify 또는 Apple Music 플레이리스트 링크가 아닙니다.</string>
 </resources>
