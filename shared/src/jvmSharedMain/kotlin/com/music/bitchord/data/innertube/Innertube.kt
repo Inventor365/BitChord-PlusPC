@@ -108,6 +108,8 @@ object Innertube {
     private const val WEB_REMIX_VERSION = "1.20250101.01.00"
     private const val WEB_REMIX_CLIENT_ID = "67"
 
+    /** The longest a read waits before asking YouTube again, whatever Retry-After says. */
+    private const val MAX_READ_BACKOFF_MS = 6_000L
     private const val TAG = "BitChord"
 
     /** Session cookie captured by the login WebView; null = browse as guest. */
@@ -563,6 +565,41 @@ object Innertube {
         query = mapOf("ctoken" to token, "continuation" to token, "type" to "next"),
     ) {
         put("continuation", token)
+    }
+
+    /**
+     * [browse] that rides out YouTube's momentary refusals: a 429 (asked too fast) or a 5xx
+     * (a backend having a moment) is asked again, after the `Retry-After` the server named or a
+     * doubling pause, up to [attempts] times. Only for reads: a browse changes nothing, so asking
+     * twice cannot apply anything twice. A 4xx other than 429 is an answer and is thrown at once.
+     *
+     * Collaborative playlists read many playlists in a burst (discovery, the roster, every page
+     * of a long playlist), which is exactly when YouTube starts saying 429; without this, one
+     * refusal quietly dropped that playlist from the list until the next refresh.
+     */
+    suspend fun browseResilient(browseId: String, params: String? = null, attempts: Int = 3): JsonObject =
+        readWithBackoff(attempts) { browse(browseId, params) }
+
+    /** [browseContinuation] with [browseResilient]'s patience. */
+    suspend fun browseContinuationResilient(token: String, attempts: Int = 3): JsonObject =
+        readWithBackoff(attempts) { browseContinuation(token) }
+
+    private suspend fun readWithBackoff(attempts: Int, read: suspend () -> JsonObject): JsonObject {
+        var pause = 700L
+        repeat(attempts - 1) {
+            try {
+                return read()
+            } catch (e: ResponseException) {
+                val status = e.response.status.value
+                if (status != 429 && status !in 500..504) throw e
+                val retryAfterMs = e.response.headers["Retry-After"]?.trim()?.toLongOrNull()?.times(1_000)
+                val wait = (retryAfterMs ?: pause).coerceIn(300L, MAX_READ_BACKOFF_MS)
+                Log.d(TAG, "browse refused ($status), asking again in ${wait}ms")
+                delay(wait)
+                pause *= 2
+            }
+        }
+        return read()
     }
 
     /** Signed-in profile: display name, email/handle and avatar. */

@@ -665,3 +665,30 @@ describe('YouTube Music collaboration protocol', () => {
     expect(ytmJoinFailureMessage({ status: 503 })).toMatch(/HTTP 503/);
   });
 });
+
+describe('readWithBackoff', () => {
+  it('retries 429 and 5xx, then succeeds', async () => {
+    const { readWithBackoff } = await import('./ytmCollab');
+    let calls = 0;
+    const value = await readWithBackoff(async () => {
+      calls++;
+      if (calls === 1) throw Object.assign(new Error('rate'), { status: 429 });
+      if (calls === 2) throw new Error('Request failed with status 503');
+      return 'ok';
+    }, 3, 1);
+    expect(value).toBe('ok');
+    expect(calls).toBe(3);
+  });
+
+  it('does not retry other client errors', async () => {
+    const { readWithBackoff } = await import('./ytmCollab');
+    let calls = 0;
+    await expect(
+      readWithBackoff(async () => {
+        calls++;
+        throw Object.assign(new Error('nope'), { status: 404 });
+      }, 3, 1),
+    ).rejects.toThrow('nope');
+    expect(calls).toBe(1);
+  });
+});

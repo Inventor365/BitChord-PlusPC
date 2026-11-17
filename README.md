@@ -48,6 +48,16 @@
 
 <table>
   <tr>
+    <td width="33%" align="center"><img src="docs/screenshots/explore.png" alt="Explore with a featured card and sections" width="100%" /><br/><sub><b>Explore</b> — featured card, sections, numbered tiles</sub></td>
+    <td width="33%" align="center"><img src="docs/screenshots/search.png" alt="Search opening on mood and genre tiles" width="100%" /><br/><sub><b>Search</b> — moods and genres to browse</sub></td>
+    <td width="33%" align="center"><img src="docs/screenshots/player-controls.png" alt="Player controls with the white play disc" width="100%" /><br/><sub><b>Player</b> — the play disc and ticket-print labels</sub></td>
+  </tr>
+</table>
+
+<br/>
+
+<table>
+  <tr>
     <td width="50%" align="center">
       <img src="docs/screenshots/macos.png" alt="Sonara for macOS — Home Feed & Word-Synced Lyrics" width="100%" />
       <br/>

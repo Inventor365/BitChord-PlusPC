@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalContentColor
@@ -151,6 +152,80 @@ class PhoneScreenshotRenderer {
                 topPadding = 64.dp,
                 browseCategories = categories,
             )
+        }
+    }
+
+    @Test
+    fun renderExplore() {
+        val outDir = System.getProperty("bitchord.renderScreenshots")?.takeIf { it.isNotBlank() }?.let(::File) ?: return
+        val target = if (outDir.isAbsolute) outDir else File("..", outDir.path)
+        target.mkdirs()
+        fun mood(title: String, argb: Long) =
+            com.music.bitchord.data.model.MoodGenre(title = title, browseId = "FEmusic_moods_and_genres_category", params = title, stripeColor = argb)
+        val sections = listOf(
+            com.music.bitchord.data.model.MoodGenreSection(
+                "Moods & moments",
+                listOf(
+                    mood("Feel good", 0xFF8BD17C), mood("Chill", 0xFF5EC2B7), mood("Workout", 0xFFE85D4A),
+                    mood("Focus", 0xFF6C7CE7), mood("Party", 0xFFE6A23C), mood("Romance", 0xFFE0607E), mood("Sleep", 0xFF4B5D9E),
+                ),
+            ),
+            com.music.bitchord.data.model.MoodGenreSection(
+                "Genres",
+                listOf(mood("Indie & alternative", 0xFF9C8AC0), mood("Jazz", 0xFF6A88B0), mood("K-Pop", 0xFFC07A92), mood("Metal", 0xFF7A7A80)),
+            ),
+        )
+        shoot(File(target, "explore.png")) {
+            com.music.bitchord.ui.screens.ExploreScreen(
+                state = UiState.Success(sections),
+                listState = rememberLazyListState(),
+                onCategoryClick = {},
+                onRetry = {},
+                refreshing = false,
+                onRefresh = {},
+                pullState = rememberPullToRefreshState(),
+                contentPadding = PaddingValues(top = 64.dp, bottom = 24.dp),
+            )
+        }
+    }
+
+    @Test
+    fun renderPlayerControls() {
+        val outDir = System.getProperty("bitchord.renderScreenshots")?.takeIf { it.isNotBlank() }?.let(::File) ?: return
+        val target = if (outDir.isAbsolute) outDir else File("..", outDir.path)
+        target.mkdirs()
+        shoot(File(target, "player-controls.png")) {
+            androidx.compose.foundation.layout.Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            listOf(Color(0xFF6B2D5C), Color(0xFF2A1638), Color(0xFF120B18)),
+                        ),
+                    ),
+            ) {
+                androidx.compose.foundation.layout.Column(
+                    Modifier.padding(horizontal = 28.dp).padding(top = 420.dp),
+                ) {
+                    com.music.bitchord.ui.player.PlaybackOriginCaption(
+                        text = "Playing from Road Trip, Windows Down",
+                        onClick = {},
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Start,
+                        contentPadding = PaddingValues(0.dp),
+                    )
+                    androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 18.dp))
+                    androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 18.dp))
+                    com.music.bitchord.ui.player.TransportRow(
+                        isPlaying = true,
+                        isLoading = false,
+                        previousEnabled = true,
+                        nextEnabled = true,
+                        onPrevious = {},
+                        onPlayPause = {},
+                        onNext = {},
+                    )
+                }
+            }
         }
     }
 

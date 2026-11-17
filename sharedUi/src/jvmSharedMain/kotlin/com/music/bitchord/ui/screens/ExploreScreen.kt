@@ -31,6 +31,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
@@ -85,19 +89,19 @@ fun ExploreScreen(
             ) {
                 if (showTitle) {
                     item {
-                        Text(
-                            text = stringResource(Res.string.explore),
-                            style = MaterialTheme.typography.displayLarge,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            // 14dp under the title, the same gap Library leaves
-                            // above its first card (8dp title + 6dp Replay row).
-                            modifier = Modifier.padding(
-                                start = PAGE_GUTTER,
-                                end = PAGE_GUTTER,
-                                top = 8.dp,
-                                bottom = 14.dp,
-                            ),
-                        )
+                        Column(Modifier.padding(start = PAGE_GUTTER, end = PAGE_GUTTER, top = 8.dp, bottom = 14.dp)) {
+                            val count = (state as? UiState.Success)?.data?.sumOf { it.items.size }
+                            Text(
+                                text = if (count != null) "BROWSE · $count MOODS & GENRES" else "BROWSE",
+                                style = MONO_LABEL,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = stringResource(Res.string.explore),
+                                style = MaterialTheme.typography.displayLarge,
+                                color = MaterialTheme.colorScheme.onBackground,
+                            )
+                        }
                     }
                 }
                 when (state) {
@@ -106,13 +110,59 @@ fun ExploreScreen(
                         MessageState(state.message, actionLabel = stringResource(Res.string.retry), onAction = onRetry)
                     }
                     is UiState.Success -> {
-                        // Moods and genres read as one grid; the server's
-                        // grouping only decides the order.
-                        val rows = state.data.flatMap(MoodGenreSection::items)
-                            .distinctBy { it.browseId to it.params }
-                            .chunked(columns)
-                        items(rows, key = { row -> row.first().let { "${it.browseId}|${it.params}" } }) { row ->
-                            MoodGenreRow(row = row, columns = columns, onCategoryClick = onCategoryClick)
+                        // The server's own grouping ("Moods & moments", "Genres") now titles
+                        // each part of the page; the first category of all leads it as a
+                        // wide featured card.
+                        val seen = HashSet<Pair<String, String?>>()
+                        val sections = state.data.map { section ->
+                            section.title to section.items.filter { seen.add(it.browseId to it.params) }
+                        }.filter { it.second.isNotEmpty() }
+                        val featured = sections.firstOrNull()?.second?.firstOrNull()
+                        if (featured != null) {
+                            item(key = "featured") {
+                                FeaturedMoodCard(
+                                    item = featured,
+                                    onClick = { onCategoryClick(featured) },
+                                    modifier = Modifier.padding(horizontal = PAGE_GUTTER).padding(bottom = 18.dp),
+                                )
+                            }
+                        }
+                        var index = 0
+                        sections.forEachIndexed { sectionIndex, (title, entries) ->
+                            val rest = if (sectionIndex == 0) entries.drop(1) else entries
+                            if (rest.isEmpty()) return@forEachIndexed
+                            if (title.isNotBlank()) {
+                                item(key = "section:$sectionIndex") {
+                                    Row(
+                                        verticalAlignment = Alignment.Bottom,
+                                        modifier = Modifier.padding(start = PAGE_GUTTER, end = PAGE_GUTTER, top = 10.dp, bottom = 12.dp),
+                                    ) {
+                                        Text(
+                                            text = title,
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        Text(
+                                            text = rest.size.toString().padStart(2, '0'),
+                                            style = MONO_LABEL,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            }
+                            val rows = rest.chunked(columns)
+                            val start = index
+                            items(rows, key = { row -> row.first().let { "${it.browseId}|${it.params}" } }) { row ->
+                                MoodGenreRow(
+                                    row = row,
+                                    columns = columns,
+                                    onCategoryClick = onCategoryClick,
+                                    firstIndex = start + rest.indexOf(row.first()) + 1,
+                                )
+                            }
+                            index += rest.size
                         }
                     }
                 }
@@ -121,11 +171,31 @@ fun ExploreScreen(
     }
 }
 
+/**
+ * The first category, drawn wide across the head of the page: its artwork in its own colours,
+ * the title large, and a "FEATURED" line in ticket print.
+ */
+@Composable
+private fun FeaturedMoodCard(item: MoodGenre, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    MoodGenreSleeve(
+        item = item,
+        label = "FEATURED",
+        titleStyle = MaterialTheme.typography.headlineLarge,
+        modifier = modifier
+            .pressScale(0.98f)
+            .fillMaxWidth()
+            .aspectRatio(2.1f)
+            .clip(RoundedCornerShape(26.dp))
+            .clickable(onClick = onClick),
+    )
+}
+
 @Composable
 private fun MoodGenreRow(
     row: List<MoodGenre>,
     columns: Int,
     onCategoryClick: (MoodGenre) -> Unit,
+    firstIndex: Int = 0,
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(MOOD_SPACING),
@@ -133,11 +203,12 @@ private fun MoodGenreRow(
             .padding(horizontal = PAGE_GUTTER)
             .padding(bottom = MOOD_SPACING),
     ) {
-        row.forEach { item ->
+        row.forEachIndexed { i, item ->
             MoodGenreCard(
                 item = item,
                 onClick = { onCategoryClick(item) },
                 modifier = Modifier.weight(1f),
+                label = if (firstIndex > 0) (firstIndex + i).toString().padStart(2, '0') else null,
             )
         }
         // Short rows keep their cards the size of a full row's.
@@ -150,9 +221,11 @@ private fun MoodGenreCard(
     item: MoodGenre,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    label: String? = null,
 ) {
     MoodGenreSleeve(
         item = item,
+        label = label,
         modifier = modifier.pressScale()
             .aspectRatio(MOOD_CARD_ASPECT)
             .clip(MOOD_CARD_SHAPE)
@@ -161,45 +234,58 @@ private fun MoodGenreCard(
 }
 
 /**
- * A solid stripe down the left and the category's cover filling the rest,
- * redrawn as a duotone of the stripe's colour so every card reads as one
- * tinted sleeve rather than a photo pasted onto a swatch.
+ * A category's sleeve: its colour fills the card as a gradient, its cover is drawn as a duotone
+ * of that colour and fades into it from the right, the title sits at the foot in heavy white,
+ * and an optional [label] (an index, "FEATURED") is set in ticket print at the top.
  *
- * Only the artwork: the caller sizes, clips and makes it clickable, which is
- * how the TV app wraps the same sleeve in its own focus treatment.
+ * Only the artwork: the caller sizes, clips and makes it clickable, which is how the TV app
+ * wraps the same sleeve in its own focus treatment.
  */
 @Composable
 fun MoodGenreSleeve(
     item: MoodGenre,
     modifier: Modifier = Modifier,
     titleStyle: TextStyle = MaterialTheme.typography.titleMedium,
+    label: String? = null,
 ) {
     val tone = remember(item.stripeColor, item.title) { moodTone(item) }
-    Box(modifier = modifier.background(tone.stripe)) {
-        Box(
-            Modifier
-                .align(Alignment.CenterEnd)
-                .fillMaxHeight()
-                .fillMaxWidth(1f - MOOD_STRIPE_FRACTION)
-                .background(tone.placeholder),
-        ) {
-            item.thumbnailUrl?.let { artwork ->
-                AsyncImage(
-                    model = artwork,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    colorFilter = tone.duotone,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+    Box(modifier = modifier.background(Brush.linearGradient(listOf(tone.stripe, tone.shadow)))) {
+        item.thumbnailUrl?.let { artwork ->
+            // The cover's own opacity fades in from its left edge, so the card's gradient
+            // shows through rather than meeting the picture at a hard line.
+            AsyncImage(
+                model = artwork,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                colorFilter = tone.duotone,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .fillMaxHeight()
+                    .fillMaxWidth(ART_FRACTION)
+                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(
+                            Brush.horizontalGradient(0f to Color.Transparent, 0.6f to Color.Black),
+                            blendMode = BlendMode.DstIn,
+                        )
+                    },
+            )
         }
-        // Pale stripes (Energize's cream, Feel good's mint) would swallow
-        // white type; a soft shade under the title keeps it legible.
+        // A shade under the title, so pale colours (Energize's cream) keep white type legible.
         Box(
             Modifier
                 .matchParentSize()
-                .background(Brush.verticalGradient(0f to Color.Black.copy(alpha = .24f), .62f to Color.Transparent)),
+                .background(Brush.verticalGradient(0.35f to Color.Transparent, 1f to Color.Black.copy(alpha = .38f))),
         )
+        if (label != null) {
+            Text(
+                text = label,
+                style = MONO_LABEL,
+                color = Color.White.copy(alpha = 0.78f),
+                modifier = Modifier.align(Alignment.TopStart).padding(horizontal = 14.dp, vertical = 12.dp),
+            )
+        }
         Text(
             text = item.title,
             style = titleStyle.copy(
@@ -210,13 +296,24 @@ fun MoodGenreSleeve(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
-                .align(Alignment.TopStart)
+                .align(Alignment.BottomStart)
                 .padding(horizontal = 14.dp, vertical = 12.dp),
         )
     }
 }
 
-private class MoodTone(val stripe: Color, val placeholder: Color, val duotone: ColorFilter)
+/** Ticket print: small, spaced, fixed-width — the same labels as the rest of Sonara. */
+private val MONO_LABEL = TextStyle(
+    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+    fontWeight = FontWeight.Medium,
+    fontSize = androidx.compose.ui.unit.TextUnit(10.5f, androidx.compose.ui.unit.TextUnitType.Sp),
+    letterSpacing = androidx.compose.ui.unit.TextUnit(1.5f, androidx.compose.ui.unit.TextUnitType.Sp),
+)
+
+/** How much of the card's width the cover takes, from the right. */
+private const val ART_FRACTION = 0.72f
+
+private class MoodTone(val stripe: Color, val shadow: Color, val placeholder: Color, val duotone: ColorFilter)
 
 private fun moodTone(item: MoodGenre): MoodTone {
     val base = item.stripeColor?.let { Color(it.toInt()) } ?: fallbackMoodColor(item.title)
@@ -227,6 +324,7 @@ private fun moodTone(item: MoodGenre): MoodTone {
     val highlight = lerp(base, Color.White, .32f)
     return MoodTone(
         stripe = stripe,
+        shadow = lerp(base, Color.Black, .55f),
         placeholder = lerp(shadow, highlight, .45f),
         duotone = duotone(shadow, highlight),
     )
@@ -266,13 +364,11 @@ private fun fallbackMoodColor(title: String): Color = when ((title.hashCode() an
 /** Gap between mood cards, in both directions. */
 private val MOOD_SPACING = 12.dp
 
-private val MOOD_CARD_SHAPE = RoundedCornerShape(18.dp)
+private val MOOD_CARD_SHAPE = RoundedCornerShape(22.dp)
 
 /** Width over height; a two-column phone row lands at about 100dp tall. */
 const val MOOD_CARD_ASPECT = 1.72f
 
-/** How much of the card the solid stripe covers before the artwork starts. */
-private const val MOOD_STRIPE_FRACTION = .28f
 
 /**
  * The narrowest a mood card is let get before the row drops a column.

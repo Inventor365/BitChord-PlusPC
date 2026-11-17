@@ -19,16 +19,29 @@ import javax.imageio.ImageIO
  */
 internal object DesktopCollab {
 
+    /**
+     * Where the collaborative-playlist state lives. The folder keeps BitChord's name on every
+     * platform, so an install upgraded from BitChord PlusPC finds the playlists, invite links and
+     * contributor stamps it already had. Sonara 2.0.0 and 2.1.0 wrote Windows' copy to a
+     * `Sonara` folder instead; a state file found only there is still read.
+     */
     private val storageFile: File by lazy {
         val os = System.getProperty("os.name").orEmpty().lowercase()
         val home = System.getProperty("user.home").orEmpty()
         val baseDir = when {
             "mac" in os -> File(home, "Library/Application Support/BitChord")
-            "win" in os -> File(System.getenv("APPDATA")?.takeIf { it.isNotBlank() } ?: "$home/AppData/Roaming", "Sonara")
+            "win" in os -> {
+                val roaming = System.getenv("APPDATA")?.takeIf { it.isNotBlank() } ?: "$home/AppData/Roaming"
+                val legacy = File(roaming, "BitChord")
+                val renamed = File(roaming, "Sonara")
+                if (!File(legacy, STATE_FILE).isFile && File(renamed, STATE_FILE).isFile) renamed else legacy
+            }
             else -> File(System.getenv("XDG_CONFIG_HOME")?.takeIf { it.isNotBlank() } ?: "$home/.config", "bitchord")
         }
-        File(baseDir, "collab_state.json")
+        File(baseDir, STATE_FILE)
     }
+
+    private const val STATE_FILE = "collab_state.json"
 
     val manager: CollabManager by lazy {
         CollabManager(

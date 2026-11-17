@@ -125,6 +125,8 @@ import com.music.bitchord.data.model.Song
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 
 /**
  * How long the shuffle glyph ignores further taps after one lands.
@@ -173,8 +175,11 @@ internal fun PlaybackOriginCaption(
 ) {
     val chrome = LocalPlayerChrome.current
     Text(
-        text = text,
+        // Ticket print, as Sonara sets every small label: upper case, spaced, fixed-width.
+        text = text.uppercase(),
         style = MaterialTheme.typography.labelSmall.copy(
+            fontFamily = FontFamily.Monospace,
+            letterSpacing = 1.3.sp,
             shadow = Shadow(
                 color = Color.Black.copy(alpha = 0.55f),
                 offset = Offset(0f, 1f),
@@ -252,7 +257,7 @@ internal fun PlayerScrubber(
             ) {
                 Text(
                     text = formatTime((shown * durationMs).toLong()),
-                    style = MaterialTheme.typography.labelMedium,
+                    style = TIME_STYLE,
                     color = timeColor,
                 )
                 Text(
@@ -261,7 +266,7 @@ internal fun PlayerScrubber(
                     } else {
                         "-" + formatTime(durationMs - (shown * durationMs).toLong())
                     },
-                    style = MaterialTheme.typography.labelMedium,
+                    style = TIME_STYLE,
                     color = timeColor,
                     modifier = Modifier.clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -486,7 +491,6 @@ internal fun TransportRow(
     onNext: () -> Unit,
     compact: Boolean = false,
 ) {
-    val playSize = if (compact) 58.dp else 74.dp
     val playTouch = if (compact) 76.dp else 92.dp
     val skipSize = if (compact) 44.dp else PLAYER_SKIP_ICON_SIZE
     Row(
@@ -506,26 +510,16 @@ internal fun TransportRow(
             enabled = previousEnabled,
             haptic = Haptic.SkipPrevious,
         )
-        if (isLoading) {
-            // Same footprint as the play/pause target — a smaller box here
-            // would shunt everything below it on every load.
-            Box(Modifier.size(playTouch), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
-                    color = Color.White,
-                    strokeWidth = 3.dp,
-                    modifier = Modifier.size(if (compact) 30.dp else 38.dp),
-                )
-            }
-        } else {
-            TransportGlyph(
-                icon = if (isPlaying) Res.drawable.ic_player_pause else Res.drawable.ic_player_play,
-                contentDescription = stringResource(if (isPlaying) Res.string.pause else Res.string.play),
-                size = playSize,
-                touchSize = playTouch,
-                onClick = onPlayPause,
-                haptic = if (isPlaying) Haptic.Pause else Haptic.Resume,
-            )
-        }
+        // Sonara's play button: a solid white disc with the glyph cut in dark, which gives
+        // under the finger. The loading spinner turns inside the same disc, so the row keeps
+        // its shape on every load.
+        PlayDisc(
+            isPlaying = isPlaying,
+            isLoading = isLoading,
+            discSize = if (compact) 62.dp else 76.dp,
+            touchSize = playTouch,
+            onClick = onPlayPause,
+        )
         TransportGlyph(
             icon = Res.drawable.ic_player_next,
             contentDescription = stringResource(Res.string.widget_next),
@@ -883,6 +877,74 @@ private fun TransportGlyph(
         )
     }
 }
+
+@Composable
+private fun PlayDisc(
+    isPlaying: Boolean,
+    isLoading: Boolean,
+    discSize: androidx.compose.ui.unit.Dp,
+    touchSize: androidx.compose.ui.unit.Dp,
+    onClick: () -> Unit,
+) {
+    val haptics = rememberHaptics()
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.9f else 1f,
+        animationSpec = spring(dampingRatio = 0.55f, stiffness = 700f),
+        label = "playDiscScale",
+    )
+    val playLabel = stringResource(if (isPlaying) Res.string.pause else Res.string.play)
+    Box(
+        modifier = Modifier
+            .size(touchSize)
+            .clickable(interactionSource = interaction, indication = null, enabled = !isLoading) {
+                haptics.play(if (isPlaying) Haptic.Pause else Haptic.Resume)
+                onClick()
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(discSize)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    shadowElevation = 18f
+                    shape = CircleShape
+                    clip = true
+                }
+                .background(Color.White),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    color = Color.Black,
+                    strokeWidth = 3.dp,
+                    modifier = Modifier.size(discSize * 0.42f),
+                )
+            } else {
+                Icon(
+                    painter = painterResource(if (isPlaying) Res.drawable.ic_player_pause else Res.drawable.ic_player_play),
+                    contentDescription = playLabel,
+                    tint = Color.Black,
+                    modifier = Modifier
+                        .size(discSize * 0.5f)
+                        // The play triangle's weight sits left of its box; nudge it to look centred.
+                        .then(if (isPlaying) Modifier else Modifier.offset(x = discSize * 0.03f)),
+                )
+            }
+        }
+    }
+}
+
+/** The player's times: fixed-width, so the digits do not jostle as they tick. */
+private val TIME_STYLE = TextStyle(
+    fontFamily = FontFamily.Monospace,
+    fontWeight = FontWeight.Medium,
+    fontSize = 12.sp,
+    letterSpacing = 0.6.sp,
+)
 
 /** The skip glyphs' width, and their touch box, beside the larger play button. */
 private val PLAYER_SKIP_ICON_SIZE = 53.dp

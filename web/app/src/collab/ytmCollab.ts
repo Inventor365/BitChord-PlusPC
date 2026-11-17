@@ -556,30 +556,76 @@ export async function ytmFetchPlaylistDetail(
   };
 }
 
+/** How many library playlists one listing may inspect for collaboration. */
+const MAX_DISCOVERY_CANDIDATES = 150;
+/** How long a playlist seen to be plain is left alone before being looked at again. */
+const PLAIN_RECHECK_MS = 15 * 60_000;
+/** When each library playlist was last seen not to be collaborative. */
+const plainCheckedAt = new Map<string, number>();
+
+function httpStatusOf(err: unknown): number | null {
+  const e = err as { status?: unknown; response?: { status?: unknown }; message?: unknown };
+  const direct = typeof e?.status === 'number' ? e.status : typeof e?.response?.status === 'number' ? e.response.status : null;
+  if (direct !== null) return direct;
+  const m = typeof e?.message === 'string' ? /\b(4\d\d|5\d\d)\b/.exec(e.message) : null;
+  return m ? Number(m[1]) : null;
+}
+
+/**
+ * A read that rides out YouTube's momentary refusals: 429 (too fast) and 5xx are asked again
+ * after a doubling pause. Reads only — asking twice cannot apply anything twice.
+ */
+export async function readWithBackoff<T>(read: () => Promise<T>, attempts = 3, firstPauseMs = 700): Promise<T> {
+  let pause = firstPauseMs;
+  for (let i = 1; ; i++) {
+    try {
+      return await read();
+    } catch (err) {
+      const status = httpStatusOf(err);
+      const retryable = status === 429 || (status !== null && status >= 500 && status <= 504);
+      if (!retryable || i >= attempts) throw err;
+      await sleepMs(pause);
+      pause *= 2;
+    }
+  }
+}
+
 export async function ytmListCollabPlaylists(): Promise<CollabPlaylistSummary[]> {
   const state = readYtmState();
   const libItems = await fetchLibraryPlaylists().catch(() => []);
   const candidateIds = new Set<string>(state.trackedIds);
-  for (const item of libItems.slice(0, 24)) {
+  // Every library playlist is a candidate, not the first two dozen: one joined on another
+  // device or an older BitChord build is only tracked once found. Plain ones are skipped for a
+  // while instead, so a refresh does not browse the whole library each time.
+  const now = Date.now();
+  for (const item of libItems) {
     const rawId = item.id.replace(/^VL/, '');
-    if (rawId && rawId !== 'LM' && rawId !== 'SE' && !rawId.startsWith('RD')) {
-      candidateIds.add(rawId);
-    }
+    if (!rawId || rawId === 'LM' || rawId === 'SE' || rawId.startsWith('RD')) continue;
+    const checked = plainCheckedAt.get(rawId);
+    if (checked !== undefined && now - checked < PLAIN_RECHECK_MS) continue;
+    candidateIds.add(rawId);
   }
+  const toInspect = [...candidateIds].slice(0, MAX_DISCOVERY_CANDIDATES);
 
   const summaries: CollabPlaylistSummary[] = [];
   const yt = await getSignedInnertube();
-  for (const rawId of candidateIds) {
+  const inspect = async (rawId: string): Promise<CollabPlaylistSummary | null> => {
     try {
-      const resp = await yt.actions.execute('/browse', { browseId: `VL${rawId}`, client: 'YTMUSIC' });
+      const resp = await readWithBackoff(() =>
+        yt.actions.execute('/browse', { browseId: `VL${rawId}`, client: 'YTMUSIC' }),
+      );
       const isCollab =
         state.trackedIds.includes(rawId) ||
         findStringDeep(resp.data, 'tag') === 'PAplaylist_collaborate' ||
         findStringDeep(resp.data, 'panelIdentifier') === 'PAplaylist_collaborate';
-      if (!isCollab) continue;
+      if (!isCollab) {
+        plainCheckedAt.set(rawId, Date.now());
+        return null;
+      }
+      plainCheckedAt.delete(rawId);
       if (!state.trackedIds.includes(rawId)) state.trackedIds.push(rawId);
-      const detail = await ytmFetchPlaylistDetail(rawId);
-      summaries.push({
+      const detail = await readWithBackoff(() => ytmFetchPlaylistDetail(rawId));
+      return {
         id: detail.id,
         title: detail.title,
         description: detail.description,
@@ -598,10 +644,16 @@ export async function ytmListCollabPlaylists(): Promise<CollabPlaylistSummary[]>
         revision: detail.revision,
         createdAtMs: detail.createdAtMs,
         updatedAtMs: detail.updatedAtMs,
-      });
+      };
     } catch {
       // Skip inaccessible playlist
+      return null;
     }
+  };
+  // Six at a time: quick on a big library without tripping YouTube's rate limit.
+  for (let i = 0; i < toInspect.length; i += 6) {
+    const found = await Promise.all(toInspect.slice(i, i + 6).map(inspect));
+    for (const summary of found) if (summary) summaries.push(summary);
   }
   writeYtmState(state);
   return summaries;

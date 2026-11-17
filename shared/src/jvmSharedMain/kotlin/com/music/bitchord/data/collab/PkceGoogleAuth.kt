@@ -111,7 +111,7 @@ object PkceGoogleAuth {
                     }
                     val target = requestLine.split(' ').getOrNull(1).orEmpty()
                     if (!target.startsWith("/oauth2callback")) {
-                        writeHttpResponse(client.getOutputStream(), 404, htmlPage("Not Found", "Return to BitChord."))
+                        writeHttpResponse(client.getOutputStream(), 404, htmlPage("Not Found", "Return to Sonara."))
                         return@use
                     }
                     val rawQuery = target.substringAfter('?', missingDelimiterValue = "")
@@ -121,7 +121,7 @@ object PkceGoogleAuth {
                     val state = params["state"]
                     when {
                         !error.isNullOrBlank() -> {
-                            writeHttpResponse(client.getOutputStream(), 400, htmlPage("Sign-in cancelled", "You can close this tab and return to BitChord."))
+                            writeHttpResponse(client.getOutputStream(), 400, htmlPage("Sign-in cancelled", "You can close this tab and return to Sonara."))
                             deferred.completeExceptionally(IllegalStateException("Google sign-in cancelled ($error)."))
                         }
                         code.isNullOrBlank() || state != challenge.state -> {
@@ -129,7 +129,7 @@ object PkceGoogleAuth {
                             deferred.completeExceptionally(IllegalStateException("Invalid OAuth callback state."))
                         }
                         else -> {
-                            writeHttpResponse(client.getOutputStream(), 200, htmlPage("Signed in to Sonara", "Google identity verified. You can close this tab and return to BitChord."))
+                            writeHttpResponse(client.getOutputStream(), 200, htmlPage("Signed in to Sonara", "Google identity verified. You can close this tab and return to Sonara."))
                             deferred.complete(LoopbackAuthCallback(code = code, state = state, redirectUri = redirectUri))
                         }
                     }

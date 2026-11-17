@@ -1045,7 +1045,7 @@ class CollabManager(
             ?: error("Paste a YouTube Music collaboration link (https://music.youtube.com/playlist?list=…&jct=…) or bci_… invite link.")
         if (parsed.isYouTubeMusicInvite) {
             val rawId = parsed.ytmPlaylistId!!
-            val browse = runCatching { Innertube.browse("VL$rawId") }.getOrNull()
+            val browse = runCatching { Innertube.browseResilient("VL$rawId") }.getOrNull()
             val meta = browse?.let { InnertubeParser.parseYtmCollabHeader(it, rawId) }
             val shelf = browse?.let { InnertubeParser.parsePlaylistShelf(it) }
             val preview = CollabInvitePreview(
@@ -1189,6 +1189,21 @@ class CollabManager(
 
     // ---- Native YouTube Music Collaboration Helpers -------------------------
 
+    /**
+     * The song count in a playlist header's second subtitle — "150 songs • 9+ hours" — read as
+     * its leading number, which is where every language YouTube serves puts it. Null when the
+     * header carries none.
+     */
+    internal fun headerTrackCount(browse: JsonObject): Int? {
+        val runs = HEADER_SECOND_SUBTITLE.find(browse.toString())?.groupValues?.get(1) ?: return null
+        val first = RUN_TEXT.find(runs)?.groupValues?.get(1) ?: return null
+        val digits = LEADING_NUMBER.find(first)?.value?.filter(Char::isDigit) ?: return null
+        return digits.toIntOrNull()?.takeIf { it in 0..MAX_PLAYLIST_ROWS }
+    }
+
+    /** When each library playlist was last seen not to be collaborative; see discovery. */
+    private val plainPlaylistCheckedAt = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
     private suspend fun discoverNativeYouTubeCollabPlaylists(): List<CollabPlaylistSummary> = coroutineScope {
         val libraryItems = YtMusicRepository.libraryPlaylists().getOrNull().orEmpty()
         val editableIds = Innertube.getEditablePlaylistIdsForCurrentUser()
@@ -1203,15 +1218,28 @@ class CollabManager(
         }
 
         val summaries = ArrayList<CollabPlaylistSummary>()
+        // Every library playlist is a candidate, not the first thirty: a collaborative playlist
+        // joined on another device, or under an older BitChord build, is only tracked here once
+        // it has been found, and an account with many playlists used to hide it. Playlists
+        // already seen to be plain are skipped for a while instead, so a refresh does not
+        // browse the whole library each time.
+        val now = System.currentTimeMillis()
+        val toInspect = candidateRawIds.filter { rawId ->
+            rawId in trackedIds || (plainPlaylistCheckedAt[rawId]?.let { now - it > PLAIN_RECHECK_MS } ?: true)
+        }.take(MAX_DISCOVERY_CANDIDATES)
         // Inspect in small concurrent batches so Library loads fast
-        for (batch in candidateRawIds.take(30).chunked(6)) {
+        for (batch in toInspect.chunked(6)) {
             val fetched = batch.map { rawId ->
                 async {
                     runCatching {
-                        val browse = Innertube.browse("VL$rawId")
+                        val browse = Innertube.browseResilient("VL$rawId")
                         val meta = InnertubeParser.parseYtmCollabHeader(browse, rawId) ?: return@runCatching null
                         val isKnown = rawId in trackedIds
-                        if (!meta.isCollaborative && !isKnown) return@runCatching null
+                        if (!meta.isCollaborative && !isKnown) {
+                            plainPlaylistCheckedAt[rawId] = System.currentTimeMillis()
+                            return@runCatching null
+                        }
+                        plainPlaylistCheckedAt.remove(rawId)
                         synchronized(ytmCollabIds) { ytmCollabIds.add(rawId) }
                         val shelf = InnertubeParser.parsePlaylistShelf(browse)
                         val rowContribs = InnertubeParser.parsePlaylistTrackContributors(browse)
@@ -1247,7 +1275,9 @@ class CollabManager(
                             memberAvatars = meta.facepileAvatars.ifEmpty {
                                 listOfNotNull(me?.avatarUrl)
                             }.distinct().take(5),
-                            trackCount = shelf?.songs?.size ?: 0,
+                            // The first page holds a hundred rows at most; the header's
+                            // "150 songs" says how many there really are.
+                            trackCount = maxOf(shelf?.songs?.size ?: 0, headerTrackCount(browse) ?: 0),
                             revision = (_details.value["$YTM_PREFIX$rawId"]?.revision ?: 1L),
                             updatedAtMs = System.currentTimeMillis(),
                         )
@@ -1271,7 +1301,7 @@ class CollabManager(
         val cplId = "$YTM_PREFIX$rawId"
         val prev = _details.value[cplId]
         val me = currentUser
-        val browse = runCatching { Innertube.browse("VL$rawId") }.getOrNull()
+        val browse = runCatching { Innertube.browseResilient("VL$rawId") }.getOrNull()
         val meta = browse?.let { InnertubeParser.parseYtmCollabHeader(it, rawId) }
         val rows = loadYtmPlaylistRows(browse, allPages)
         val rowContribMap = rows.contributors
@@ -1521,7 +1551,7 @@ class CollabManager(
         if (token != null && first.songs.size < YTM_FIRST_PAGE_ROWS) token = null
         var page = 1
         while (allPages && token != null && page++ < MAX_TRACK_PAGES) {
-            val response = runCatching { Innertube.browseContinuation(token!!) }.getOrNull() ?: break
+            val response = runCatching { Innertube.browseContinuationResilient(token!!) }.getOrNull() ?: break
             val shelf = InnertubeParser.parsePlaylistShelf(response)
             if (shelf == null || shelf.songs.isEmpty()) {
                 token = null
@@ -1548,7 +1578,7 @@ class CollabManager(
         val isYtmPlaylist = sourceType == "ytm" && id.isNotEmpty() && ':' !in id
         if (!isYtmPlaylist) return provided
         val browseId = if (id.startsWith("VL")) id else "VL$id"
-        val firstPage = runCatching { Innertube.browse(browseId) }.getOrNull() ?: return provided
+        val firstPage = runCatching { Innertube.browseResilient(browseId) }.getOrNull() ?: return provided
         val full = loadYtmPlaylistRows(firstPage, allPages = true).songs
         if (full.isEmpty()) return provided
         val known = full.mapTo(HashSet()) { it.videoId }
@@ -2124,5 +2154,16 @@ class CollabManager(
         private const val FULL_READ_EVERY_TICKS = 6
         private const val PENDING_METADATA_MS = 30_000L
         private const val PENDING_ADD_MS = 45_000L
+
+        private val HEADER_SECOND_SUBTITLE = Regex(""""secondSubtitle"\s*:\s*\{\s*"runs"\s*:\s*\[(.*?)]""")
+        private val RUN_TEXT = Regex(""""text"\s*:\s*"([^"]*)"""")
+        private val LEADING_NUMBER = Regex("""^\s*\d[\d.,\u00a0\u202f ]*""")
+        private const val MAX_PLAYLIST_ROWS = 5_000
+
+        /** How many library playlists one refresh may inspect for collaboration. */
+        private const val MAX_DISCOVERY_CANDIDATES = 150
+
+        /** How long a playlist seen to be plain is left alone before being looked at again. */
+        private const val PLAIN_RECHECK_MS = 15 * 60_000L
     }
 }

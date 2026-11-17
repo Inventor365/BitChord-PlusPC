@@ -27,7 +27,10 @@ object DesktopDownloadManager {
         return try {
             require(song.localPath == null) { "This track is already local" }
             val stream = DesktopMusicSources.resolve(song, quality, forDownload = true).getOrThrow()
-            val directory = Path.of(System.getProperty("user.home"), "Music", "Sonara")
+            // Beside the downloads a BitChord install already made, when there are any; a new
+            // install starts a Sonara folder.
+            val music = Path.of(System.getProperty("user.home"), "Music")
+            val directory = music.resolve("BitChord").takeIf { Files.isDirectory(it) } ?: music.resolve("Sonara")
             Files.createDirectories(directory)
             val safeName = buildString {
                 append(song.artist)

@@ -1,4 +1,26 @@
-# Sonara `v2.1.0` (`versionCode = 49`)
+# Sonara `v2.1.1` (`versionCode = 50`)
+
+**Explore and the player join the redesign; collaborative playlists find every playlist, ride out YouTube's hiccups, and stay compatible with BitChord PlusPC.**
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Inventor365/Sonara/main/docs/screenshots/explore.png" alt="Explore" width="30%" />
+  <img src="https://raw.githubusercontent.com/Inventor365/Sonara/main/docs/screenshots/search.png" alt="Search" width="30%" />
+  <img src="https://raw.githubusercontent.com/Inventor365/Sonara/main/docs/screenshots/player-controls.png" alt="Player controls" width="30%" />
+</p>
+
+## What's new in 2.1.1
+
+- **Explore, redrawn.** A ticket-print header with the number of moods and genres, a wide *Featured* card, and YouTube's own groupings (*Moods & moments*, *Genres*) as titled sections. Every tile is now the category's colour as a gradient with its cover fading into it, a numbered index and the title at the foot — the same tiles appear on Search's empty page and on TV.
+- **The player, in Sonara's hand.** Play and pause sit in a solid white disc that gives under the finger (the loading spinner turns inside it, so the controls never jump); elapsed and remaining time are fixed-width so the digits stop jostling; *Playing from …* is set in ticket print.
+- **Collaborative playlists**
+  - **Every playlist is found.** Discovery looked at only your first 30 library playlists (24 on the web), so one joined on another device or in an older BitChord build could stay hidden; it now checks up to 150, and remembers which playlists are plain so a refresh doesn't browse them all again.
+  - **Riding out YouTube's hiccups.** A *429 Too Many Requests* or a momentary 5xx from YouTube Music is asked again after the pause the server names (or a doubling one), instead of silently dropping that playlist from your list — on Android, desktop and web.
+  - **Right song counts.** Playlists over a hundred songs showed their first page's count until opened; the count now comes from the playlist's own header.
+  - **Compatible with BitChord PlusPC.** Invite links stay the plain `music.youtube.com` links every version (and YouTube Music itself) opens, and the old `bitchord://` links still work. On Windows, 2.0.0 and 2.1.0 had moved the collaborative state to a new `Sonara` folder, so an upgraded install lost its tracked playlists and invite links; it reads the original `BitChord` folder again, and keeps anything already saved under `Sonara`. Desktop downloads go to your existing `Music/BitChord` folder when you have one.
+
+---
+
+## Sonara `v2.1.0`
 
 **Sonara's own look — Android, Android Auto, Android TV, Wear OS, macOS (Apple Silicon & Intel), Windows, Linux & Web**
 
