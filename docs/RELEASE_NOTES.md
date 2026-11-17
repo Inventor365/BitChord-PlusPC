@@ -1,8 +1,8 @@
-# BitChord PlusPC `v1.10.5` (`versionCode = 46`)
+# BitChord PlusPC `v1.10.6` (`versionCode = 47`)
 
 **Collaborative playlists that work end to end — Android, Android Auto, Android TV, Wear OS, macOS (Apple Silicon & Intel), Windows, Linux & Web**
 
-This release replaces `v1.10.1` and carries everything from `1.10.1` through `1.10.5`.
+This release replaces `v1.10.1` and carries everything from `1.10.1` through `1.10.6`.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/Inventor365/BitChord-PlusPC/main/docs/screenshots/collab-playlist.png" alt="A collaborative playlist" width="30%" />
@@ -23,6 +23,7 @@ This release replaces `v1.10.1` and carries everything from `1.10.1` through `1.
 - Accepting an invite no longer fails with a raw `HTTP 401` dialog. YouTube Music gives that answer both to an account that is already a collaborator and while a new link is still taking effect; BitChord now checks whether you actually have access and retries, instead of giving up on the first refusal.
 - Opening a link you have already joined — from a second device, or after a reinstall — lets you straight in.
 - When a join really is refused, you are told why in a sentence.
+- **Any Google account can join.** An account that has never used YouTube has no YouTube channel, and YouTube Music refuses those as collaborators. BitChord now sets the channel up automatically while joining; where YouTube insists on its own setup screen, BitChord says so and takes you there.
 
 ### Make any playlist collaborative, with every song
 - **Make Collaborative** now reads the whole source playlist, however long, rather than only the part that was on screen.
@@ -35,6 +36,7 @@ This release replaces `v1.10.1` and carries everything from `1.10.1` through `1.
 - **Copy Invite Link** is instant once the link exists.
 - In **Add Songs**, song titles are readable on the dark theme, tapping `+` shows progress then a check (with haptics on phones), and the song appears in the playlist straight away.
 - The owner can edit the playlist's **title, description and cover**. Until a cover is set, YouTube Music shows a collage of the first four songs.
+- Removing a song, leaving a playlist and deleting one now **ask first**, with haptics and a confirmation afterwards, instead of happening the instant the icon is touched.
 - The Invite / Members / Sharing tabs no longer wrap on narrow screens, and the member count follows who has actually joined.
 - Open `music.youtube.com` playlist and invite links directly in BitChord on Android.
 
@@ -55,11 +57,11 @@ This release replaces `v1.10.1` and carries everything from `1.10.1` through `1.
 ---
 
 ## Downloads
-- **Android phone & Auto**: `BitChord-v1.10.5.apk` (universal) or the `arm64-v8a` / `armeabi-v7a` / `x86_64` build
-- **Android TV / Fire TV**: `BitChordTV-v1.10.5.apk` or the per-ABI builds
-- **Wear OS**: `BitChordWear-v1.10.5.apk` (also bundled in the phone app)
-- **macOS**: `BitChord-1.10.5-macos-x64.dmg` / `.pkg` / `.zip` (Intel, and Apple Silicon through Rosetta); `-macos-arm64` builds are added as soon as GitHub's Apple Silicon runners produce them
-- **Windows**: `BitChord-1.10.5-windows-x64-setup.exe`, `.msi`, `-portable.zip`
-- **Linux**: `BitChord-1.10.5-linux-x86_64.AppImage`, `-linux-amd64.deb`, `-linux-x86_64.rpm`
+- **Android phone & Auto**: `BitChord-v1.10.6.apk` (universal) or the `arm64-v8a` / `armeabi-v7a` / `x86_64` build
+- **Android TV / Fire TV**: `BitChordTV-v1.10.6.apk` or the per-ABI builds
+- **Wear OS**: `BitChordWear-v1.10.6.apk` (also bundled in the phone app)
+- **macOS**: `BitChord-1.10.6-macos-x64.dmg` / `.pkg` / `.zip` (Intel, and Apple Silicon through Rosetta); `-macos-arm64` builds are added as soon as GitHub's Apple Silicon runners produce them
+- **Windows**: `BitChord-1.10.6-windows-x64-setup.exe`, `.msi`, `-portable.zip`
+- **Linux**: `BitChord-1.10.6-linux-x86_64.AppImage`, `-linux-amd64.deb`, `-linux-x86_64.rpm`
 
 Full history: [`CHANGELOG.md`](https://github.com/Inventor365/BitChord-PlusPC/blob/main/CHANGELOG.md)

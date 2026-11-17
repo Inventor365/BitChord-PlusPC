@@ -4,7 +4,16 @@ All notable changes to **BitChord PlusPC** (`https://github.com/Inventor365/BitC
 
 ---
 
-## [1.10.5] — 2026-11-16 (`versionCode = 46`) — test build, not yet released
+## [1.10.6] — 2026-11-17 (`versionCode = 47`)
+
+### Fixed
+- **Google accounts that never used YouTube can join collaborative playlists**: such an account has no YouTube channel and YouTube Music refuses it as a collaborator. Joining now creates the default channel when YouTube offers to, then joins; otherwise the dialog explains and offers *Set Up YouTube Channel*.
+- **Removing a song, leaving and deleting a playlist ask for confirmation**, give haptic feedback, and confirm afterwards with a notice. Failures are shown instead of swallowed.
+- macOS packages are built on macOS and left exactly as Apple's tools write them; the `.pkg` is installed and the app launched on the build machine before release.
+
+---
+
+## [1.10.5] — 2026-11-16 (`versionCode = 46`)
 
 ### Fixed
 - **Creating a collaborative playlist no longer waits 15–25 seconds**: the playlist opens as soon as YouTube Music has created it. Its invite link, which YouTube Music only mints once the new playlist has settled, is fetched in the background instead of in front of the Create button.
@@ -14,7 +23,7 @@ All notable changes to **BitChord PlusPC** (`https://github.com/Inventor365/BitC
 
 ---
 
-## [1.10.4] — 2026-11-16 (`versionCode = 45`) — test build, not yet released
+## [1.10.4] — 2026-11-16 (`versionCode = 45`) — test build
 
 Verified against the simulated YouTube Music environment and the unit suites only. The join,
 roster and conversion changes still need a two-device check on real accounts before release.

@@ -445,6 +445,11 @@ jobs:
   release:
     name: Publish
     needs: [android, linux, windows, macos, web]
+    # Publishes when the Android, Linux and Windows builds are good, with whichever macOS
+    # packages were built. GitHub's Apple Silicon runners are sometimes never assigned; that
+    # must not hold back every other platform. A missing macOS architecture is added later
+    # with a macos-only dispatch.
+    if: ${{ always() && needs.android.result == 'success' && needs.linux.result == 'success' && needs.windows.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -465,7 +470,8 @@ jobs:
           # macOS files were verified, installed and launched on the Mac runners that built
           # them; the Linux structure checker only understands the retired cross-repack layout.
           count=$(ls dist | grep -c -- '-macos-')
-          [ "$count" -eq 6 ] || { echo "::error::expected 6 macOS files, found $count" >&2; exit 1; }
+          [ $((count % 3)) -eq 0 ] || { echo "::error::macOS files must come in dmg/pkg/zip sets, found $count" >&2; exit 1; }
+          [ "$count" -eq 6 ] || echo "::warning::only $count of 6 macOS files were built; add the rest with a macos-only run"
           (cd dist && sha256sum * > SHA256SUMS.txt)
 
       - name: Recreate existing release to refresh published timestamp

@@ -1443,6 +1443,8 @@ object Innertube {
         }
 
         var lastErr: Throwable? = null
+        var channelChecked = false
+        var needsChannel = false
         for (attempt in 0 until JOIN_ATTEMPTS) {
             if (attempt > 0 && settleRetryDelayMs > 0L) {
                 delay(settleRetryDelayMs)
@@ -1458,6 +1460,18 @@ object Innertube {
                 return finish(
                     if (attempt == 0) CollabJoinOutcome.ALREADY_COLLABORATOR else CollabJoinOutcome.JOINED,
                 )
+            }
+
+            // An account that has never used YouTube has no channel, and YouTube Music will not
+            // make a channel-less account a collaborator. Give it one (the same step the
+            // create-playlist path takes) and go round again.
+            if (!channelChecked) {
+                channelChecked = true
+                when (ensureYouTubeChannel()) {
+                    ChannelState.CREATED -> continue
+                    ChannelState.NEEDS_MANUAL_SETUP -> needsChannel = true
+                    ChannelState.PRESENT_OR_UNKNOWN -> Unit
+                }
             }
 
             // The other doors, tried on alternate rounds so a token that is merely still
@@ -1485,7 +1499,40 @@ object Innertube {
         }
 
         Log.d(TAG, "collab join refused for $rawId: ${lastErr?.message}")
+        if (needsChannel) {
+            throw CollabJoinException(
+                "CHANNEL_REQUIRED: This Google account doesn't have a YouTube channel yet, and YouTube Music only " +
+                    "lets accounts with one collaborate. Tap 'Set Up YouTube Channel', finish the one-time setup, " +
+                    "then join again.",
+                httpStatusOf(lastErr),
+                lastErr,
+            )
+        }
         throw CollabJoinException(describeJoinFailure(lastErr), httpStatusOf(lastErr), lastErr)
+    }
+
+    enum class ChannelState { PRESENT_OR_UNKNOWN, CREATED, NEEDS_MANUAL_SETUP }
+
+    /**
+     * Makes sure the signed-in Google account has a YouTube channel, creating the default one
+     * when YouTube offers a creation token for it. A Google account that has never opened
+     * YouTube has none, and without one it can neither own nor collaborate on a playlist.
+     */
+    suspend fun ensureYouTubeChannel(): ChannelState {
+        if (!hasSession) return ChannelState.PRESENT_OR_UNKNOWN
+        val accounts = runCatching {
+            postMusic("account/accounts_list") { put("triggerChannelCreation", true) }
+        }.getOrNull() ?: return ChannelState.PRESENT_OR_UNKNOWN
+        val token = findString(accounts, "channelCreationToken")
+        if (token.isNullOrBlank()) {
+            return if (hasAnyKey(accounts, CHANNEL_CREATION_KEYS)) ChannelState.NEEDS_MANUAL_SETUP else ChannelState.PRESENT_OR_UNKNOWN
+        }
+        val created = runCatching {
+            postMusic("channel/create_channel") { put("channelCreationToken", token) }
+        }.isSuccess
+        if (!created) return ChannelState.NEEDS_MANUAL_SETUP
+        runCatching { refreshSessionScope() }
+        return ChannelState.CREATED
     }
 
     private fun JsonArrayBuilder.joinCollaborationAction(jct: String) {

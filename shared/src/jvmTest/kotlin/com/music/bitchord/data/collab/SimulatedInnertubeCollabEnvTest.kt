@@ -865,6 +865,35 @@ class SimulatedInnertubeCollabEnvTest {
         assertEquals(first.inviteUrl, second.inviteUrl)
         assertEquals(callsAfterFirst, inviteCalls(), "a known link is handed out without another request")
     }
+
+    /**
+     * A Google account that has never used YouTube has no channel, and is refused as a
+     * collaborator. BitChord gives it the default channel and joins; where YouTube insists on
+     * its own setup screen, the refusal says so and offers the way there.
+     */
+    @Test
+    fun accountWithoutAYouTubeChannelIsGivenOneAndJoins() = runBlocking {
+        val owner = managerFor("Pranav")
+        val (created, inviteUrl) = sharedPlaylist(owner)
+        val rawId = created.id.removePrefix("ytm:")
+
+        val guest = managerFor("Saksham")
+        sim.requireChannelCreation = true
+        sim.offerAutoChannelToken = true
+        val joined = guest.acceptInvite(inviteUrl).getOrElse { fail("a channel-less account should be set up and joined: ${it.message}", it) }
+        assertEquals(created.id, joined.playlist.id)
+        assertTrue(sim.channelCreated.get())
+        assertTrue(sim.playlists.getValue(rawId).collaborators.any { it.second == "Saksham" })
+
+        // No creation token on offer: nothing BitChord can do alone, and it says what will.
+        val other = managerFor("Ananya")
+        sim.channelCreated.set(false)
+        sim.requireChannelCreation = true
+        sim.offerAutoChannelToken = false
+        val refused = other.acceptInvite(inviteUrl).exceptionOrNull() ?: fail("cannot join without a channel")
+        assertTrue(refused.message.orEmpty().startsWith("CHANNEL_REQUIRED:"), refused.message)
+        assertTrue(refused.toCollabUserMessage().contains("YouTube channel"))
+    }
 }
 
 internal enum class CreateResponseMode {
@@ -1005,8 +1034,10 @@ internal class SimulatedYtmServer : Dispatcher() {
         return when {
             path.contains("/youtubei/v1/account/accounts_list") -> {
                 val resp = buildJsonObject {
-                    if (offerAutoChannelToken) {
+                    if (offerAutoChannelToken && !channelCreated.get()) {
                         put("channelCreationToken", "cct_auto_token_123")
+                    } else if (requireChannelCreation && !channelCreated.get()) {
+                        putJsonObject("channelCreationFormEndpoint") { put("hack", true) }
                     }
                 }
                 okJson(resp)
@@ -1194,6 +1225,8 @@ internal class SimulatedYtmServer : Dispatcher() {
                     }
                     // Real YouTube Music: an account that is already in is told it may not edit.
                     if (isMember(pl)) return unauthorizedToEdit()
+                    // ...and so is one with no YouTube channel to collaborate as.
+                    if (requireChannelCreation && !channelCreated.get()) return unauthorizedToEdit()
                     val token = act["joinCollaborationToken"]?.jsonPrimitive?.contentOrNull
                     if (token != pl.jct) {
                         if (wrongTokenStatus == 401) return unauthorizedToEdit()
