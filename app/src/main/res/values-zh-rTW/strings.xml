@@ -1565,4 +1565,11 @@
     <string name="edit_metadata">Edit metadata</string>
     <string name="metadata_updated">Metadata updated</string>
     <string name="metadata_update_failed">Failed to update metadata</string>
+    <string name="onboarding_welcome_to">歡迎使用</string>
+    <string name="onboarding_welcome_tagline">數百萬首歌曲、隨歌而動的歌詞，以及屬於你的資料庫。</string>
+    <string name="onboarding_get_started">開始使用</string>
+    <string name="onboarding_tap_anywhere">輕觸任意處開始</string>
+    <string name="onboarding_pass_title">打造專屬於你</string>
+    <string name="onboarding_pass_body">你的名字會印在你的 Sonara Pass 上。</string>
+    <string name="onboarding_hello">你好，%1$s。</string>
 </resources>

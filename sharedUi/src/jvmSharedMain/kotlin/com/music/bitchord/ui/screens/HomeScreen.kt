@@ -920,32 +920,13 @@ internal fun NewShelfCard(
     Column(
         modifier = modifier.pressScale().clickable(onClick = onClick),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (logo != null) {
-                // The mark is a disc with the bars cut out, so tinting it
-                // leaves the bars clear: white on dark, black on light.
-                Icon(
-                    painter = painterResource(logo),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(44.dp),
-                )
-            } else {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(34.dp),
-                )
-            }
-        }
+        // A brand's tile (Import Spotify) keeps its full-colour mark and that brand's colour.
+        com.music.bitchord.ui.components.ActionArt(
+            icon = icon,
+            painter = logo?.let { painterResource(it) },
+            painterTint = MaterialTheme.colorScheme.onBackground,
+            accent = if (logo != null) Color(0xFF1DB954) else com.music.bitchord.ui.components.SonaraAccent,
+        )
         Spacer(Modifier.height(10.dp))
         Text(
             text = label,

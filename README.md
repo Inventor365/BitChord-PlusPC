@@ -36,6 +36,18 @@
 
 <table>
   <tr>
+    <td width="20%" align="center"><img src="docs/screenshots/welcome.png" alt="Welcome to Sonara" width="100%" /><br/><sub><b>Welcome</b></sub></td>
+    <td width="20%" align="center"><img src="docs/screenshots/pass.png" alt="Making your Sonara Pass" width="100%" /><br/><sub><b>Your Sonara Pass</b></sub></td>
+    <td width="20%" align="center"><img src="docs/screenshots/home.png" alt="Home greets you by name" width="100%" /><br/><sub><b>Home</b></sub></td>
+    <td width="20%" align="center"><img src="docs/screenshots/library-profile.png" alt="Library as your profile, with listening time" width="100%" /><br/><sub><b>Library & profile</b></sub></td>
+    <td width="20%" align="center"><img src="docs/screenshots/settings-tiles.png" alt="Settings as a grid of tiles" width="100%" /><br/><sub><b>Settings</b></sub></td>
+  </tr>
+</table>
+
+<br/>
+
+<table>
+  <tr>
     <td width="50%" align="center">
       <img src="docs/screenshots/macos.png" alt="Sonara for macOS — Home Feed & Word-Synced Lyrics" width="100%" />
       <br/>

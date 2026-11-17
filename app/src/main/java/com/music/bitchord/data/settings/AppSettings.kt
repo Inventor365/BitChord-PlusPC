@@ -468,7 +468,7 @@ object AppSettings {
     val reduceAnimation = MutableStateFlow(false)
 
     /** Label each tab of the bottom navigation bar under its icon. Off leaves icons only. */
-    val showNavLabels = MutableStateFlow(true)
+    val showNavLabels = MutableStateFlow(false)
 
     /**
      * Whether the welcome pages (party name, then YouTube sign-in) have been
@@ -1098,7 +1098,7 @@ object AppSettings {
         showListenTogetherButton.value = prefs.getBoolean(KEY_LISTEN_TOGETHER_BUTTON, false)
         externalLinks.value = prefs.getBoolean(KEY_EXTERNAL_LINKS, true)
         reduceAnimation.value = prefs.getBoolean(KEY_REDUCE_ANIMATION, false)
-        showNavLabels.value = prefs.getBoolean(KEY_NAV_LABELS, true)
+        showNavLabels.value = prefs.getBoolean(KEY_NAV_LABELS, false)
         onboardingComplete.value = prefs.getBoolean(KEY_ONBOARDING_COMPLETE, false)
         diwaliGreetingShown.value = prefs.getBoolean(KEY_DIWALI_GREETING_SHOWN, false)
         highPerformanceMode.value = prefs.getBoolean(KEY_HIGH_PERFORMANCE_MODE, false)

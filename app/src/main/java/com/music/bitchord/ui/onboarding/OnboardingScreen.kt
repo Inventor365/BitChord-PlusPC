@@ -47,10 +47,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
@@ -91,84 +91,71 @@ import com.music.bitchord.sharedui.resources.ic_google_g
 import com.music.bitchord.sharedui.resources.ic_logo
 import org.jetbrains.compose.resources.painterResource
 import com.music.bitchord.ui.icons.BitChordIcons
-import com.music.bitchord.ui.player.MeshGradientBackground
-import com.music.bitchord.ui.player.MESH_CYCLE_MILLIS
-import com.music.bitchord.ui.player.MeshPalette
-import com.music.bitchord.ui.player.WelcomeMeshPalettes
-import com.music.bitchord.ui.player.cyclingMeshPalette
+import com.music.bitchord.ui.sonara.AnimatedSonaraMark
+import com.music.bitchord.ui.sonara.FadingDotGrid
+import com.music.bitchord.ui.sonara.MonoLabel
+import com.music.bitchord.ui.sonara.SonaraColors
+import com.music.bitchord.ui.sonara.SonaraPassCard
+import com.music.bitchord.ui.sonara.PassAvatar
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.music.bitchord.ui.sonara.memberSinceLabel
+import com.music.bitchord.ui.sonara.memberSinceMillis
+import com.music.bitchord.ui.sonara.passIdFor
+import androidx.compose.ui.platform.LocalContext
 
 /**
- * The two welcome pages: a name for Listen Together, then the YouTube sign-in.
+ * The welcome: a title page, then a name for the listener's Sonara Pass (drawn live as they
+ * type it), then the YouTube sign-in.
  *
- * Shown once — to new installs and, because the flag it sets is new, to anyone
- * updating from a build without it. The second page is skipped for an account
- * that is already signed in; asking somebody to connect what is connected
- * reads as the app having forgotten them.
+ * Shown once — to new installs and, because the flag it sets is new, to anyone updating
+ * from a build without it. The last page is skipped for an account that is already signed
+ * in; asking somebody to connect what is connected reads as the app having forgotten them.
  *
- * Always drawn dark, whatever the theme, for the same reason Replay is: the
- * mesh is colour, and white type is what sits on colour.
+ * Always drawn dark, whatever the theme: ink, a slow red ember and a grid of dots — the
+ * Pass's own materials, so the card is at home on every page.
  */
 @Composable
 fun OnboardingScreen(
     signedIn: Boolean,
     initialName: String,
-    /** Saves the party name. Called on Next, before the second page. */
+    /** Saves the party name. Called on Next, before the last page. */
     onNameChosen: (String) -> Unit,
     /** Opens the Google sign-in. The caller finishes onboarding once it lands. */
     onSignIn: () -> Unit,
     onFinish: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var page by rememberSaveable { mutableIntStateOf(PAGE_NAME) }
+    var page by rememberSaveable { mutableIntStateOf(PAGE_WELCOME) }
     var name by rememberSaveable { mutableStateOf(initialName) }
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val passMillis = remember { memberSinceMillis(context) }
+    val passId = remember(passMillis) { passIdFor(passMillis) }
+    val memberSince = remember(passMillis) { memberSinceLabel(passMillis) }
 
-    BackHandler(enabled = page == PAGE_CONNECT) { page = PAGE_NAME }
+    BackHandler(enabled = page > PAGE_WELCOME) { page -= 1 }
     // "Sign in with Google" goes through the app's own sign-in WebView, raised
     // over this page; the account landing is what ends the welcome.
     LaunchedEffect(signedIn, page) {
         if (signedIn && page == PAGE_CONNECT) onFinish()
     }
 
-    // The mesh never settles on one palette: each crossfade is as long as the
-    // hold, so one runs straight into the next.
-    val palette = cyclingMeshPalette(if (page == PAGE_NAME) WelcomeMeshPalettes else ConnectPalettes)
-
     Box(
         modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(SonaraColors.Ink)
             // Swallows every touch the pages don't, so nothing reaches the app
             // laid out underneath — and a tap on the backdrop puts the keyboard
             // away, which is where a thumb goes to dismiss one.
             .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } },
     ) {
-        MeshGradientBackground(
-            palette = palette,
-            trackKey = page,
-            continuous = true,
-            driftMillis = 6_000,
-            colorFadeMillis = MESH_CYCLE_MILLIS,
-        )
-        // The mesh carries its own light scrim for a player's controls; two
-        // full-width buttons and a paragraph want the foot of it a shade deeper.
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to Color.Black.copy(alpha = 0.05f),
-                        0.55f to Color.Transparent,
-                        1f to Color.Black.copy(alpha = 0.45f),
-                    ),
-                ),
-        )
+        WelcomeBackdrop(page)
 
         AnimatedContent(
             targetState = page,
             transitionSpec = {
                 val forward = targetState > initialState
-                val slide = tween<IntOffset>(420)
+                val slide = tween<IntOffset>(460, easing = CubicBezierEasing(0.2f, 0f, 0f, 1f))
                 (slideInHorizontally(slide) { if (forward) it / 3 else -it / 3 } + fadeIn(tween(320, 100)))
                     .togetherWith(
                         slideOutHorizontally(slide) { if (forward) -it / 3 else it / 3 } + fadeOut(tween(200)),
@@ -182,8 +169,11 @@ fun OnboardingScreen(
         ) { shown ->
             OnboardingPage {
                 when (shown) {
+                    PAGE_WELCOME -> WelcomePage(onNext = { page = PAGE_NAME })
                     PAGE_NAME -> NamePage(
                         name = name,
+                        passId = passId,
+                        memberSince = memberSince,
                         onNameChange = { name = it.take(NAME_LIMIT) },
                         onNext = next@{
                             val chosen = name.trim()
@@ -194,6 +184,9 @@ fun OnboardingScreen(
                         },
                     )
                     else -> ConnectPage(
+                        name = name.trim(),
+                        passId = passId,
+                        memberSince = memberSince,
                         onBack = { page = PAGE_NAME },
                         onSignIn = onSignIn,
                         onSkip = onFinish,
@@ -201,6 +194,47 @@ fun OnboardingScreen(
                 }
             }
         }
+    }
+}
+
+/**
+ * Ink, a grid of dots fading down the page, and an ember of the mark's red that drifts
+ * slowly round the top of the screen and settles somewhere new on each page.
+ */
+@Composable
+private fun WelcomeBackdrop(page: Int) {
+    val drift = rememberInfiniteTransition(label = "ember")
+    val t by drift.animateFloat(
+        initialValue = 0f,
+        targetValue = (2 * PI).toFloat(),
+        animationSpec = infiniteRepeatable(tween(durationMillis = 14_000, easing = LinearEasing)),
+        label = "ember-t",
+    )
+    val anchor by animateFloatAsState(
+        targetValue = when (page) { PAGE_WELCOME -> 0.82f; PAGE_NAME -> 0.25f; else -> 0.7f },
+        animationSpec = tween(900, easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)),
+        label = "ember-anchor",
+    )
+    FadingDotGrid(Modifier.fillMaxSize(), color = Color.White.copy(alpha = 0.075f), fade = 0.9f)
+    Canvas(Modifier.fillMaxSize()) {
+        val c = Offset(
+            size.width * (anchor + 0.08f * sin(t)),
+            size.height * (0.16f + 0.05f * sin(t * 2f + 1f)),
+        )
+        val r = size.width * 0.95f
+        drawCircle(
+            Brush.radialGradient(
+                listOf(SonaraColors.Red.copy(alpha = 0.42f), SonaraColors.Ember.copy(alpha = 0.22f), Color.Transparent),
+                center = c,
+                radius = r,
+            ),
+            radius = r,
+            center = c,
+        )
+        // The page's foot sinks back to ink under the buttons.
+        drawRect(
+            Brush.verticalGradient(0.55f to Color.Transparent, 1f to SonaraColors.Ink.copy(alpha = 0.9f)),
+        )
     }
 }
 
@@ -218,30 +252,123 @@ private fun OnboardingPage(content: @Composable ColumnScope.() -> Unit) {
     }
 }
 
+/**
+ * The title page: the mark drawn large, and the app's name in type as big as the screen
+ * allows. A tap anywhere moves on, as does the button.
+ */
+@Composable
+private fun ColumnScope.WelcomePage(onNext: () -> Unit) {
+    Column(
+        Modifier
+            .weight(1f)
+            .fillMaxWidth()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onNext,
+            ),
+    ) {
+        Spacer(Modifier.height(36.dp))
+        MonoLabel(
+            "Sonara · v${appVersion()}",
+            color = Color.White.copy(alpha = 0.55f),
+            size = 11.sp,
+            modifier = Modifier.revealOnAppear(order = 0),
+        )
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            AnimatedSonaraMark(Modifier.size(250.dp), startDelayMs = 420L)
+        }
+        Text(
+            text = stringResource(R.string.onboarding_welcome_to),
+            style = MaterialTheme.typography.headlineLarge.copy(fontSize = 30.sp, letterSpacing = (-0.6).sp),
+            color = Color.White.copy(alpha = 0.72f),
+            modifier = Modifier.revealOnAppear(order = 1, rise = 18.dp),
+        )
+        Text(
+            text = "Sonara",
+            style = MaterialTheme.typography.displayLarge.copy(
+                fontSize = 84.sp,
+                lineHeight = 86.sp,
+                letterSpacing = (-3.6).sp,
+            ),
+            color = Color.White,
+            modifier = Modifier.revealOnAppear(order = 2, rise = 26.dp),
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = stringResource(R.string.onboarding_welcome_tagline),
+            style = MaterialTheme.typography.bodyLarge,
+            fontSize = 17.sp,
+            lineHeight = 23.sp,
+            color = Color.White.copy(alpha = 0.66f),
+            modifier = Modifier.revealOnAppear(order = 3),
+        )
+        Spacer(Modifier.height(30.dp))
+    }
+    PillButton(
+        label = stringResource(R.string.onboarding_get_started),
+        onClick = onNext,
+        primary = true,
+    )
+    Spacer(Modifier.height(12.dp))
+    MonoLabel(
+        stringResource(R.string.onboarding_tap_anywhere),
+        color = Color.White.copy(alpha = 0.4f),
+        size = 10.sp,
+        modifier = Modifier.align(Alignment.CenterHorizontally),
+    )
+    Spacer(Modifier.height(16.dp))
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ColumnScope.NamePage(
     name: String,
+    passId: String,
+    memberSince: String,
     onNameChange: (String) -> Unit,
     onNext: () -> Unit,
 ) {
-    // With the keyboard up there is room for the title or the logo, not both;
-    // the title is the one that says where you are.
+    // With the keyboard up there is room for the heading or the card at full size, not
+    // both; the card is what the page is about, so it shrinks instead of going.
     val keyboardUp = WindowInsets.isImeVisible
-    Spacer(Modifier.height(if (keyboardUp) 24.dp else 64.dp))
-    Box(Modifier.revealOnAppear(order = 0, rise = 22.dp)) {
-        Title(stringResource(R.string.onboarding_title))
+    // The card gives a small twitch with each letter, as though it were being written on.
+    val tilt = remember { Animatable(-3f) }
+    LaunchedEffect(name.length) {
+        tilt.animateTo(-3f + if (name.length % 2 == 0) 1.4f else -1.4f, spring(dampingRatio = 0.4f, stiffness = 900f))
+        tilt.animateTo(-3f, spring(dampingRatio = 0.5f, stiffness = 300f))
     }
-
-    // The mark itself, drawn rather than shown: its three arcs sweep in one after another and
-    // then breathe, so the first thing the app does is move. It gives way to the keyboard.
+    Spacer(Modifier.height(if (keyboardUp) 4.dp else 48.dp))
+    AnimatedVisibility(
+        visible = !keyboardUp,
+        enter = fadeIn() + expandVertically(),
+        exit = fadeOut() + shrinkVertically(),
+    ) {
+        Column {
+            Title(stringResource(R.string.onboarding_pass_title))
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.onboarding_pass_body),
+                style = MaterialTheme.typography.bodyLarge,
+                fontSize = 17.sp,
+                color = Color.White.copy(alpha = 0.66f),
+            )
+        }
+    }
+    // With the keyboard up the card gives way to a strip of itself — the holder's initial,
+    // name and pass number — which keeps answering each keystroke in the room left.
     Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-        androidx.compose.animation.AnimatedVisibility(
-            visible = !keyboardUp,
-            enter = fadeIn(tween(300)),
-            exit = fadeOut(tween(160)),
-        ) {
-            SonaraMark(Modifier.size(196.dp))
+        if (keyboardUp) {
+            PassStrip(name = name.trim(), passId = passId)
+        } else {
+            SonaraPassCard(
+                name = name.trim(),
+                memberSince = memberSince,
+                passId = passId,
+                modifier = Modifier
+                    .revealOnAppear(order = 1, rise = 40.dp)
+                    .graphicsLayer { rotationZ = tilt.value },
+            )
         }
     }
 
@@ -250,20 +377,21 @@ private fun ColumnScope.NamePage(
         style = MaterialTheme.typography.titleMedium,
         fontSize = 17.sp,
         color = Color.White.copy(alpha = 0.78f),
-        modifier = Modifier.padding(start = 4.dp).revealOnAppear(order = 3),
+        modifier = Modifier.padding(start = 4.dp),
     )
     Spacer(Modifier.height(12.dp))
-    Box(Modifier.revealOnAppear(order = 4)) {
-        NameField(value = name, onValueChange = onNameChange, onDone = onNext)
+    NameField(value = name, onValueChange = onNameChange, onDone = onNext)
+    // The footnote steps aside while typing; the strip above has its room.
+    if (!keyboardUp) {
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = stringResource(R.string.onboarding_name_footer),
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White.copy(alpha = 0.5f),
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
     }
-    Spacer(Modifier.height(10.dp))
-    Text(
-        text = stringResource(R.string.onboarding_name_footer),
-        style = MaterialTheme.typography.bodyMedium,
-        color = Color.White.copy(alpha = 0.55f),
-        modifier = Modifier.padding(horizontal = 4.dp),
-    )
-    Spacer(Modifier.height(28.dp))
+    Spacer(Modifier.height(if (keyboardUp) 14.dp else 24.dp))
     PillButton(
         label = stringResource(R.string.onboarding_next),
         onClick = onNext,
@@ -275,6 +403,9 @@ private fun ColumnScope.NamePage(
 
 @Composable
 private fun ColumnScope.ConnectPage(
+    name: String,
+    passId: String,
+    memberSince: String,
     onBack: () -> Unit,
     onSignIn: () -> Unit,
     onSkip: () -> Unit,
@@ -282,6 +413,10 @@ private fun ColumnScope.ConnectPage(
     Spacer(Modifier.height(16.dp))
     BackButton(onBack)
     Spacer(Modifier.height(20.dp))
+    if (name.isNotEmpty()) {
+        MonoLabel(stringResource(R.string.onboarding_hello, name), color = SonaraColors.Coral, size = 12.sp)
+        Spacer(Modifier.height(8.dp))
+    }
     Title(stringResource(R.string.onboarding_connect_title))
     Spacer(Modifier.height(14.dp))
     Text(
@@ -292,7 +427,21 @@ private fun ColumnScope.ConnectPage(
         color = Color.White.copy(alpha = 0.72f),
     )
 
-    Spacer(Modifier.weight(1f))
+    // The pass, finished, set down at an angle: the thing just made, kept in view.
+    Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+        SonaraPassCard(
+            name = name,
+            memberSince = memberSince,
+            passId = passId,
+            modifier = Modifier
+                .revealOnAppear(order = 1, rise = 60.dp)
+                .graphicsLayer {
+                    rotationZ = 4f
+                    scaleX = 0.86f
+                    scaleY = 0.86f
+                },
+        )
+    }
 
     PillButton(
         label = stringResource(R.string.onboarding_sign_in_google),
@@ -315,62 +464,35 @@ private fun ColumnScope.ConnectPage(
     Spacer(Modifier.height(16.dp))
 }
 
-/**
- * The Sonara mark — three arcs of sound, widening as they travel — drawn live.
- *
- * Each arc sweeps open from its centre in turn, then the three rise and fall a few pixels out
- * of step with one another, the way a held note is never perfectly still. A glow the colour of
- * the arcs sits behind them so the mark reads on any of the backdrop's palettes.
- */
 @Composable
-private fun SonaraMark(modifier: Modifier = Modifier) {
-    val sweep = remember { List(3) { Animatable(0f) } }
-    LaunchedEffect(Unit) {
-        sweep.forEachIndexed { index, arc ->
-            launch {
-                delay(180L + index * 140L)
-                arc.animateTo(1f, tween(durationMillis = 720, easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)))
-            }
+private fun PassStrip(name: String, passId: String) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(Brush.horizontalGradient(listOf(SonaraColors.PassTop, SonaraColors.PassBottom)))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        PassAvatar(name = name, url = null, size = 34.dp)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            MonoLabel("Sonara Pass · $passId", color = Color.White.copy(alpha = 0.55f), size = 9.sp)
+            Text(
+                text = name.ifBlank { "Listener" },
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White,
+                maxLines = 1,
+            )
         }
     }
-    val breath = rememberInfiniteTransition(label = "sonara-mark")
-    val phase by breath.animateFloat(
-        initialValue = 0f,
-        targetValue = (2 * PI).toFloat(),
-        animationSpec = infiniteRepeatable(tween(durationMillis = 4_200, easing = LinearEasing)),
-        label = "sonara-mark-phase",
-    )
-    Canvas(modifier) {
-        val unit = size.minDimension / 108f
-        val centre = Offset(size.width / 2f, 22f * unit)
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(Color(0xFFFF2D55).copy(alpha = 0.34f), Color.Transparent),
-                center = Offset(size.width / 2f, size.height * 0.56f),
-                radius = size.minDimension * 0.62f,
-            ),
-            radius = size.minDimension * 0.62f,
-            center = Offset(size.width / 2f, size.height * 0.56f),
-        )
-        val radii = floatArrayOf(22f, 36f, 50f)
-        val colours = listOf(Color(0xFFFF7A8E), Color(0xFFFF4D6D), Color(0xFFFF2D55))
-        radii.forEachIndexed { index, r ->
-            val drift = sin(phase - index * 0.9f) * 1.6f * unit
-            val radius = r * unit
-            val open = 38f * sweep[index].value
-            if (open > 0f) {
-                drawArc(
-                    color = colours[index],
-                    startAngle = 90f - open,
-                    sweepAngle = open * 2f,
-                    useCenter = false,
-                    topLeft = Offset(centre.x - radius, centre.y - radius + drift),
-                    size = Size(radius * 2f, radius * 2f),
-                    style = Stroke(width = 8.5f * unit, cap = StrokeCap.Round),
-                    alpha = sweep[index].value,
-                )
-            }
-        }
+}
+
+@Composable
+private fun appVersion(): String {
+    val context = LocalContext.current
+    return remember {
+        runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
     }
 }
 
@@ -508,16 +630,9 @@ private fun BackButton(onClick: () -> Unit) {
     }
 }
 
-private const val PAGE_NAME = 0
-private const val PAGE_CONNECT = 1
+private const val PAGE_WELCOME = 0
+private const val PAGE_NAME = 1
+private const val PAGE_CONNECT = 2
 
 /** Long enough for a full name; the party server keeps the first 80. */
 private const val NAME_LIMIT = 40
-
-/** The account page keeps leaning into YouTube's red while it moves. */
-private val ConnectPalettes = listOf(
-    MeshPalette(listOf(Color(0xFFFF1E3C), Color(0xFFC2185B), Color(0xFFFF8F3D), Color(0xFF4A1C8C))),
-    MeshPalette(listOf(Color(0xFFE53935), Color(0xFFFF6E40), Color(0xFFAD1457), Color(0xFF311B92))),
-    MeshPalette(listOf(Color(0xFFFF3D00), Color(0xFFD81B60), Color(0xFF8E24AA), Color(0xFFB71C1C))),
-    MeshPalette(listOf(Color(0xFFF50057), Color(0xFFFF9100), Color(0xFFC51162), Color(0xFF4527A0))),
-)

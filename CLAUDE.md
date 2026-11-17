@@ -1,15 +1,14 @@
 # BitChord PlusPC — Claude Engineering Handover & Repository Guide
 
-## 1. Repository & Release State (Ground Truth as of 2026-11-16)
+## 1. Repository & Release State (Ground Truth as of 2026-11-17)
 
-- **GitHub Repository**: `https://github.com/Inventor365/BitChord-PlusPC.git` (`origin`, branch `main`)
-- **OTA Manifest Repository**: `https://github.com/Inventor365/Bitchord-OTA.git` (currently serving **`v1.10.1`**, `versionCode = 42`)
-- **Latest Published GitHub Release**: **`v1.10.1`** (`versionCode = 42`, all 21 platform binaries + `SHA256SUMS.txt` uploaded)
-- **Current Working Version**: **`1.10.5` (`versionCode = 46`, `desktopVersionCode = 46`)**
-  - Signed test APKs: `/serverhive2/yukia/bitchord/build/apk-preview-1.10.5/`, verified with `scripts/verify-android-upgrade.sh` against `build/apk-preview-1.10.4/`.
-  - The user sideloaded **`1.10.4`** and confirmed collaborative playlists (create, invite, join) work on real devices. Once `1.10.5` has been sideloaded, bump to **`1.10.6` (`versionCode = 47`)** for the next test APK.
-  - Do **not** push to `Inventor365/Bitchord-OTA` until the matching GitHub Release APKs/installers are uploaded on `Inventor365/BitChord-PlusPC`, otherwise live users' OTA checks would 404 on the download URL.
-  - **Known hazard**: root `ota.json` on `main` advertises `1.10.3`, which has no GitHub Release. `AppUpdateChecker` / `DesktopUpdateChecker` use `raw.githubusercontent.com/Inventor365/BitChord-PlusPC/main/ota.json` as a fallback source, so if the OTA repository is unreachable live users are offered a download that 404s. It was left as found; decide whether to set it back to `1.10.1` until a release exists.
+- **The app is Sonara** (formerly BitChord PlusPC). Package ids, signing key and Windows upgrade code are unchanged, so every Sonara build installs over BitChord PlusPC in place. Source packages are still `com.music.bitchord.*` on purpose.
+- **GitHub Repository**: `https://github.com/Inventor365/Sonara.git` (`origin`, branch `main`). This is the old `BitChord-PlusPC` repo renamed (still a fork of `kushagrasinghx/BitChord`, keeps its stars and the BitChord releases). Old `BitChord-PlusPC` URLs redirect here. `Inventor365/Sonara1` is the short-lived separate repo from the first rename; nothing points at it.
+- Local work happens on branch `sonara-main`, pushed as `main`. Its early history was rewritten to drop AI attribution lines and joined to the original with a no-change merge (`4e99a079`), so pushes fast-forward. Never force-push `main`.
+- **OTA Manifest Repository**: `https://github.com/Inventor365/Bitchord-OTA.git` (public). Apps also fall back to `raw.githubusercontent.com/Inventor365/Sonara/main/ota.json`, so root `ota.json` must never advertise a version whose release files are not uploaded yet.
+- **Releases**: `v2.0.0` (versionCode 48) is published on `Inventor365/Sonara`. `v2.1.0` (versionCode 49) is the Sonara design overhaul (Pass, Library profile, welcome, Settings tiles).
+- The repo has the Android signing secrets (`KEYSTORE_BASE64`, …), so `release.yml` with `target=all` builds and publishes every platform.
+- A dev build (`com.dev.bitchord`, "Sonara Dev") installs beside the release app: `./gradlew :app:assembleDevDebug` then `adb install -r -t app/build/outputs/apk/dev/debug/app-dev-arm64-v8a-debug.apk` (use the adb on `PATH`; Gradle's own adb does not see the phone).
 
 ---
 

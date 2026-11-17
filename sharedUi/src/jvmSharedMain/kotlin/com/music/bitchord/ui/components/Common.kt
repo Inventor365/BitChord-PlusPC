@@ -890,18 +890,43 @@ fun SignInBanner(
             .clip(RoundedCornerShape(22.dp))
             .clickable(interactionSource = interaction, indication = null, onClick = onSignIn),
     ) {
-        // A card is a few hundred dp the reader is looking straight at, which
-        // is the case the mesh lets keep moving — see its `continuous` note.
-        MeshGradientBackground(
-            palette = cyclingMeshPalette(WelcomeMeshPalettes, running = motion),
-            modifier = Modifier.matchParentSize(),
-            continuous = true,
-            paused = !motion,
-            driftMillis = 6_000,
-            blurRadius = 36.dp,
-            colorFadeMillis = MESH_CYCLE_MILLIS,
-        )
-        Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 18.dp)) {
+        // The Sonara Pass's own materials — ink, an ember of the mark's red in the corner
+        // and a grid of dots — so the invitation reads as the app's, not as a poster.
+        androidx.compose.foundation.Canvas(Modifier.matchParentSize()) {
+            drawRect(
+                androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color(0xFF2A0B14), Color(0xFF111114), Color(0xFF18181C))),
+            )
+            drawCircle(
+                androidx.compose.ui.graphics.Brush.radialGradient(
+                    listOf(SonaraAccent.copy(alpha = 0.55f), SonaraAccent.copy(alpha = 0.10f), Color.Transparent),
+                    center = androidx.compose.ui.geometry.Offset(size.width * 0.95f, 0f),
+                    radius = size.width * 0.8f,
+                ),
+                radius = size.width * 0.8f,
+                center = androidx.compose.ui.geometry.Offset(size.width * 0.95f, 0f),
+            )
+            val step = 14.dp.toPx()
+            val r = 0.9.dp.toPx()
+            var y = step / 2f
+            while (y < size.height) {
+                var x = step / 2f
+                while (x < size.width) {
+                    drawCircle(Color.White.copy(alpha = 0.05f), r, androidx.compose.ui.geometry.Offset(x, y))
+                    x += step
+                }
+                y += step
+            }
+        }
+        Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 18.dp)) {
+            Text(
+                text = "SONARA × YOUTUBE MUSIC",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    letterSpacing = 1.4.sp,
+                ),
+                color = Color.White.copy(alpha = 0.55f),
+            )
+            Spacer(Modifier.height(6.dp))
             Text(
                 text = stringResource(Res.string.sign_in_youtube_music),
                 style = MaterialTheme.typography.headlineMedium,

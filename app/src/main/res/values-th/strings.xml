@@ -1555,4 +1555,11 @@
     <string name="edit_metadata">Edit metadata</string>
     <string name="metadata_updated">Metadata updated</string>
     <string name="metadata_update_failed">Failed to update metadata</string>
+    <string name="onboarding_welcome_to">ยินดีต้อนรับสู่</string>
+    <string name="onboarding_welcome_tagline">เพลงนับล้าน เนื้อเพลงที่เคลื่อนไปพร้อมเพลง และคลังเพลงที่เป็นของคุณ</string>
+    <string name="onboarding_get_started">เริ่มต้น</string>
+    <string name="onboarding_tap_anywhere">แตะที่ใดก็ได้เพื่อเริ่ม</string>
+    <string name="onboarding_pass_title">ทำให้เป็นของคุณ</string>
+    <string name="onboarding_pass_body">ชื่อของคุณจะอยู่บน Sonara Pass ของคุณ</string>
+    <string name="onboarding_hello">สวัสดี %1$s</string>
 </resources>

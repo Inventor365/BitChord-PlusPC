@@ -292,37 +292,9 @@ private fun CollabActionTile(
         modifier = Modifier
             .pressScale()
             .width(SHELF_CARD_WIDTH)
-            .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
-                .border(
-                    width = 0.5.dp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f),
-                    shape = RoundedCornerShape(12.dp),
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = title,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-        }
+        com.music.bitchord.ui.components.ActionArt(icon = icon)
         Spacer(Modifier.height(8.dp))
         Text(
             text = title,

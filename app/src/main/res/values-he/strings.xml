@@ -1576,4 +1576,11 @@
     <string name="edit_metadata">Edit metadata</string>
     <string name="metadata_updated">Metadata updated</string>
     <string name="metadata_update_failed">Failed to update metadata</string>
+    <string name="onboarding_welcome_to">ברוכים הבאים ל־</string>
+    <string name="onboarding_welcome_tagline">מיליוני שירים, מילים שזזות איתם וספרייה שהיא שלך.</string>
+    <string name="onboarding_get_started">בואו נתחיל</string>
+    <string name="onboarding_tap_anywhere">הקישו בכל מקום כדי להתחיל</string>
+    <string name="onboarding_pass_title">הפכו אותו לשלכם</string>
+    <string name="onboarding_pass_body">השם שלכם יופיע על ה־Sonara Pass שלכם.</string>
+    <string name="onboarding_hello">שלום, %1$s.</string>
 </resources>

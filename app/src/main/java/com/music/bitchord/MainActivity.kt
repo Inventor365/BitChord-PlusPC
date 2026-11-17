@@ -192,6 +192,10 @@ import com.music.bitchord.ui.screens.DiscordScreen
 import com.music.bitchord.ui.screens.EqualizerScreen
 import com.music.bitchord.ui.screens.HistoryScreen
 import com.music.bitchord.ui.screens.LibraryReplayEntry
+import com.music.bitchord.ui.screens.LibraryProfileHeader
+import com.music.bitchord.ui.sonara.memberSinceLabel
+import com.music.bitchord.ui.sonara.memberSinceMillis
+import com.music.bitchord.ui.sonara.passIdFor
 import com.music.bitchord.ui.screens.libraryDeviceItems
 import com.music.bitchord.ui.screens.SPOTIFY_BROWSE_ID
 import com.music.bitchord.ui.screens.libraryLinks
@@ -3812,7 +3816,11 @@ private fun BitChordApp(
                                 recentlyPlayedLoading = homeRecentlyPlayedLoading && !hideRecents,
                                 topPicks = topPicks,
                                 topPicksLoading = topPicksLoading,
-                                listenerName = account?.name,
+                                // The name chosen on the welcome (the Pass's), else the account's.
+                                // Re-read when the welcome closes: that is when the name is saved.
+                                listenerName = remember(account?.name, onboardingComplete) {
+                                    ListenTogether.nickname().ifBlank { account?.name.orEmpty() }
+                                }.takeIf { it.isNotBlank() },
                                 // Neither shelf is drawn without its callback.
                                 onTopPickClick = openTopPick.takeUnless { hideTopPicks },
                                 onMoodClick = playMood.takeUnless { hideHomeMoods },
@@ -4096,6 +4104,25 @@ private fun BitChordApp(
                                         memberSince = replay.memberSince,
                                         onOpenReplay = { page ->
                                             replayLandingPage = page
+                                            navigator.push(AppRoute.Replay)
+                                        },
+                                    )
+                                },
+                                header = {
+                                    val passMillis = remember { memberSinceMillis(context) }
+                                    val holder = remember(account?.name, onboardingComplete) {
+                                        ListenTogether.nickname().ifBlank { account?.name.orEmpty() }
+                                    }
+                                    LibraryProfileHeader(
+                                        name = holder,
+                                        avatarUrl = account?.thumbnailUrl,
+                                        memberSince = remember(passMillis) { memberSinceLabel(passMillis) },
+                                        passId = remember(passMillis) { passIdFor(passMillis) },
+                                        summary = replay.summary,
+                                        loading = replay.loading,
+                                        onEditProfile = { navigator.push(AppRoute.AccountScrobbling) },
+                                        onViewStats = {
+                                            replayLandingPage = ReplayStoryPage.INTRO
                                             navigator.push(AppRoute.Replay)
                                         },
                                     )

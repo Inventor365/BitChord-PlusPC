@@ -1490,4 +1490,11 @@
     <string name="edit_metadata">Edit metadata</string>
     <string name="metadata_updated">Metadata updated</string>
     <string name="metadata_update_failed">Failed to update metadata</string>
+    <string name="onboarding_welcome_to">Chào mừng đến với</string>
+    <string name="onboarding_welcome_tagline">Hàng triệu bài hát, lời bài hát chạy theo nhạc và một thư viện của riêng bạn.</string>
+    <string name="onboarding_get_started">Bắt đầu</string>
+    <string name="onboarding_tap_anywhere">Chạm vào bất kỳ đâu để bắt đầu</string>
+    <string name="onboarding_pass_title">Biến nó thành của bạn</string>
+    <string name="onboarding_pass_body">Tên bạn sẽ có trên Sonara Pass của bạn.</string>
+    <string name="onboarding_hello">Xin chào, %1$s.</string>
 </resources>

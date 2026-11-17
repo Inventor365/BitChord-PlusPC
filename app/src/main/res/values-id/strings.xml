@@ -1548,4 +1548,11 @@
     <string name="edit_metadata">Edit metadata</string>
     <string name="metadata_updated">Metadata updated</string>
     <string name="metadata_update_failed">Failed to update metadata</string>
+    <string name="onboarding_welcome_to">Selamat datang di</string>
+    <string name="onboarding_welcome_tagline">Jutaan lagu, lirik yang bergerak bersamanya, dan pustaka milikmu sendiri.</string>
+    <string name="onboarding_get_started">Mulai</string>
+    <string name="onboarding_tap_anywhere">Ketuk di mana saja untuk mulai</string>
+    <string name="onboarding_pass_title">Jadikan milikmu</string>
+    <string name="onboarding_pass_body">Namamu akan tertulis di Sonara Pass-mu.</string>
+    <string name="onboarding_hello">Halo, %1$s.</string>
 </resources>

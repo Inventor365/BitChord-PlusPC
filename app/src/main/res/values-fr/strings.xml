@@ -1572,4 +1572,11 @@
     <string name="edit_metadata">Edit metadata</string>
     <string name="metadata_updated">Metadata updated</string>
     <string name="metadata_update_failed">Failed to update metadata</string>
+    <string name="onboarding_welcome_to">Bienvenue sur</string>
+    <string name="onboarding_welcome_tagline">Des millions de titres, des paroles qui les suivent et une bibliothèque à vous.</string>
+    <string name="onboarding_get_started">Commencer</string>
+    <string name="onboarding_tap_anywhere">Touchez n’importe où pour commencer</string>
+    <string name="onboarding_pass_title">Faites-le vôtre</string>
+    <string name="onboarding_pass_body">Votre nom figure sur votre Sonara Pass.</string>
+    <string name="onboarding_hello">Bonjour, %1$s.</string>
 </resources>

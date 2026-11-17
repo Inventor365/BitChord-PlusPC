@@ -1603,4 +1603,11 @@
     <string name="edit_metadata">Edit metadata</string>
     <string name="metadata_updated">Metadata updated</string>
     <string name="metadata_update_failed">Failed to update metadata</string>
+    <string name="onboarding_welcome_to">Добро пожаловать в</string>
+    <string name="onboarding_welcome_tagline">Миллионы песен, тексты, которые движутся вместе с ними, и библиотека, которая ваша.</string>
+    <string name="onboarding_get_started">Начать</string>
+    <string name="onboarding_tap_anywhere">Коснитесь где угодно, чтобы начать</string>
+    <string name="onboarding_pass_title">Сделайте его своим</string>
+    <string name="onboarding_pass_body">Ваше имя появится на вашем Sonara Pass.</string>
+    <string name="onboarding_hello">Привет, %1$s.</string>
 </resources>

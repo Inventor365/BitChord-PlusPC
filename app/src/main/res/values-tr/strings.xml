@@ -1554,4 +1554,11 @@
     <string name="edit_metadata">Edit metadata</string>
     <string name="metadata_updated">Metadata updated</string>
     <string name="metadata_update_failed">Failed to update metadata</string>
+    <string name="onboarding_welcome_to">Hoş geldin:</string>
+    <string name="onboarding_welcome_tagline">Milyonlarca şarkı, onlarla birlikte akan sözler ve sana ait bir kitaplık.</string>
+    <string name="onboarding_get_started">Başla</string>
+    <string name="onboarding_tap_anywhere">Başlamak için herhangi bir yere dokun</string>
+    <string name="onboarding_pass_title">Kendine göre yap</string>
+    <string name="onboarding_pass_body">Adın Sonara Pass’ine yazılır.</string>
+    <string name="onboarding_hello">Merhaba, %1$s.</string>
 </resources>

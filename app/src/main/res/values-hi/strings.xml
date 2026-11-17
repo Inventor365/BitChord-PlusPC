@@ -1571,4 +1571,11 @@
     <string name="edit_metadata">Edit metadata</string>
     <string name="metadata_updated">Metadata updated</string>
     <string name="metadata_update_failed">Failed to update metadata</string>
+    <string name="onboarding_welcome_to">आपका स्वागत है</string>
+    <string name="onboarding_welcome_tagline">लाखों गाने, उनके साथ चलते बोल, और एक लाइब्रेरी जो आपकी है।</string>
+    <string name="onboarding_get_started">शुरू करें</string>
+    <string name="onboarding_tap_anywhere">शुरू करने के लिए कहीं भी टैप करें</string>
+    <string name="onboarding_pass_title">इसे अपना बनाएँ</string>
+    <string name="onboarding_pass_body">आपका नाम आपके Sonara Pass पर होगा।</string>
+    <string name="onboarding_hello">नमस्ते, %1$s.</string>
 </resources>

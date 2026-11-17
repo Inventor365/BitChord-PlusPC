@@ -1422,4 +1422,11 @@
     <string name="edit_metadata">Edit metadata</string>
     <string name="metadata_updated">Metadata updated</string>
     <string name="metadata_update_failed">Failed to update metadata</string>
+    <string name="onboarding_welcome_to">환영합니다</string>
+    <string name="onboarding_welcome_tagline">수백만 곡, 함께 움직이는 가사, 그리고 나만의 보관함.</string>
+    <string name="onboarding_get_started">시작하기</string>
+    <string name="onboarding_tap_anywhere">아무 곳이나 탭하여 시작</string>
+    <string name="onboarding_pass_title">나만의 것으로</string>
+    <string name="onboarding_pass_body">이름이 Sonara Pass에 새겨집니다.</string>
+    <string name="onboarding_hello">안녕하세요, %1$s님.</string>
 </resources>

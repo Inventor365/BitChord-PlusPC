@@ -141,6 +141,11 @@ fun LibraryScreen(
     /** The big "Library" heading; the desktop's pages carry none. */
     showTitle: Boolean = true,
     collabSection: (@Composable (query: String) -> Unit)? = null,
+    /**
+     * Takes the big heading's place: the phone's profile head — the listener's Pass and
+     * their listening time. Hidden while the page is being searched, like the Replay row.
+     */
+    header: (@Composable () -> Unit)? = null,
 ) {
     val pinnedPlaylists by AppUi.host.pinnedPlaylists.collectAsStateWithLifecycle()
     val onDevice = stringResource(Res.string.on_device)
@@ -159,7 +164,9 @@ fun LibraryScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = contentPadding,
         ) {
-            if (showTitle) {
+            if (header != null) {
+                if (!searching) item(key = "profile-header") { header() }
+            } else if (showTitle) {
                 item {
                     Text(
                         text = stringResource(Res.string.library),

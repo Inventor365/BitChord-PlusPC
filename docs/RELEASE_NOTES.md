@@ -1,16 +1,30 @@
-# Sonara `v2.0.0` (`versionCode = 48`)
+# Sonara `v2.1.0` (`versionCode = 49`)
 
-**BitChord PlusPC is now Sonara — Android, Android Auto, Android TV, Wear OS, macOS (Apple Silicon & Intel), Windows, Linux & Web**
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/Inventor365/Sonara/main/Logo.png" alt="Sonara" width="140" />
-</p>
+**Sonara's own look — Android, Android Auto, Android TV, Wear OS, macOS (Apple Silicon & Intel), Windows, Linux & Web**
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Inventor365/Sonara/main/docs/screenshots/collab-playlist.png" alt="A collaborative playlist" width="30%" />
-  <img src="https://raw.githubusercontent.com/Inventor365/Sonara/main/docs/screenshots/library-folders.png" alt="Library folders" width="30%" />
-  <img src="https://raw.githubusercontent.com/Inventor365/Sonara/main/docs/screenshots/search.png" alt="Search with browse categories" width="30%" />
+  <img src="https://raw.githubusercontent.com/Inventor365/Sonara/main/docs/screenshots/welcome.png" alt="Welcome to Sonara" width="23%" />
+  <img src="https://raw.githubusercontent.com/Inventor365/Sonara/main/docs/screenshots/pass.png" alt="Making your Sonara Pass" width="23%" />
+  <img src="https://raw.githubusercontent.com/Inventor365/Sonara/main/docs/screenshots/library-profile.png" alt="Library as your profile" width="23%" />
+  <img src="https://raw.githubusercontent.com/Inventor365/Sonara/main/docs/screenshots/settings-tiles.png" alt="Settings tiles" width="23%" />
 </p>
+
+This is where Sonara stops looking like the player it grew out of. BitChord PlusPC became Sonara in `v2.0.0`; this release gives it a face of its own, and it installs over any BitChord PlusPC or Sonara build in place.
+
+## What's new in 2.1.0
+
+- **A design language of its own.** Ink and grey, the mark's red used sparingly, monospace "ticket print" for small labels, and floating cards with generous corners in place of iOS-style lists. Switches glow Sonara red; the tab bar shows icons only (labels can be turned back on in *Settings → Appearance*).
+- **The Sonara Pass.** Your card: your name, a pass number, the month you joined, and a *soundprint* — a bar code of sound drawn from your pass number, so no two are alike.
+- **A new welcome.** A title page with the mark drawn live; then *Make it yours*, where the Pass fills in as you type your name; then sign-in, with your finished Pass beside it.
+- **Library is your profile.** Your Pass at the top, then your listening time in hours and minutes with plays, artists and your top artist — one tap from the full stats.
+- **Settings** opens on a grid of tiles, each with its own colour and a large faint glyph; group headings are set in ticket print and cards have softer corners.
+- **Tiles for actions.** *New playlist*, *Import Spotify*, *New collaborative* and *Join via invite* are drawn as tiles of their own rather than blank grey squares.
+- **Home** greets you by the name on your Pass, and its sign-in card is made from the Pass's materials.
+
+## From 2.0.0
+
+- Home greets you by time of day; Search opens on a grid of moods and genres; Settings leads with your account.
+- Collaborative playlists: any Google account can join; removing, leaving and deleting ask first.
 
 ---
 

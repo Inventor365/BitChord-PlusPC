@@ -1390,6 +1390,13 @@
     <string name="onboarding_sign_in_google">Sign in with Google</string>
     <string name="onboarding_skip_sign_in">Skip sign in</string>
     <string name="onboarding_back">Back</string>
+    <string name="onboarding_welcome_to">Welcome to</string>
+    <string name="onboarding_welcome_tagline">Millions of songs, lyrics that move with them, and a library that is yours.</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_tap_anywhere">Tap anywhere to begin</string>
+    <string name="onboarding_pass_title">Make it yours</string>
+    <string name="onboarding_pass_body">Your name goes on your Sonara Pass.</string>
+    <string name="onboarding_hello">Hello, %1$s.</string>
     <string name="song_info">Song Info</string>
     <string name="song_info_album">Album</string>
     <string name="song_info_release_date">Release date</string>

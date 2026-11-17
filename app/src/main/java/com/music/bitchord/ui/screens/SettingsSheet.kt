@@ -184,6 +184,10 @@ import com.music.bitchord.ui.player.fullBleedArtworkAvailable
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import java.util.Locale
+import com.music.bitchord.ui.sonara.MonoStyle
+import com.music.bitchord.ui.components.pressScale
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.sp
 
 /**
  * Grouped settings, in the shape phones have taught people to expect: inset
@@ -611,7 +615,7 @@ fun SettingsScreen(
             // The categories, each a page of its own — until there is a query,
             // when their rows answer here instead (below).
             if (!searching) {
-                SettingsCategoryList(onOpen = onOpenSection)
+                SettingsCategoryGrid(onOpen = onOpenSection)
                 if (watchAvailable) {
                     SettingsGroup {
                         WearOsSettingsRow(onClick = onWearOs)
@@ -2654,7 +2658,7 @@ private fun bitPerfectSubtitle(mode: BitPerfectMode, status: BitPerfectOutput.St
 
 // ---- Building blocks --------------------------------------------------------
 
-internal val GroupShape = RoundedCornerShape(14.dp)
+internal val GroupShape = RoundedCornerShape(22.dp)
 internal val GROUP_INSET = 16.dp
 internal val ROW_INSET = 16.dp
 internal val ICON_SIZE = 22.dp
@@ -2815,12 +2819,13 @@ internal fun SettingsGroup(
     content: @Composable () -> Unit,
 ) {
     if (header != null) {
+        // Ticket print rather than iOS's small caps: see [com.music.bitchord.ui.sonara.MonoLabel].
         Text(
             text = header.uppercase(Locale.ROOT),
-            style = MaterialTheme.typography.labelSmall,
+            style = MonoStyle.copy(fontSize = 10.5.sp, letterSpacing = 1.5.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(
-                start = GROUP_INSET + 4.dp,
+                start = GROUP_INSET + 6.dp,
                 end = GROUP_INSET,
                 top = 26.dp,
                 bottom = 8.dp,
@@ -3231,19 +3236,91 @@ enum class SettingsChoiceKind(@param:StringRes val title: Int) {
     FONT(R.string.font),
 }
 
-/** The main page's list of categories: a glyph and a name each, and a chevron into it. */
+/**
+ * The main page's categories as a grid of tiles, two to a row: each a card with its glyph in
+ * a tinted disc, its name at the foot, and the same glyph drawn large and faint, cut off by
+ * the corner — so the page is something to look across rather than a list to read down.
+ */
 @Composable
-private fun SettingsCategoryList(onOpen: (SettingsCategory) -> Unit) {
-    SettingsGroup {
-        SettingsCategory.entries.forEachIndexed { index, category ->
-            if (index > 0) RowDivider()
-            SettingsRow(
-                icon = category.icon,
-                tile = category.tile,
-                title = stringResource(category.title),
-                onClick = { onOpen(category) },
+private fun SettingsCategoryGrid(onOpen: (SettingsCategory) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = GROUP_INSET)
+            .padding(top = 26.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.settings).uppercase(Locale.ROOT),
+            style = MonoStyle.copy(fontSize = 10.5.sp, letterSpacing = 1.5.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 6.dp, bottom = 0.dp),
+        )
+        SettingsCategory.entries.chunked(2).forEach { pair ->
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                pair.forEachIndexed { i, category ->
+                    SettingsCategoryTile(
+                        category = category,
+                        onClick = { onOpen(category) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                if (pair.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsCategoryTile(
+    category: SettingsCategory,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .height(108.dp)
+            .pressScale(0.96f)
+            .clip(RoundedCornerShape(24.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clickable(onClick = onClick),
+    ) {
+        Icon(
+            imageVector = category.icon,
+            contentDescription = null,
+            tint = category.tile.copy(alpha = 0.13f),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = 22.dp, y = 22.dp)
+                .size(104.dp)
+                .graphicsLayer { rotationZ = -14f },
+        )
+        Box(
+            modifier = Modifier
+                .padding(14.dp)
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(category.tile.copy(alpha = 0.18f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = category.icon,
+                contentDescription = null,
+                tint = category.tile,
+                modifier = Modifier.size(19.dp),
             )
         }
+        Text(
+            text = stringResource(category.title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 15.dp, end = 15.dp, bottom = 14.dp),
+        )
     }
 }
 
