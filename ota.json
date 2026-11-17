@@ -1,45 +1,45 @@
 {
-  "version": "2.1.1",
-  "versionCode": 50,
-  "tvVersionCode": 50,
-  "releaseUrl": "https://github.com/Inventor365/Sonara/releases/tag/v2.1.1",
+  "version": "2.1.2",
+  "versionCode": 51,
+  "tvVersionCode": 51,
+  "releaseUrl": "https://github.com/Inventor365/Sonara/releases/tag/v2.1.2",
   "changelogUrl": "https://raw.githubusercontent.com/Inventor365/Bitchord-OTA/refs/heads/main/changelogs.txt?token=GHSAT0AAAAAADUIC3ZQ4LG6AXEKYTMTOL2I2XE3AZA",
   "changelog": [
-    "## Sonara v2.1.1",
-    "- **Explore, redrawn**: a featured card, titled sections and new tiles — the category colour with its cover fading in, a numbered index and the title at the foot.",
-    "- **The player**: play and pause in a white disc that gives under your finger, steady fixed-width times, and the source in ticket print.",
-    "- **Collaborative playlists find every playlist** (not just your first 30), ride out YouTube's rate limits instead of dropping playlists, and show the right song count.",
-    "- **Compatible with BitChord PlusPC**: invite links work across every version, and Windows keeps the collaborative playlists it had before the rename.",
-    "- Everything from 2.1.0: your Sonara Pass, Library as your profile, the new welcome and Settings tiles."
+    "## Sonara v2.1.2",
+    "- **Import Apple Music playlists**: paste a public playlist link in Library → Import Apple Music; songs are matched on YouTube Music.",
+    "- **A calmer player**: the source and the times are back in the player's own type, with steady digits.",
+    "- **Clearer tiles** in Explore and Search: cover art sits back so titles always read.",
+    "- **Apple Silicon Macs** get a native build again.",
+    "- Everything from 2.1.1: the redrawn Explore, the play disc, collaborative playlists that find every playlist."
   ],
-  "downloadUrl": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/Sonara-v2.1.1.apk",
+  "downloadUrl": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/Sonara-v2.1.2.apk",
   "downloads": {
     "android": {
-      "universal": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/Sonara-v2.1.1.apk",
-      "arm64-v8a": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/Sonara-v2.1.1_arm64-v8a.apk",
-      "armeabi-v7a": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/Sonara-v2.1.1_armeabi-v7a.apk",
-      "x86_64": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/Sonara-v2.1.1_x86_64.apk"
+      "universal": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/Sonara-v2.1.2.apk",
+      "arm64-v8a": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/Sonara-v2.1.2_arm64-v8a.apk",
+      "armeabi-v7a": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/Sonara-v2.1.2_armeabi-v7a.apk",
+      "x86_64": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/Sonara-v2.1.2_x86_64.apk"
     },
     "tv": {
-      "universal": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/SonaraTV-v2.1.1.apk",
-      "arm64-v8a": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/SonaraTV-v2.1.1_arm64-v8a.apk",
-      "armeabi-v7a": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/SonaraTV-v2.1.1_armeabi-v7a.apk",
-      "x86_64": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/SonaraTV-v2.1.1_x86_64.apk"
+      "universal": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/SonaraTV-v2.1.2.apk",
+      "arm64-v8a": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/SonaraTV-v2.1.2_arm64-v8a.apk",
+      "armeabi-v7a": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/SonaraTV-v2.1.2_armeabi-v7a.apk",
+      "x86_64": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/SonaraTV-v2.1.2_x86_64.apk"
     },
-    "wear": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/SonaraWear-v2.1.1.apk",
+    "wear": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/SonaraWear-v2.1.2.apk",
     "windows": {
-      "exe": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/Sonara-2.1.1-windows-x64-setup.exe",
-      "msi": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/Sonara-2.1.1-windows-x64.msi",
-      "portable": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/Sonara-2.1.1-windows-x64-portable.zip"
+      "exe": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/Sonara-2.1.2-windows-x64-setup.exe",
+      "msi": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/Sonara-2.1.2-windows-x64.msi",
+      "portable": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/Sonara-2.1.2-windows-x64-portable.zip"
     },
     "macos": {
-      "arm64": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/Sonara-2.1.1-macos-x64.dmg",
-      "x64": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/Sonara-2.1.1-macos-x64.dmg"
+      "arm64": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/Sonara-2.1.2-macos-arm64.dmg",
+      "x64": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/Sonara-2.1.2-macos-x64.dmg"
     },
     "linux": {
-      "appimage": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/Sonara-2.1.1-linux-x86_64.AppImage",
-      "deb": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/Sonara-2.1.1-linux-amd64.deb",
-      "rpm": "https://github.com/Inventor365/Sonara/releases/download/v2.1.1/Sonara-2.1.1-linux-x86_64.rpm"
+      "appimage": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/Sonara-2.1.2-linux-x86_64.AppImage",
+      "deb": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/Sonara-2.1.2-linux-amd64.deb",
+      "rpm": "https://github.com/Inventor365/Sonara/releases/download/v2.1.2/Sonara-2.1.2-linux-x86_64.rpm"
     }
   }
 }

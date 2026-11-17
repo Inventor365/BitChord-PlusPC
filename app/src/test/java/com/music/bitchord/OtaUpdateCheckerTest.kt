@@ -24,9 +24,9 @@ class OtaUpdateCheckerTest {
             fetchExternalText = { "Build date: 30/10/2026\n- Verified OTA" },
         )
         assertNotNull(phoneInfo)
-        assertEquals("2.1.1", phoneInfo!!.version)
-        assertEquals("https://github.com/Inventor365/Sonara/releases/download/v2.1.1/Sonara-v2.1.1.apk", phoneInfo.apkUrl)
-        assertTrue(phoneInfo.notes.orEmpty().contains("Sonara v2.1.1"))
+        assertEquals("2.1.2", phoneInfo!!.version)
+        assertEquals("https://github.com/Inventor365/Sonara/releases/download/v2.1.2/Sonara-v2.1.2.apk", phoneInfo.apkUrl)
+        assertTrue(phoneInfo.notes.orEmpty().contains("Sonara v2.1.2"))
         assertTrue(phoneInfo.notes.orEmpty().contains("Verified OTA"))
 
         val tvInfo = AppUpdateChecker.parseOtaPayload(
@@ -35,8 +35,8 @@ class OtaUpdateCheckerTest {
             supportedAbis = listOf("armeabi-v7a"),
         )
         assertNotNull(tvInfo)
-        assertEquals("2.1.1", tvInfo!!.version)
-        assertEquals("https://github.com/Inventor365/Sonara/releases/download/v2.1.1/SonaraTV-v2.1.1.apk", tvInfo.apkUrl)
+        assertEquals("2.1.2", tvInfo!!.version)
+        assertEquals("https://github.com/Inventor365/Sonara/releases/download/v2.1.2/SonaraTV-v2.1.2.apk", tvInfo.apkUrl)
     }
 
     @Test
