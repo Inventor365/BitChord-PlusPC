@@ -123,6 +123,7 @@ import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
+import com.music.bitchord.ui.components.pressScale
 
 /*
  * Home's "Top Picks for You": Apple Music's lead row of tall cards, each one
@@ -285,7 +286,7 @@ private fun TopPickCard(
     val text = cardText(pick, listenerName)
     val longPress = onLongPress?.let { { it(pick) } }
     Box(
-        modifier = modifier
+        modifier = modifier.pressScale()
             .aspectRatio(TOP_PICK_RATIO)
             .clip(TopPickShape)
             .thumbnailBorder(TopPickShape)

@@ -121,7 +121,9 @@ class DiscordRPC(
             // The card's optional third information line. Kept absent for
             // ordinary lossy streams so Discord only calls attention to a
             // measured premium format.
-            largeText = audioQuality,
+            // The line under the artwork on hover: the measured format when there is one worth
+            // showing, otherwise the album the track is from.
+            largeText = audioQuality ?: song.albumName?.takeIf { it.isNotBlank() },
             smallText = null,
             buttons = if (buttonsList.isNotEmpty()) buttonsList else null,
             type = type,
