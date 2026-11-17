@@ -53,6 +53,7 @@ import com.music.bitchord.ui.components.PAGE_GUTTER
 import com.music.bitchord.ui.components.PullToRefresh
 import com.music.bitchord.ui.components.ShimmerBox
 import com.music.bitchord.ui.components.feedSkeleton
+import com.music.bitchord.ui.components.pressScale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -152,7 +153,7 @@ private fun MoodGenreCard(
 ) {
     MoodGenreSleeve(
         item = item,
-        modifier = modifier
+        modifier = modifier.pressScale()
             .aspectRatio(MOOD_CARD_ASPECT)
             .clip(MOOD_CARD_SHAPE)
             .clickable(onClick = onClick),

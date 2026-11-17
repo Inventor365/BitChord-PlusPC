@@ -81,6 +81,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -117,6 +118,10 @@ import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.model.artworkAt
 import com.music.bitchord.ui.components.LIBRARY_GRID_SPACING
 import com.music.bitchord.ui.components.PAGE_GUTTER
+import com.music.bitchord.ui.components.accentFor
+import com.music.bitchord.ui.components.pressScale
+import com.music.bitchord.ui.components.revealOnAppear
+import com.music.bitchord.ui.components.topGlow
 import com.music.bitchord.ui.components.SHELF_CARD_WIDTH
 import com.music.bitchord.ui.screens.SectionHeader
 import com.music.bitchord.ui.components.ShelfRow
@@ -285,6 +290,7 @@ private fun CollabActionTile(
 ) {
     Column(
         modifier = Modifier
+            .pressScale()
             .width(SHELF_CARD_WIDTH)
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
@@ -344,6 +350,7 @@ fun CollabPlaylistCard(
 ) {
     Column(
         modifier = modifier
+            .pressScale()
             .width(SHELF_CARD_WIDTH)
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
@@ -576,7 +583,8 @@ fun CollabPlaylistDetailScreen(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        // The playlist's own colour, as light falling from the top of the page.
+        modifier = Modifier.fillMaxSize().topGlow(remember(current.id) { accentFor(current.id) }),
         contentPadding = contentPadding,
     ) {
         // Top navigation & quick actions bar
@@ -635,17 +643,21 @@ fun CollabPlaylistDetailScreen(
                     .padding(horizontal = PAGE_GUTTER),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                val accent = remember(current.id) { accentFor(current.id) }
                 val coverUrl = current.artworkUrl
                     ?: current.tracks.firstOrNull { !it.thumbnailUrl.isNullOrBlank() }?.thumbnailUrl
                 val canEditDetails = current.canManageSettings(currentUserId)
                 Box(
                     modifier = Modifier
-                        .size(210.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .revealOnAppear(order = 0, rise = 24.dp)
+                        .pressScale(if (canEditDetails) 0.97f else 1f)
+                        .shadow(elevation = 28.dp, shape = RoundedCornerShape(22.dp), ambientColor = accent, spotColor = accent)
+                        .size(214.dp)
+                        .clip(RoundedCornerShape(22.dp))
                         .background(
                             Brush.linearGradient(
                                 listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.42f),
+                                    accent.copy(alpha = 0.55f),
                                     MaterialTheme.colorScheme.surfaceVariant,
                                 ),
                             ),
@@ -753,8 +765,8 @@ fun CollabPlaylistDetailScreen(
                             if (songs.isNotEmpty()) onPlaySongs(songs, 0, false, current.title)
                         },
                         enabled = visibleTracks.isNotEmpty(),
-                        modifier = Modifier.weight(1f).height(44.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f).height(48.dp).pressScale(),
+                        shape = RoundedCornerShape(16.dp),
                     ) {
                         Icon(Icons.Rounded.PlayArrow, null, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(6.dp))
@@ -772,8 +784,8 @@ fun CollabPlaylistDetailScreen(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant,
                             contentColor = MaterialTheme.colorScheme.onSurface,
                         ),
-                        modifier = Modifier.weight(1f).height(44.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f).height(48.dp).pressScale(),
+                        shape = RoundedCornerShape(16.dp),
                     ) {
                         Icon(Icons.Rounded.Shuffle, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
@@ -1019,6 +1031,9 @@ fun CollabPlaylistDetailScreen(
             val canRemove = current.canRemoveTrack(currentUserId, entry)
             val isPlaying = currentPlayingVideoId != null && currentPlayingVideoId == entry.trackId
 
+            // Rows slide to their new places when a song is added, removed or moved, and the
+            // first screenful eases in when the playlist opens.
+            Column(Modifier.animateItem().revealOnAppear(order = index + 2)) {
             CollabTrackRow(
                 entry = entry,
                 currentUserId = currentUserId,
@@ -1061,6 +1076,7 @@ fun CollabPlaylistDetailScreen(
                     thickness = 0.5.dp,
                     color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
                 )
+            }
             }
         }
     }

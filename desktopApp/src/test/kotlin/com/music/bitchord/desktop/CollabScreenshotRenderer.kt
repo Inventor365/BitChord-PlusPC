@@ -4,6 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Group
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -82,6 +87,23 @@ class CollabScreenshotRenderer {
                     onOpenAuthDialog = {},
                     contentPadding = PaddingValues(bottom = 24.dpValue()),
                     onEditCover = {},
+                )
+            }
+            shoot(File(target, "library-folders.png"), 430, 420) {
+                com.music.bitchord.ui.screens.LibraryLinkGrid(
+                    links = listOf(
+                        "Downloads" to androidx.compose.material.icons.Icons.Rounded.Check,
+                        "On this device" to androidx.compose.material.icons.Icons.Rounded.MusicNote,
+                        "Listening history" to androidx.compose.material.icons.Icons.Rounded.History,
+                        "Liked music" to androidx.compose.material.icons.Icons.Rounded.Group,
+                        "Network share" to androidx.compose.material.icons.Icons.Rounded.Link,
+                    ).map { (title, icon) ->
+                        com.music.bitchord.ui.screens.LibraryLink(
+                            item = com.music.bitchord.data.model.ShelfItem(title = title, subtitle = "", thumbnailUrl = null, videoId = null, browseId = null),
+                            icon = icon,
+                        )
+                    },
+                    onClick = {},
                 )
             }
             shoot(File(target, "collab-members.png"), 430, 932) {

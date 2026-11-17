@@ -66,6 +66,23 @@ import com.music.bitchord.ui.components.filterPlaylists
 import com.music.bitchord.ui.components.SHELF_CARD_WIDTH
 import com.music.bitchord.ui.components.libraryGrid
 import com.music.bitchord.ui.components.librarySkeleton
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontWeight
+import kotlinx.coroutines.delay
 
 /**
  * The signed-in library: the saved collections, as shelves of cards.
@@ -166,7 +183,7 @@ fun LibraryScreen(
             if (!searching) {
                 item(key = "replay") { replay() }
                 if (links.isNotEmpty()) {
-                    item(key = "links") { LibraryLinkList(links = links, onClick = onShelfItemClick) }
+                    item(key = "links") { LibraryLinkGrid(links = links, onClick = onShelfItemClick) }
                 }
             }
             if (collabSection != null) {
@@ -271,68 +288,130 @@ fun LibraryScreen(
 data class LibraryLink(val item: ShelfItem, val icon: ImageVector, val logo: DrawableResource? = null)
 
 /**
- * The folders as a plain list — icon, name, chevron, hairlines between — the
- * way a music app's library has always opened, rather than as cards that all
- * look alike because none of them has artwork.
+ * The folders as a grid of cards, each in a colour of its own.
+ *
+ * These were once a plain list, on the argument that cards with no artwork all look alike.
+ * They do — unless something else tells them apart. Here that is colour: every folder keeps
+ * the same soft tint each time the page opens, so "Downloads is the green one" becomes how it
+ * is found. The cards ease in one after another the first time they appear and give a little
+ * under the finger, because a page that only ever snaps reads as unfinished.
  */
 @Composable
-private fun LibraryLinkList(links: List<LibraryLink>, onClick: (ShelfItem) -> Unit) {
-    Column(Modifier.padding(top = 4.dp, bottom = 22.dp)) {
-        links.forEachIndexed { index, link ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 54.dp)
-                    .clickable { onClick(link.item) }
-                    .padding(horizontal = PAGE_GUTTER),
-            ) {
-                if (link.logo != null) {
-                    // A mark, not a glyph: white on dark, black on light, with
-                    // its cut-outs left clear.
-                    Icon(
-                        painter = painterResource(link.logo),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.size(LINK_ICON_SIZE),
-                    )
-                } else {
-                    Icon(
-                        imageVector = link.icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(LINK_ICON_SIZE),
+fun LibraryLinkGrid(links: List<LibraryLink>, onClick: (ShelfItem) -> Unit) {
+    Column(
+        modifier = Modifier.padding(start = PAGE_GUTTER, end = PAGE_GUTTER, top = 6.dp, bottom = 22.dp),
+        verticalArrangement = Arrangement.spacedBy(LINK_CARD_GAP),
+    ) {
+        links.chunked(2).forEachIndexed { rowIndex, row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(LINK_CARD_GAP)) {
+                row.forEachIndexed { column, link ->
+                    val index = rowIndex * 2 + column
+                    LibraryLinkCard(
+                        link = link,
+                        tint = LINK_TINTS[index % LINK_TINTS.size],
+                        order = index,
+                        onClick = { onClick(link.item) },
+                        // An odd one out takes the whole row rather than half of it and a hole.
+                        modifier = Modifier.weight(1f),
                     )
                 }
-                Spacer(Modifier.width(LINK_ICON_GAP))
+            }
+        }
+    }
+}
+
+@Composable
+private fun LibraryLinkCard(
+    link: LibraryLink,
+    tint: Color,
+    order: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = 0.62f, stiffness = Spring.StiffnessMediumLow),
+        label = "link-press",
+    )
+    // Eased in once, a beat after the card before it.
+    val entrance = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        delay(order * 45L)
+        entrance.animateTo(1f, tween(durationMillis = 360, easing = FastOutSlowInEasing))
+    }
+    val shape = RoundedCornerShape(20.dp)
+    val surface = MaterialTheme.colorScheme.surfaceVariant
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .graphicsLayer {
+                alpha = entrance.value
+                translationY = (1f - entrance.value) * 18.dp.toPx()
+                scaleX = scale
+                scaleY = scale
+            }
+            .heightIn(min = 72.dp)
+            .clip(shape)
+            .background(
+                Brush.linearGradient(
+                    listOf(tint.copy(alpha = 0.30f).compositeOver(surface), tint.copy(alpha = 0.08f).compositeOver(surface)),
+                ),
+            )
+            .border(0.5.dp, tint.copy(alpha = 0.28f), shape)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(tint.copy(alpha = 0.26f)),
+        ) {
+            if (link.logo != null) {
+                // A mark, not a glyph: white on dark, black on light, with its cut-outs left clear.
+                Icon(
+                    painter = painterResource(link.logo),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.size(22.dp),
+                )
+            } else {
+                Icon(imageVector = link.icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = link.item.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            link.item.subtitle?.takeIf { it.isNotBlank() }?.let { subtitle ->
                 Text(
-                    text = link.item.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Icon(
-                    imageVector = BitChordIcons.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .6f),
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            if (index < links.lastIndex) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(start = PAGE_GUTTER + LINK_ICON_SIZE + LINK_ICON_GAP),
-                    thickness = 0.5.dp,
-                    color = MaterialTheme.colorScheme.outline,
                 )
             }
         }
     }
 }
 
-private val LINK_ICON_SIZE = 24.dp
-private val LINK_ICON_GAP = 16.dp
+private val LINK_CARD_GAP = 10.dp
+
+/** Soft, distinct, and legible on the dark page; in the order the folders are listed. */
+private val LINK_TINTS = listOf(
+    Color(0xFF7C9CFF), Color(0xFF5FD4A6), Color(0xFFFFB86B),
+    Color(0xFFFF8FB1), Color(0xFFB79CFF), Color(0xFF6FD3F2),
+)
 
 /**
  * The one shelf on this page that can be written to: it leads with the tile

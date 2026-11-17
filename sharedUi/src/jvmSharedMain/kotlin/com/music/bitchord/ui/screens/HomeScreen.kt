@@ -95,6 +95,7 @@ import com.music.bitchord.ui.components.thumbnailBorder
 import com.music.bitchord.ui.components.trackColumnWidth
 import com.music.bitchord.ui.player.MeshGradientBackground
 import com.music.bitchord.ui.player.MeshPalette
+import com.music.bitchord.ui.components.pressScale
 
 /** How far the Listen now heading and feed sit above the shared top inset. */
 private val HOME_TITLE_LIFT = 28.dp
@@ -813,7 +814,7 @@ fun VideoShelfCard(
     placeholderColor: Color = MaterialTheme.colorScheme.surfaceVariant,
 ) {
     Column(
-        modifier = modifier
+        modifier = modifier.pressScale()
             .longPressMenuClickable(onClick = onClick, onLongClick = onLongPress)
             .contextClick(onLongPress),
     ) {
@@ -875,7 +876,7 @@ internal fun NewShelfCard(
     logo: DrawableResource? = null,
 ) {
     Column(
-        modifier = modifier.clickable(onClick = onClick),
+        modifier = modifier.pressScale().clickable(onClick = onClick),
     ) {
         Box(
             modifier = Modifier
@@ -965,7 +966,7 @@ internal fun ShelfCard(
     explicitBlocked: Boolean = isExplicitBlocked(item),
 ) {
     Column(
-        modifier = modifier
+        modifier = modifier.pressScale()
             .alpha(if (explicitBlocked) BLOCKED_ROW_ALPHA else 1f)
             .longPressMenuClickable(
                 onClick = explicitGatedClick(item, explicitBlocked, onClick),
