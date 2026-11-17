@@ -284,7 +284,7 @@ func TestGuestRejectionAndPublicInvitePreview(t *testing.T) {
 		"intent://collab/invite/" + invToken,
 		"bitchord://collab/invite/" + invToken,
 		"Google sign-in is required",
-		"https://github.com/Inventor365/BitChord-PlusPC/releases",
+		"https://github.com/Inventor365/Sonara/releases",
 	} {
 		if !strings.Contains(htmlStr, needle) {
 			t.Errorf("expected landing HTML to contain %q", needle)

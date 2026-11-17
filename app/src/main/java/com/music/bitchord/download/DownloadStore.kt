@@ -55,7 +55,10 @@ object DownloadStore {
 
     private const val TAG = "BitChord"
 
-    /** The subfolder of Music that everything lands in. */
+    /**
+     * The subfolder of Music that everything lands in. Still the app's former name: every
+     * download a listener already has is in it, and renaming the folder would orphan them.
+     */
     const val FOLDER = "BitChord"
 
     private val relativePath = "${Environment.DIRECTORY_MUSIC}/$FOLDER"

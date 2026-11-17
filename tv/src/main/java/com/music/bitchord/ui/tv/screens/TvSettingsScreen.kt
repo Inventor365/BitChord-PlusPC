@@ -58,7 +58,7 @@ import com.music.bitchord.ui.tv.performance.rememberTvPerformanceProfile
 // Discord Rich Presence is hidden on TV for now; TvDiscordDialog is kept for when it returns.
 private enum class SettingsSheet { Theme, RefreshRate, Equalizer, Scrobbling, LyricsSources, Update, About }
 
-private const val DefaultBlurb = "Playback, sound and display preferences for BitChord on this TV."
+private const val DefaultBlurb = "Playback, sound and display preferences for Sonara on this TV."
 
 /**
  * Settings, as tvOS lays it out: the app on the left with a plain description of
@@ -310,7 +310,7 @@ fun TvSettingsScreen(
                 TvListRow(
                     title = "Appearance",
                     value = AppThemeOption.fromId(themeId).title,
-                    onFocused = { blurb = "The background behind BitChord's pages." },
+                    onFocused = { blurb = "The background behind Sonara's pages." },
                     onClick = { sheet = SettingsSheet.Theme },
                 )
             }
@@ -377,7 +377,7 @@ fun TvSettingsScreen(
                     TvListRow(
                         title = "Software Update",
                         value = "${update?.version.orEmpty()} Available",
-                        onFocused = { blurb = "Download and install the new version of BitChord for TV." },
+                        onFocused = { blurb = "Download and install the new version of Sonara for TV." },
                         onClick = { sheet = SettingsSheet.Update },
                     )
                 }
@@ -393,7 +393,7 @@ fun TvSettingsScreen(
                 TvListRow(
                     title = "About",
                     value = BuildConfig.VERSION_NAME,
-                    onFocused = { blurb = "BitChord ${BuildConfig.VERSION_NAME} — Meticulously crafted by Pranav x Inventor365." },
+                    onFocused = { blurb = "Sonara ${BuildConfig.VERSION_NAME} — Meticulously crafted by Pranav x Inventor365." },
                     onClick = { sheet = SettingsSheet.About },
                 )
             }

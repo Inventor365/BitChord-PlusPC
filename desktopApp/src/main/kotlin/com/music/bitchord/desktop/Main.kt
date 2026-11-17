@@ -100,7 +100,7 @@ private fun desktopMain() = application {
     Window(
         onCloseRequest = { if (DesktopWindowVisibility.onCloseRequest()) exitApplication() },
         visible = visible,
-        title = "BitChord",
+        title = "Sonara",
         icon = painterResource(Res.drawable.logo),
         state = state,
         // No system title bar on Windows, where the application draws its own instead — see
@@ -154,7 +154,7 @@ private fun desktopMain() = application {
                 minOf((openingSize.width.value * scaleX).roundToInt(), usableW),
                 minOf((openingSize.height.value * scaleY).roundToInt(), usableH),
             )
-            if (DesktopPlatform.isWindows && DesktopWindowsFrame.install("BitChord")) {
+            if (DesktopPlatform.isWindows && DesktopWindowsFrame.install("Sonara")) {
                 DesktopWindowBackdrop.apply()
             } else if (DesktopPlatform.isMac && DesktopMacFrame.install(composeWindow)) {
                 DesktopWindowBackdrop.apply()

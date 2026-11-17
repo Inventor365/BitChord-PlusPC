@@ -45,7 +45,7 @@ object AppUpdateChecker {
     private const val CACHE_SUBDIR = "updates"
 
     private const val DEFAULT_RELEASE_PAGE =
-        "https://github.com/Inventor365/BitChord-PlusPC/releases/latest"
+        "https://github.com/Inventor365/Sonara/releases/latest"
 
     private const val OTA_TOKEN_URL =
         "https://raw.githubusercontent.com/Inventor365/Bitchord-OTA/refs/heads/main/ota.json?token=GHSAT0AAAAAADUIC3ZQ4LG6AXEKYTMTOL2I2XE3AZA"
@@ -54,14 +54,15 @@ object AppUpdateChecker {
         "https://raw.githubusercontent.com/Inventor365/Bitchord-OTA/refs/heads/main/ota.json"
 
     private const val REPO_OTA_URL =
-        "https://raw.githubusercontent.com/Inventor365/BitChord-PlusPC/main/ota.json"
+        "https://raw.githubusercontent.com/Inventor365/Sonara/main/ota.json"
 
     private const val LATEST_RELEASE_URL =
-        "https://api.github.com/repos/Inventor365/BitChord-PlusPC/releases/latest"
+        "https://api.github.com/repos/Inventor365/Sonara/releases/latest"
 
     private fun normalizeRepoUrl(url: String): String = url
-        .replace("github.com/kushagrasinghx/BitChord", "github.com/Inventor365/BitChord-PlusPC", ignoreCase = true)
-        .replace("github.com/Inventor365/BitChord-PC/", "github.com/Inventor365/BitChord-PlusPC/", ignoreCase = true)
+        .replace("github.com/Inventor365/BitChord-PlusPC", "github.com/Inventor365/Sonara", ignoreCase = true)
+        .replace("github.com/kushagrasinghx/BitChord", "github.com/Inventor365/Sonara", ignoreCase = true)
+        .replace("github.com/Inventor365/BitChord-PC/", "github.com/Inventor365/Sonara/", ignoreCase = true)
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
@@ -203,7 +204,9 @@ object AppUpdateChecker {
             ?.takeIf { !isTv || it.contains("TV", ignoreCase = true) }
             ?.let { return it }
 
-        return apkAssetUrl(obj, if (isTv) "BitChordTV-" else "BitChord-", supportedAbis)
+        return apkAssetUrl(obj, if (isTv) "SonaraTV-" else "Sonara-", supportedAbis)
+            // A release from before the rename.
+            ?: apkAssetUrl(obj, if (isTv) "BitChordTV-" else "BitChord-", supportedAbis)
     }
 
     private fun JsonObject.string(key: String): String? =

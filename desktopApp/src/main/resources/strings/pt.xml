@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">BitChord</string>
+    <string name="app_name">Sonara</string>
     <string name="playback_channel_name">Tocando agora</string>
     <string name="download_channel_name">Downloads</string>
     <string name="download_channel_description">Músicas sendo salvas na sua pasta de Música</string>
@@ -100,9 +100,9 @@
     <string name="dolby_atmos_open_failed">Não foi possível abrir as configurações do Dolby Atmos</string>
     <string name="update_available">Atualização disponível: v%1$s</string>
     <string name="software_update">Atualização de software</string>
-    <string name="update_available_body">O BitChord %1$s está disponível para baixar.</string>
-    <string name="update_downloading_body">Baixando o BitChord %1$s…</string>
-    <string name="update_ready_body">O BitChord %1$s está pronto para instalar.</string>
+    <string name="update_available_body">O Sonara %1$s está disponível para baixar.</string>
+    <string name="update_downloading_body">Baixando o Sonara %1$s…</string>
+    <string name="update_ready_body">O Sonara %1$s está pronto para instalar.</string>
     <string name="update_failed_body">Não foi possível baixar o bitchord %1$s.</string>
     <string name="download_now">Baixar agora</string>
     <string name="install_now">Instalar agora</string>
@@ -131,7 +131,7 @@
     <string name="widget_previous">Anterior</string>
     <string name="widget_artwork">Capa do álbum</string>
     <string name="widget_nothing_played">Nada foi tocado ainda</string>
-    <string name="widget_open_bitchord">Abrir BitChord</string>
+    <string name="widget_open_bitchord">Abrir Sonara</string>
     <string name="widget_preview_title">Título da música</string>
     <string name="widget_preview_artist">Artista</string>
     <string name="download_quality">Qualidade de download</string>
@@ -239,10 +239,10 @@
     <string name="beta">Beta</string>
     <string name="refresh_rate">Taxa de atualização</string>
     <string name="high_performance_before_enabling">Antes de ativar</string>
-    <string name="high_performance_battery_warning">Primeiro, defina o uso da bateria do BitChord como Irrestrito. Taxas de atualização mais altas usam mais bateria, CPU e GPU, e podem aquecer seu dispositivo.</string>
+    <string name="high_performance_battery_warning">Primeiro, defina o uso da bateria do Sonara como Irrestrito. Taxas de atualização mais altas usam mais bateria, CPU e GPU, e podem aquecer seu dispositivo.</string>
     <string name="open_battery_settings">Abrir configurações da bateria</string>
     <string name="enable_high_performance_title">Ativar modo de alto desempenho?</string>
-    <string name="enable_high_performance_confirmation">Ative apenas se o uso de bateria do BitChord estiver definido como Irrestrito. O Android ainda pode limitar a taxa de atualização quando o dispositivo estiver quente ou com pouca bateria.</string>
+    <string name="enable_high_performance_confirmation">Ative apenas se o uso de bateria do Sonara estiver definido como Irrestrito. O Android ainda pode limitar a taxa de atualização quando o dispositivo estiver quente ou com pouca bateria.</string>
     <string name="enable">Ativar</string>
     <string name="not_yet">Ainda não</string>
     <string name="activity">Atividade</string>
@@ -427,7 +427,7 @@
     <string name="signing_in">Fazendo login…</string>
     <string name="sleep_timer">Temporizador de sono</string>
     <string name="sources_no_lossless">Nenhuma fonte ativa pode fornecer áudio lossless. Adicione um addon para tocar arquivos lossless sem transcodificação.</string>
-    <string name="sources_order_footer">Se uma fonte não tiver a faixa ou não puder ser acessada, o BitChord tenta a próxima. Fontes acima do YouTube podem substituir a gravação dele quando retornam uma versão melhor.</string>
+    <string name="sources_order_footer">Se uma fonte não tiver a faixa ou não puder ser acessada, o Sonara tenta a próxima. Fontes acima do YouTube podem substituir a gravação dele quando retornam uma versão melhor.</string>
     <string name="sources_order_header">Fontes, tentadas nesta ordem</string>
     <string name="sources_quality_capped">Esta conexão está definida abaixo de Alta qualidade, então os streams são transcodificados para caber nesse limite. Os downloads não são afetados.</string>
     <string name="sources_subtitle">De onde vem o áudio e a ordem usada</string>
@@ -461,7 +461,7 @@
     <string name="biggest_day_note">Seu maior dia foi %1$s com %2$s de música.</string>
     <string name="close_replay">Fechar Replay</string>
     <string name="couldnt_draw_picture">Não foi possível criar a imagem</string>
-    <string name="default_replay_holder">Ouvinte BitChord</string>
+    <string name="default_replay_holder">Ouvinte Sonara</string>
     <string name="different_albums">Álbuns diferentes</string>
     <string name="genres_pending">Gêneros aparecerão conforme seu histórico cresce</string>
     <string name="hour_am">%1$d AM</string>
@@ -487,7 +487,7 @@
     <string name="replay_artist_end"> continuou voltando.</string>
     <string name="replay_artist_focus">Um artista</string>
     <string name="replay_artist_start">Todo o mês, </string>
-    <string name="replay_empty_description">Ouça um pouco mais e o BitChord transformará seu histórico em um Replay.</string>
+    <string name="replay_empty_description">Ouça um pouco mais e o Sonara transformará seu histórico em um Replay.</string>
     <string name="replay_genre_end"> moldaram seu som.</string>
     <string name="replay_genre_focus">Seus gêneros</string>
     <string name="replay_genre_start">Juntos, </string>
@@ -566,7 +566,7 @@
     <string name="no_listening_history">sem histórico</string>
     <string name="no_local_albums">Nada aqui pertence a um álbum ou playlist ainda. Baixe um álbum ou uma playlist completa e ela aparecerá aqui.</string>
     <string name="play_your_replay">Tocar seu Replay</string>
-    <string name="counted_on_device_with_bitchord">Contabilizado neste dispositivo com BitChord</string>
+    <string name="counted_on_device_with_bitchord">Contabilizado neste dispositivo com Sonara</string>
     <string name="this_month">Este mês</string>
     <string name="this_year">Este ano</string>
     <string name="all_time">Todo o tempo</string>
@@ -677,7 +677,7 @@
     <string name="listen_together_code">Código da festa</string>
     <string name="listen_together_code_footer">Leia em voz alta ou envie. O e I não são usados, então um “ó” é sempre zero.</string>
     <string name="copy_code">Copiar código</string>
-    <string name="listen_together_share_text">Ouça comigo no BitChord — código da festa %1$s</string>
+    <string name="listen_together_share_text">Ouça comigo no Sonara — código da festa %1$s</string>
     <string name="listen_together_now_playing">Tocando agora</string>
     <string name="listen_together_nothing_playing">Nada tocando ainda</string>
     <string name="listen_together_listening">Ouvindo · %1$d de %2$d</string>
@@ -699,7 +699,7 @@
     <string name="auto_recents">Recentes</string>
     <string name="auto_liked">Músicas curtidas</string>
     <string name="auto_login_title">Faça login no YouTube no seu celular</string>
-    <string name="auto_login_subtitle">Abra o BitChord no seu celular para entrar</string>
+    <string name="auto_login_subtitle">Abra o Sonara no seu celular para entrar</string>
     <string name="auto_empty_recents_title">Nenhuma música recente</string>
     <string name="auto_empty_recents_subtitle">As músicas que você tocar aparecerão aqui</string>
     <string name="auto_empty_quick_picks_title">Sem sugestões</string>
@@ -721,7 +721,7 @@
     <string name="channel_session_unavailable">Nenhuma sessão nesta página ainda — abra o YouTube Music primeiro</string>
     <string name="channel_switch_instructions">Alterne pelo avatar e toque em Usar este canal</string>
     <string name="use_this_channel">Usar este canal</string>
-    <string name="source_unrecognised">O BitChord não reconheceu esse link</string>
+    <string name="source_unrecognised">O Sonara não reconheceu esse link</string>
     <string name="source_already_added">Já adicionado como %1$s</string>
     <string name="source_skipped_by_quality">Não usado em %1$s · qualidade definida para %2$s</string>
     <string name="convert_to_audio">Converter para áudio</string>
@@ -750,7 +750,7 @@
     <string name="automix_phrase_8_detail">Faz a mixagem em exatamente 8 compassos, alinhada à grade de batidas</string>
     <string name="automix_phrase_16">16 compassos</string>
     <string name="automix_phrase_16_detail">Faz a mixagem em exatamente 16 compassos, alinhada à grade de batidas</string>
-    <string name="equalizer_footer">Modela o som dentro do BitChord antes de enviá-lo ao sistema.</string>
+    <string name="equalizer_footer">Modela o som dentro do Sonara antes de enviá-lo ao sistema.</string>
     <string name="equalizer_dynamic">Dinâmico</string>
     <string name="equalizer_manual">Manual</string>
     <string name="equalizer_tone">Tom</string>
@@ -773,7 +773,7 @@
     <string name="equalizer_float_footer">O Android reproduz áudio em float por um caminho sem suporte a efeitos; assim, o equalizador, o áudio espacial e o pulo de silêncio são ignorados. Defina a saída para PCM de 16 bits para usá-los.</string>
     <string name="system_equalizer">Equalizador do sistema</string>
     <string name="system_equalizer_subtitle">Painel nativo do seu dispositivo</string>
-    <string name="system_equalizer_footer">Funciona depois do equalizador do BitChord e vale para toda a sessão de áudio. Se usar os dois, os dois são aplicados.</string>
+    <string name="system_equalizer_footer">Funciona depois do equalizador do Sonara e vale para toda a sessão de áudio. Se usar os dois, os dois são aplicados.</string>
     <string name="eq_preset_flat">Plano</string>
     <string name="eq_preset_acoustic">Acústico</string>
     <string name="eq_preset_bass_boost">Reforço de graves</string>
@@ -797,7 +797,7 @@
     <string name="legacy_mesh_gradient">Gradiente de malha clássico</string>
     <string name="legacy_mesh_gradient_subtitle">Traz de volta os borrões coloridos que se movem atrás do player na v1.5</string>
     <string name="add_addon">Adicionar addon</string>
-    <string name="add_addon_detail">Aponte o BitChord para um servidor de addon que você hospeda ou para o qual recebeu um link</string>
+    <string name="add_addon_detail">Aponte o Sonara para um servidor de addon que você hospeda ou para o qual recebeu um link</string>
     <string name="translation_language">Idioma da tradução</string>
     <string name="translation_language_description">O idioma para o qual o botão de tradução converterá as letras.</string>
     <string name="translation_language_app_default">Idioma do aplicativo</string>
@@ -841,7 +841,7 @@
     <string name="discord_show_audio_quality_subtitle">Especificações Hi-Res, lossless e Dolby no cartão de status</string>
     <string name="hide_from_sidebar">Ocultar da barra lateral</string>
     <string name="n_hidden">%1$d ocultos</string>
-    <string name="addon_url_description">Cole a URL do addon — a raiz ou o manifest.json. O BitChord lê o que ele pode pesquisar e reproduzir e depois pede as faixas por HTTP simples.</string>
+    <string name="addon_url_description">Cole a URL do addon — a raiz ou o manifest.json. O Sonara lê o que ele pode pesquisar e reproduzir e depois pede as faixas por HTTP simples.</string>
     <string name="sort_default">Ordem padrão</string>
     <string name="sort_library">Ordenar</string>
     <string name="sort_songs">Ordenar músicas</string>

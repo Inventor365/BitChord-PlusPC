@@ -9,7 +9,7 @@ on:
         required: true
         default: "1.10.0"
       target:
-        description: "all, or macos to rebuild only the macOS packages (nothing is published)"
+        description: "all; desktop for Linux, Windows and macOS only (nothing is published); macos for macOS only"
         required: false
         default: "all"
       draft:
@@ -28,7 +28,7 @@ concurrency:
 jobs:
   android:
     name: Android · Phone, TV & Wear OS APKs
-    if: github.event_name != 'workflow_dispatch' || inputs.target != 'macos'
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'all'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -105,16 +105,16 @@ jobs:
         run: |
           v="${{ steps.version.outputs.value }}"
           mkdir -p dist
-          cp app/build/outputs/apk/prod/release/app-prod-universal-release.apk "dist/BitChord-v${v}.apk"
+          cp app/build/outputs/apk/prod/release/app-prod-universal-release.apk "dist/Sonara-v${v}.apk"
           for abi in arm64-v8a armeabi-v7a x86_64; do
-            cp "app/build/outputs/apk/prod/release/app-prod-${abi}-release.apk" "dist/BitChord-v${v}_${abi}.apk"
+            cp "app/build/outputs/apk/prod/release/app-prod-${abi}-release.apk" "dist/Sonara-v${v}_${abi}.apk"
           done
-          cp tv/build/outputs/apk/prod/release/tv-prod-universal-release.apk "dist/BitChordTV-v${v}.apk"
+          cp tv/build/outputs/apk/prod/release/tv-prod-universal-release.apk "dist/SonaraTV-v${v}.apk"
           for abi in arm64-v8a armeabi-v7a x86_64; do
-            cp "tv/build/outputs/apk/prod/release/tv-prod-${abi}-release.apk" "dist/BitChordTV-v${v}_${abi}.apk"
+            cp "tv/build/outputs/apk/prod/release/tv-prod-${abi}-release.apk" "dist/SonaraTV-v${v}_${abi}.apk"
           done
           wear_apk=$(ls wearos/build/outputs/apk/prod/release/*.apk | head -n1)
-          cp "$wear_apk" "dist/BitChordWear-v${v}.apk"
+          cp "$wear_apk" "dist/SonaraWear-v${v}.apk"
 
           apk_count=$(find dist -maxdepth 1 -name '*.apk' | wc -l)
           if [ "$apk_count" -ne 9 ]; then
@@ -190,23 +190,23 @@ jobs:
 
       - name: The analyser and models are in the jar
         run: |
-          jar=$(ls desktopApp/build/compose/binaries/main/app/BitChord/lib/app/desktopApp*.jar)
+          jar=$(ls desktopApp/build/compose/binaries/main/app/Sonara/lib/app/desktopApp*.jar)
           jar tf "$jar" | grep -q 'native/libbitchord_analysis.so'
           jar tf "$jar" | grep -q 'models/.*\.onnx'
 
       - name: Build the AppImage
         run: |
           desktopApp/packaging/appimage.sh \
-            desktopApp/build/compose/binaries/main/app/BitChord \
-            dist/BitChord-${{ steps.version.outputs.value }}-linux-x86_64.AppImage \
+            desktopApp/build/compose/binaries/main/app/Sonara \
+            dist/Sonara-${{ steps.version.outputs.value }}-linux-x86_64.AppImage \
             "$PWD/appimagetool.AppImage"
 
       - name: Collect
         run: |
           v=${{ steps.version.outputs.value }}
           mkdir -p dist
-          cp desktopApp/build/compose/binaries/main/deb/*.deb "dist/BitChord-$v-linux-amd64.deb"
-          cp desktopApp/build/compose/binaries/main/rpm/*.rpm "dist/BitChord-$v-linux-x86_64.rpm"
+          cp desktopApp/build/compose/binaries/main/deb/*.deb "dist/Sonara-$v-linux-amd64.deb"
+          cp desktopApp/build/compose/binaries/main/rpm/*.rpm "dist/Sonara-$v-linux-x86_64.rpm"
           ls -lh dist
 
       - uses: actions/upload-artifact@v4
@@ -276,7 +276,7 @@ jobs:
       - name: The analyser and models are in the jar
         shell: bash
         run: |
-          jar=$(ls desktopApp/build/compose/binaries/main/app/BitChord/app/desktopApp*.jar)
+          jar=$(ls desktopApp/build/compose/binaries/main/app/Sonara/app/desktopApp*.jar)
           jar tf "$jar" | grep -q 'native/bitchord_analysis.dll'
           jar tf "$jar" | grep -q 'models/.*\.onnx'
           jar tf "$jar" | grep -q 'native/bitchord_smtc.dll'
@@ -286,10 +286,10 @@ jobs:
         run: |
           $v = "${{ steps.version.outputs.value }}"
           New-Item -ItemType Directory -Force dist | Out-Null
-          Copy-Item desktopApp/build/compose/binaries/main/msi/*.msi "dist/BitChord-$v-windows-x64.msi"
-          Copy-Item desktopApp/build/compose/binaries/main/exe/*.exe "dist/BitChord-$v-windows-x64-setup.exe"
-          7z a -tzip -mx=5 "dist/BitChord-$v-windows-x64-portable.zip" `
-            "desktopApp/build/compose/binaries/main/app/BitChord/*" | Out-Null
+          Copy-Item desktopApp/build/compose/binaries/main/msi/*.msi "dist/Sonara-$v-windows-x64.msi"
+          Copy-Item desktopApp/build/compose/binaries/main/exe/*.exe "dist/Sonara-$v-windows-x64-setup.exe"
+          7z a -tzip -mx=5 "dist/Sonara-$v-windows-x64-portable.zip" `
+            "desktopApp/build/compose/binaries/main/app/Sonara/*" | Out-Null
           Get-ChildItem dist | Format-Table Name, Length
 
       - uses: actions/upload-artifact@v4
@@ -377,7 +377,7 @@ jobs:
             --version "${{ steps.version.outputs.value }}" \
             --arch "${{ matrix.arch }}" \
             --output-dir dist
-          jar=$(ls desktopApp/build/compose/binaries/main/app/BitChord.app/Contents/app/desktopApp*.jar)
+          jar=$(ls desktopApp/build/compose/binaries/main/app/Sonara.app/Contents/app/desktopApp*.jar)
           jar tf "$jar" | grep -q 'models/.*\.onnx'
           ls -lh dist
 
@@ -385,21 +385,21 @@ jobs:
       - name: Install the .pkg and launch the app
         run: |
           v="${{ steps.version.outputs.value }}"
-          sudo installer -pkg "dist/BitChord-${v}-macos-${{ matrix.arch }}.pkg" -target /
-          test -x /Applications/BitChord.app/Contents/MacOS/BitChord
-          codesign --verify --deep --strict --verbose=2 /Applications/BitChord.app
-          file /Applications/BitChord.app/Contents/MacOS/BitChord
-          plutil -p /Applications/BitChord.app/Contents/Info.plist | grep -E 'CFBundleShortVersionString|CFBundleIdentifier'
+          sudo installer -pkg "dist/Sonara-${v}-macos-${{ matrix.arch }}.pkg" -target /
+          test -x /Applications/Sonara.app/Contents/MacOS/Sonara
+          codesign --verify --deep --strict --verbose=2 /Applications/Sonara.app
+          file /Applications/Sonara.app/Contents/MacOS/Sonara
+          plutil -p /Applications/Sonara.app/Contents/Info.plist | grep -E 'CFBundleShortVersionString|CFBundleIdentifier'
           # Start it and make sure it is still running a few seconds later (a bad bundle or
           # signature is killed at once).
-          /Applications/BitChord.app/Contents/MacOS/BitChord > app.log 2>&1 &
+          /Applications/Sonara.app/Contents/MacOS/Sonara > app.log 2>&1 &
           pid=$!
           sleep 20
           if kill -0 "$pid" 2>/dev/null; then
-            echo "BitChord is running (pid $pid)"
+            echo "Sonara is running (pid $pid)"
             kill "$pid" || true
           else
-            echo "::error::BitChord exited within 20 seconds of launch" >&2
+            echo "::error::Sonara exited within 20 seconds of launch" >&2
             tail -n 60 app.log >&2
             exit 1
           fi
@@ -411,7 +411,7 @@ jobs:
 
   web:
     name: Web · player & extension
-    if: github.event_name != 'workflow_dispatch' || inputs.target != 'macos'
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'all'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -489,7 +489,7 @@ jobs:
         with:
           repository: ${{ github.repository }}
           tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', inputs.version) }}
-          name: BitChord ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', inputs.version) }}
+          name: Sonara ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', inputs.version) }}
           body_path: docs/RELEASE_NOTES.md
           draft: ${{ github.event_name == 'workflow_dispatch' && inputs.draft || false }}
           prerelease: false

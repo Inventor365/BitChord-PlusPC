@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Verifies Android release APK signatures (v2 + v3), certificate SHA-256 consistency
-# across Phone / Wear OS / Android TV APKs, embedded BitChordWear.apk integrity, and
+# across Phone / Wear OS / Android TV APKs, embedded SonaraWear.apk integrity, and
 # in-place upgrade compatibility (static + optional live adb install -r data retention).
 
 set -euo pipefail
@@ -333,10 +333,10 @@ for apk in "${APKS[@]}"; do
     wear_entry=""
     sha_entry=""
     for candidate_prefix in "assets/wear" "assets"; do
-      if extract_zip_entry "$apk" "${candidate_prefix}/BitChordWear.apk" "$TMP_DIR/embedded-wear.apk" 2>/dev/null; then
-        wear_entry="${candidate_prefix}/BitChordWear.apk"
-        if extract_zip_entry "$apk" "${candidate_prefix}/BitChordWear.sha256" "$TMP_DIR/embedded-wear.sha256" 2>/dev/null; then
-          sha_entry="${candidate_prefix}/BitChordWear.sha256"
+      if extract_zip_entry "$apk" "${candidate_prefix}/SonaraWear.apk" "$TMP_DIR/embedded-wear.apk" 2>/dev/null; then
+        wear_entry="${candidate_prefix}/SonaraWear.apk"
+        if extract_zip_entry "$apk" "${candidate_prefix}/SonaraWear.sha256" "$TMP_DIR/embedded-wear.sha256" 2>/dev/null; then
+          sha_entry="${candidate_prefix}/SonaraWear.sha256"
         fi
         break
       fi
@@ -344,7 +344,7 @@ for apk in "${APKS[@]}"; do
 
     if [[ -n "$wear_entry" ]]; then
       if [[ -z "$sha_entry" ]]; then
-        echo "FAIL: $apk embeds $wear_entry without matching BitChordWear.sha256" >&2
+        echo "FAIL: $apk embeds $wear_entry without matching SonaraWear.sha256" >&2
         exit 1
       fi
       recorded_wear_sha="$(normalize_sha256 "$(cat "$TMP_DIR/embedded-wear.sha256")")"
@@ -368,13 +368,13 @@ for apk in "${APKS[@]}"; do
         exit 1
       fi
 
-      if [[ "$base_name" == "BitChord-v"*.apk && "$base_name" != *_* ]] || [[ "$base_name" == *universal* ]]; then
+      if [[ "$base_name" == "Sonara-v"*.apk && "$base_name" != *_* ]] || [[ "$base_name" == *universal* ]]; then
         EMBEDDED_WEAR_VERIFIED=1
         printf '  [OK]   └─ embedded %-28s file_sha256=%s cert_sha256=%s\n' \
           "$wear_entry" "$actual_wear_sha" "$OUT_CERT"
       fi
-    elif [[ "$base_name" == "BitChord-v"*.apk && "$base_name" != *_* ]] || [[ "$base_name" == *universal* ]]; then
-      echo "FAIL: universal phone APK $apk is missing embedded assets/wear/BitChordWear.apk" >&2
+    elif [[ "$base_name" == "Sonara-v"*.apk && "$base_name" != *_* ]] || [[ "$base_name" == *universal* ]]; then
+      echo "FAIL: universal phone APK $apk is missing embedded assets/wear/SonaraWear.apk" >&2
       exit 1
     fi
   fi
@@ -397,7 +397,7 @@ if [[ -n "$PHONE_CERT" && -n "$TV_CERT" ]]; then
 fi
 
 if [[ $EMBEDDED_WEAR_VERIFIED -eq 1 ]]; then
-  echo "Verified: Embedded BitChordWear.apk matches .sha256 digest and outer Phone APK signature."
+  echo "Verified: Embedded SonaraWear.apk matches .sha256 digest and outer Phone APK signature."
 fi
 
 # Optional upgrade verification against previous release APK(s)

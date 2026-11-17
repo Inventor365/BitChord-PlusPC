@@ -103,8 +103,8 @@ android {
         // Haze falls back to a translucent scrim below that.
         minSdk = 26
         targetSdk = 36
-        versionCode = 47
-        versionName = "1.10.6"
+        versionCode = 48
+        versionName = "2.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -133,7 +133,7 @@ android {
         // apart by name (BitChordTV-v1.8.apk, BitChordTV-v1.8_x86_64.apk), so
         // the updater installs the TV app here, never the phone app. See
         // AppUpdateChecker.apkAssetUrl.
-        buildConfigField("String", "UPDATE_APK_PREFIX", "\"BitChordTV-\"")
+        buildConfigField("String", "UPDATE_APK_PREFIX", "\"SonaraTV-\"")
         buildConfigField("String", "OTA_JSON_URL", "\"${otaJsonUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
     }
 

@@ -223,7 +223,7 @@ fun CollabLibrarySection(
                         CollabActionTile(
                             icon = Icons.Rounded.Link,
                             title = "Open YT Music Links",
-                            subtitle = "Open music.youtube.com playlists in BitChord by default",
+                            subtitle = "Open music.youtube.com playlists in Sonara by default",
                             onClick = onEnableDefaultYouTubeMusicLinks,
                         )
                     }
@@ -1031,9 +1031,9 @@ fun CollabPlaylistDetailScreen(
             val canRemove = current.canRemoveTrack(currentUserId, entry)
             val isPlaying = currentPlayingVideoId != null && currentPlayingVideoId == entry.trackId
 
-            // Rows slide to their new places when a song is added, removed or moved, and the
-            // first screenful eases in when the playlist opens.
-            Column(Modifier.animateItem().revealOnAppear(order = index + 2)) {
+            // Rows slide to their new places when a song is added, removed or moved. (No entrance
+            // animation here: a lazy row would replay it every time it scrolled back into view.)
+            Column(Modifier.animateItem()) {
             CollabTrackRow(
                 entry = entry,
                 currentUserId = currentUserId,
@@ -1553,7 +1553,7 @@ fun MakeCollaborativeDialog(
                             )
                             Text(
                                 if (manager.isNativeYouTubeMode) {
-                                    "Sign in to BitChord with your Google / YouTube Music account once — collaborative playlists work automatically with zero extra setup."
+                                    "Sign in to Sonara with your Google / YouTube Music account once — collaborative playlists work automatically with zero extra setup."
                                 } else {
                                     "Sign in with Google to verify your contributor identity on your collaboration server."
                                 },
@@ -1963,7 +1963,7 @@ fun CollabInviteAndManageDialog(
                                     ) {
                                         Icon(Icons.Rounded.ContentCopy, null, modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(6.dp))
-                                        Text("Copy Direct BitChord App Link (bitchord://…)")
+                                        Text("Copy Direct Sonara App Link (bitchord://…)")
                                     }
                                 }
                             }
@@ -2358,7 +2358,7 @@ fun CollabGoogleAuthDialog(
                 val activeUser: CollabUser? = session?.user
                 if (!showCustomServer) {
                     Text(
-                        "Collaborative playlists use the Google / YouTube Music account signed into BitChord automatically — no extra server or OAuth Client ID needed.",
+                        "Collaborative playlists use the Google / YouTube Music account signed into Sonara automatically — no extra server or OAuth Client ID needed.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -2376,7 +2376,7 @@ fun CollabGoogleAuthDialog(
                                 Column(Modifier.weight(1f)) {
                                     Text(activeUser.displayName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                                     Text(
-                                        activeUser.email.ifBlank { "Connected via BitChord Google Sign-In" },
+                                        activeUser.email.ifBlank { "Connected via Sonara Google Sign-In" },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -2398,7 +2398,7 @@ fun CollabGoogleAuthDialog(
                             },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text("Sign in to BitChord with Google")
+                            Text("Sign in to Sonara with Google")
                         }
                     }
 

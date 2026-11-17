@@ -2,10 +2,10 @@
 <resources>
     <string name="connecting">Bağlanıyor…</string>
     <string name="no_phone_title">Telefon bağlı değil</string>
-    <string name="no_phone_body">Telefonunuzda BitChord\'u açın ve saatinizin yakınında tutun.</string>
+    <string name="no_phone_body">Telefonunuzda Sonara\'u açın ve saatinizin yakınında tutun.</string>
     <string name="retry">Tekrar dene</string>
     <string name="nothing_playing">Çalınmıyor</string>
-    <string name="nothing_playing_body">Telefonunuzdaki BitChord\'dan bir şeyler çalın.</string>
+    <string name="nothing_playing_body">Telefonunuzdaki Sonara\'dan bir şeyler çalın.</string>
     <string name="resume">Sürdür</string>
     <string name="up_next">Sıradaki</string>
     <string name="queue_empty">Sırada hiçbir şey yok</string>
@@ -38,6 +38,6 @@
     <string name="other_output">Diğer çıkış</string>
     <string name="moving_to_watch">Saate aktarılıyor…</string>
     <string name="update_channel">Güncellemeler</string>
-    <string name="update_ready">BitChord güncellemesi hazır</string>
+    <string name="update_ready">Sonara güncellemesi hazır</string>
     <string name="update_tap">Güncellemeyi telefonunuzdan yüklemek için dokunun.</string>
 </resources>

@@ -125,11 +125,11 @@ object PkceGoogleAuth {
                             deferred.completeExceptionally(IllegalStateException("Google sign-in cancelled ($error)."))
                         }
                         code.isNullOrBlank() || state != challenge.state -> {
-                            writeHttpResponse(client.getOutputStream(), 400, htmlPage("Invalid callback", "State verification failed. Return to BitChord and try again."))
+                            writeHttpResponse(client.getOutputStream(), 400, htmlPage("Invalid callback", "State verification failed. Return to Sonara and try again."))
                             deferred.completeExceptionally(IllegalStateException("Invalid OAuth callback state."))
                         }
                         else -> {
-                            writeHttpResponse(client.getOutputStream(), 200, htmlPage("Signed in to BitChord", "Google identity verified. You can close this tab and return to BitChord."))
+                            writeHttpResponse(client.getOutputStream(), 200, htmlPage("Signed in to Sonara", "Google identity verified. You can close this tab and return to BitChord."))
                             deferred.complete(LoopbackAuthCallback(code = code, state = state, redirectUri = redirectUri))
                         }
                     }

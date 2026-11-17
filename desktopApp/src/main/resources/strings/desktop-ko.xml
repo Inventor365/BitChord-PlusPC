@@ -13,7 +13,7 @@
     <string name="d_available_offline">오프라인 이용 가능</string>
     <string name="d_back_to_explore">탐색으로 돌아가기</string>
     <string name="d_bitchord_is_free_software_and_so_is_everything_it_is_bui">BitChord는 자유 소프트웨어이며, 그 기반도 모두 마찬가지입니다.</string>
-    <string name="d_bitchord_youtube_music_session">BitChord — YouTube Music 세션</string>
+    <string name="d_bitchord_youtube_music_session">Sonara — YouTube Music 세션</string>
     <string name="d_blur_unfocused_lyrics">주변 가사 흐림</string>
     <string name="d_choose_something_to_play">재생할 음악 선택</string>
     <string name="d_close_player">플레이어 닫기</string>
@@ -53,7 +53,7 @@
     <string name="d_paste_the_cookie_header_for_music_youtube_com">music.youtube.com의 쿠키 헤더를 붙여넣으세요.</string>
     <string name="d_playback_speed">재생 속도</string>
     <string name="d_playlists_on_this_computer">이 컴퓨터의 재생목록</string>
-    <string name="d_quit_bitchord">BitChord 종료</string>
+    <string name="d_quit_bitchord">Sonara 종료</string>
     <string name="d_recently_played_on_this_computer">이 컴퓨터에서 최근 재생함</string>
     <string name="d_recents">최근</string>
     <string name="d_remove_from_playlist">재생목록에서 삭제</string>
@@ -62,7 +62,7 @@
     <string name="d_scroll_right">오른쪽으로 스크롤</string>
     <string name="d_search_your_music">내 음악 검색</string>
     <string name="d_shorten_long_gaps_rather_than_playing_them_out">긴 공백을 재생하는 대신 줄이기</string>
-    <string name="d_show_bitchord_in_the_system_tray_with_playback_controls">시스템 트레이에 재생 컨트롤과 함께 BitChord 표시</string>
+    <string name="d_show_bitchord_in_the_system_tray_with_playback_controls">시스템 트레이에 재생 컨트롤과 함께 Sonara 표시</string>
     <string name="d_show_motion_artwork_when_it_is_available">가능하면 움직이는 아트워크 표시</string>
     <string name="d_sign_in_to_last_fm">Last.fm에 로그인</string>
     <string name="d_song">노래</string>

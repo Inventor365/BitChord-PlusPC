@@ -131,7 +131,7 @@ android {
         // Which release assets are this app's: the phone and TV APKs ship in
         // the same GitHub release, told apart by file name. See
         // AppUpdateChecker.apkAssetUrl.
-        buildConfigField("String", "UPDATE_APK_PREFIX", "\"BitChord-\"")
+        buildConfigField("String", "UPDATE_APK_PREFIX", "\"Sonara-\"")
         buildConfigField("String", "OTA_JSON_URL", "\"${otaJsonUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
     }
 
@@ -578,7 +578,7 @@ abstract class BundleWearApk : DefaultTask() {
         out.mkdirs()
         val apk = apks.asFileTree.matching { include("*.apk") }.files.singleOrNull()
             ?: throw GradleException("Expected exactly one watch APK in ${apks.files}")
-        val target = out.resolve("BitChordWear.apk")
+        val target = out.resolve("SonaraWear.apk")
         apk.copyTo(target, overwrite = true)
         val digest = MessageDigest.getInstance("SHA-256")
         target.inputStream().use { input ->
@@ -589,7 +589,7 @@ abstract class BundleWearApk : DefaultTask() {
                 digest.update(buffer, 0, read)
             }
         }
-        out.resolve("BitChordWear.sha256").writeText(digest.digest().joinToString("") { "%02x".format(it) })
+        out.resolve("SonaraWear.sha256").writeText(digest.digest().joinToString("") { "%02x".format(it) })
     }
 }
 

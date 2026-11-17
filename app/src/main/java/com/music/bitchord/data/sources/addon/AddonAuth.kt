@@ -145,7 +145,7 @@ object AddonAuth {
                 drop(current)
             }
         }
-        throw AddonException("BitChord couldn't use this device's secure key store")
+        throw AddonException("Sonara couldn't use this device's secure key store")
     }
 
     /**
@@ -199,8 +199,8 @@ object AddonAuth {
     /** What to tell the listener when an addon refused credentials that were sent. */
     fun rejectionMessage(code: String?): String = when (code) {
         "stale_proof" -> "This addon rejected the request because this phone's clock is wrong"
-        "unavailable" -> "This addon couldn't check BitChord's verification right now"
-        else -> "This addon didn't accept BitChord's verification" + (code?.let { " ($it)" } ?: "")
+        "unavailable" -> "This addon couldn't check Sonara's verification right now"
+        else -> "This addon didn't accept Sonara's verification" + (code?.let { " ($it)" } ?: "")
     }
 
     // ── Session ───────────────────────────────────────────────────────────
@@ -222,7 +222,7 @@ object AddonAuth {
                 Refusal(e.message ?: "Verification refused", System.currentTimeMillis() + e.backoffMs, transient = false)
                     .also { refusal = it }.raise()
             } catch (e: Exception) {
-                val message = "Couldn't reach BitChord's addon verification service"
+                val message = "Couldn't reach Sonara's addon verification service"
                 TrackLog.w(TAG, "addon auth: $message", e)
                 Refusal(message, System.currentTimeMillis() + TRANSIENT_BACKOFF_MS, transient = true)
                     .also { refusal = it }.raise()
@@ -281,7 +281,7 @@ object AddonAuth {
             generateAttestedKey(alias, Base64.getUrlDecoder().decode(challenge.challenge))
         } catch (e: Exception) {
             deleteKey(alias)
-            throw AttestRefused("This device can't prove it is running the official BitChord app (no hardware key attestation)")
+            throw AttestRefused("This device can't prove it is running the official Sonara app (no hardware key attestation)")
         }
         try {
             val body = json.encodeToString(
@@ -316,7 +316,7 @@ object AddonAuth {
                     // Fixable by updating rather than waiting: check again soon after.
                     val backoff = if (error?.error == "outdated_app") TRANSIENT_BACKOFF_MS else REFUSED_BACKOFF_MS
                     throw AttestRefused(
-                        "BitChord couldn't verify this device: " + (error?.message?.ifBlank { null } ?: "HTTP ${response.code}"),
+                        "Sonara couldn't verify this device: " + (error?.message?.ifBlank { null } ?: "HTTP ${response.code}"),
                         backoff,
                     )
                 }

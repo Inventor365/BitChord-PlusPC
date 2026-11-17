@@ -1919,11 +1919,11 @@ fun SettingsScreen(
                     onClick = { ExternalLinks.setEnabled(context, !externalLinks) },
                 )
             }
-            row("Open YouTube Music Links in BitChord", "music.youtube.com", "playlist", "default", "link", "collaborative") {
+            row("Open YouTube Music Links in Sonara", "music.youtube.com", "playlist", "default", "link", "collaborative") {
                 SettingsRow(
                     icon = Icons.Rounded.Link,
                     title = "Open music.youtube.com Links by Default",
-                    subtitle = "Choose BitChord for music.youtube.com & youtube.com playlist and invite links",
+                    subtitle = "Choose Sonara for music.youtube.com & youtube.com playlist and invite links",
                     onClick = { com.music.bitchord.collab.AndroidCollab.openYouTubeMusicDefaultLinkSettings(context) },
                 )
             }
@@ -2042,7 +2042,7 @@ fun SettingsScreen(
                             easterEggTaps++
                             Toast.makeText(
                                 context,
-                                "✦ BitChord $version — Meticulously crafted by Pranav x Inventor365 ✦",
+                                "✦ Sonara $version — Meticulously crafted by Pranav x Inventor365 ✦",
                                 Toast.LENGTH_SHORT,
                             ).show()
                         },
@@ -2050,7 +2050,7 @@ fun SettingsScreen(
                         append("bitchord $version")
                     }
                     append("  ")
-                    withLink(LinkAnnotation.Url("https://github.com/Inventor365/BitChord-PlusPC", linkStyles)) {
+                    withLink(LinkAnnotation.Url("https://github.com/Inventor365/Sonara", linkStyles)) {
                         append("GitHub")
                     }
                     append("  ")

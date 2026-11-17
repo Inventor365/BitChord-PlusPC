@@ -1,5 +1,21 @@
 package com.music.bitchord.ui.onboarding
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import com.music.bitchord.ui.components.revealOnAppear
+import kotlin.math.PI
+import kotlin.math.sin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -212,34 +228,34 @@ private fun ColumnScope.NamePage(
     // With the keyboard up there is room for the title or the logo, not both;
     // the title is the one that says where you are.
     val keyboardUp = WindowInsets.isImeVisible
-    AnimatedVisibility(
-        visible = !keyboardUp,
-        enter = fadeIn() + expandVertically(),
-        exit = fadeOut() + shrinkVertically(),
-    ) {
-        Column {
-            Spacer(Modifier.height(56.dp))
-            Image(
-                painter = painterResource(Res.drawable.ic_logo),
-                contentDescription = null,
-                modifier = Modifier.size(width = 46.dp, height = 30.dp),
-            )
+    Spacer(Modifier.height(if (keyboardUp) 24.dp else 64.dp))
+    Box(Modifier.revealOnAppear(order = 0, rise = 22.dp)) {
+        Title(stringResource(R.string.onboarding_title))
+    }
+
+    // The mark itself, drawn rather than shown: its three arcs sweep in one after another and
+    // then breathe, so the first thing the app does is move. It gives way to the keyboard.
+    Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+        androidx.compose.animation.AnimatedVisibility(
+            visible = !keyboardUp,
+            enter = fadeIn(tween(300)),
+            exit = fadeOut(tween(160)),
+        ) {
+            SonaraMark(Modifier.size(196.dp))
         }
     }
-    Spacer(Modifier.height(24.dp))
-    Title(stringResource(R.string.onboarding_title))
-
-    Spacer(Modifier.weight(1f))
 
     Text(
         text = stringResource(R.string.onboarding_name_prompt),
         style = MaterialTheme.typography.titleMedium,
         fontSize = 17.sp,
         color = Color.White.copy(alpha = 0.78f),
-        modifier = Modifier.padding(start = 4.dp),
+        modifier = Modifier.padding(start = 4.dp).revealOnAppear(order = 3),
     )
     Spacer(Modifier.height(12.dp))
-    NameField(value = name, onValueChange = onNameChange, onDone = onNext)
+    Box(Modifier.revealOnAppear(order = 4)) {
+        NameField(value = name, onValueChange = onNameChange, onDone = onNext)
+    }
     Spacer(Modifier.height(10.dp))
     Text(
         text = stringResource(R.string.onboarding_name_footer),
@@ -297,6 +313,65 @@ private fun ColumnScope.ConnectPage(
         primary = false,
     )
     Spacer(Modifier.height(16.dp))
+}
+
+/**
+ * The Sonara mark — three arcs of sound, widening as they travel — drawn live.
+ *
+ * Each arc sweeps open from its centre in turn, then the three rise and fall a few pixels out
+ * of step with one another, the way a held note is never perfectly still. A glow the colour of
+ * the arcs sits behind them so the mark reads on any of the backdrop's palettes.
+ */
+@Composable
+private fun SonaraMark(modifier: Modifier = Modifier) {
+    val sweep = remember { List(3) { Animatable(0f) } }
+    LaunchedEffect(Unit) {
+        sweep.forEachIndexed { index, arc ->
+            launch {
+                delay(180L + index * 140L)
+                arc.animateTo(1f, tween(durationMillis = 720, easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)))
+            }
+        }
+    }
+    val breath = rememberInfiniteTransition(label = "sonara-mark")
+    val phase by breath.animateFloat(
+        initialValue = 0f,
+        targetValue = (2 * PI).toFloat(),
+        animationSpec = infiniteRepeatable(tween(durationMillis = 4_200, easing = LinearEasing)),
+        label = "sonara-mark-phase",
+    )
+    Canvas(modifier) {
+        val unit = size.minDimension / 108f
+        val centre = Offset(size.width / 2f, 22f * unit)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(Color(0xFFFF2D55).copy(alpha = 0.34f), Color.Transparent),
+                center = Offset(size.width / 2f, size.height * 0.56f),
+                radius = size.minDimension * 0.62f,
+            ),
+            radius = size.minDimension * 0.62f,
+            center = Offset(size.width / 2f, size.height * 0.56f),
+        )
+        val radii = floatArrayOf(22f, 36f, 50f)
+        val colours = listOf(Color(0xFFFF7A8E), Color(0xFFFF4D6D), Color(0xFFFF2D55))
+        radii.forEachIndexed { index, r ->
+            val drift = sin(phase - index * 0.9f) * 1.6f * unit
+            val radius = r * unit
+            val open = 38f * sweep[index].value
+            if (open > 0f) {
+                drawArc(
+                    color = colours[index],
+                    startAngle = 90f - open,
+                    sweepAngle = open * 2f,
+                    useCenter = false,
+                    topLeft = Offset(centre.x - radius, centre.y - radius + drift),
+                    size = Size(radius * 2f, radius * 2f),
+                    style = Stroke(width = 8.5f * unit, cap = StrokeCap.Round),
+                    alpha = sweep[index].value,
+                )
+            }
+        }
+    }
 }
 
 /** Replay's heading, scaled up: the one line each page exists to say. */

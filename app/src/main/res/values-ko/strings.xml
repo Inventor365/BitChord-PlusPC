@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">BitChord</string>
+    <string name="app_name">Sonara</string>
     <string name="playback_channel_name">지금 재생 중</string>
     <string name="download_channel_name">다운로드</string>
     <string name="download_channel_description">음악 폴더에 저장하는 중인 곡</string>
@@ -191,7 +191,7 @@
     <string name="widget_previous">이전</string>
     <string name="widget_artwork">앨범 아트</string>
     <string name="widget_nothing_played">아직 재생 안 함</string>
-    <string name="widget_open_bitchord">BitChord 열기</string>
+    <string name="widget_open_bitchord">Sonara 열기</string>
     <string name="widget_preview_title">곡 제목</string>
     <string name="widget_preview_artist">아티스트</string>
     <string name="widget_pill_label">지금 재생 4×1</string>
@@ -318,7 +318,7 @@
     <string name="equalizer_bitstream_footer">이퀄라이저는 디코딩된 음원에만 적용됩니다. 이 곡은 비트스트림 형태로 기기에 곧바로 전달된 뒤에 디코딩되므로, 필터링할 수 있는 샘플이 없습니다.</string>
     <string name="system_equalizer">시스템 이퀄라이저</string>
     <string name="system_equalizer_subtitle">기기 자체 설정</string>
-    <string name="system_equalizer_footer">BitChord 설정 이후, 전체 오디오 세션에 적용됩니다. 두 설정 모두 쓰면 동시에 적용됩니다.</string>
+    <string name="system_equalizer_footer">Sonara 설정 이후, 전체 오디오 세션에 적용됩니다. 두 설정 모두 쓰면 동시에 적용됩니다.</string>
     <string name="eq_preset_flat">플랫</string>
     <string name="eq_preset_acoustic">어쿠스틱</string>
     <string name="eq_preset_bass_boost">베이스 강화</string>
@@ -733,7 +733,7 @@
     <string name="biggest_day_note">%1$s에 %2$s 동안 가장 오래 들었습니다.</string>
     <string name="close_replay">리플레이 닫기</string>
     <string name="couldnt_draw_picture">사진을 생성할 수 없음</string>
-    <string name="default_replay_holder">BitChord 감상자</string>
+    <string name="default_replay_holder">Sonara 감상자</string>
     <string name="different_albums">다른 앨범</string>
     <string name="genres_pending">재생 기록이 쌓이면 장르가 나타납니다</string>
     <string name="hour_am">오전 %1$d시</string>
@@ -1010,7 +1010,7 @@
     <string name="listen_together_custom_server_dialog_message">이 파티는 외부 서버에서 호스팅합니다.\n\n%1$s\n\n파티 서버를 전환하고 %2$s 파티에 참여하시겠습니까?</string>
     <string name="listen_together_custom_server_switch_and_join">전환 및 참여</string>
     <string name="listen_together_official_server_dialog_title">공식 서버로 전환하시겠습니까?</string>
-    <string name="listen_together_official_server_dialog_message">이 파티는 공식 BitChord 서버에서 호스팅합니다.\n\n공식 서버로 되돌아가고 %1$s 파티에 참여하시겠습니까?</string>
+    <string name="listen_together_official_server_dialog_message">이 파티는 공식 Sonara 서버에서 호스팅합니다.\n\n공식 서버로 되돌아가고 %1$s 파티에 참여하시겠습니까?</string>
     <string name="listen_together_switch_failed_stayed_in_party">파티 참여 불가: %1$s. 파티 %2$s에 남습니다.</string>
     <string name="listen_together_switch_failed">파티 참여 불가: %1$s.</string>
     <string name="listen_together_ping">%1$d ms</string>
@@ -1164,7 +1164,7 @@
     <string name="card_songs_format">음악 %1$s곡</string>
 
     <string name="source_needs_lossless_output">무손실 출력 필요 · 무손실 지원 기기를 사용하세요</string>
-    <string name="source_needs_update">이 애드온은 오래된 버전입니다. 계속 사용할 수 있지만, 최신 BitChord 애드온 문서에 따라 업데이트하도록 개발자에게 요청하세요.</string>
+    <string name="source_needs_update">이 애드온은 오래된 버전입니다. 계속 사용할 수 있지만, 최신 Sonara 애드온 문서에 따라 업데이트하도록 개발자에게 요청하세요.</string>
     <string name="source_outdated">오래된 애드온</string>
     <string name="source_needs_lossless_bt_codec">무손실 출력 필요 · %1$s 코덱 블루투스가 켜졌습니다. 무손실 지원 기기를 사용하세요</string>
     <string name="source_needs_lossless_bt_unknown">무손실 출력 필요 · 어떤 블루투스 코덱을 사용 중인지 알 수 없습니다</string>
@@ -1212,7 +1212,7 @@
     <string name="onboarding_skip_sign_in">로그인 건너뛰기</string>
     <string name="onboarding_back">뒤로</string>
     <!-- Settings: BitChord for Wear OS -->
-    <string name="wear_os_section">Wear OS용 BitChord</string>
+    <string name="wear_os_section">Wear OS용 Sonara</string>
     <string name="wear_os_page_title">Wear OS</string>
     <string name="wear_os_your_watches">내 워치</string>
     <string name="wear_os_value_none">워치 없음</string>
@@ -1239,7 +1239,7 @@
     <string name="wear_os_searching">Wi-Fi에서 워치 찾는 중…</string>
     <string name="wear_os_found">워치 찾음</string>
     <string name="wear_os_pairing">페어링…</string>
-    <string name="wear_os_installing">워치에서 BitChord 설치 중…</string>
+    <string name="wear_os_installing">워치에서 Sonara 설치 중…</string>
     <string name="wear_os_installed">설치됨. 무선 디버깅을 다시 끄셔도 됩니다.</string>
     <string name="wear_os_failed">실패 (%1$s). 코드를 확인하고 다시 시도하세요.</string>
     <string name="wear_os_unsupported">워치에 설치하려면 폰의 Android 버전이 11 이상이어야 합니다.</string>
@@ -1318,8 +1318,8 @@
     <string name="font_footer">이전 글꼴은 앱이 Apple Music에 맞춰지기 전에 쓰던 더 굵고 촘촘한 글꼴을 되돌립니다.</string>
     <string name="bit_perfect_output">비트 퍼펙트 출력</string>
     <string name="bit_perfect_bypassed_footer">비트 퍼펙트 출력이 준비되어 흐리게 표시된 설정은 우회되고 Dolby Atmos 버전은 요청되지 않습니다. DAC를 분리하거나 모드를 끄면 다시 작동합니다.</string>
-    <string name="bit_perfect_sheet_warning">트랙을 변경 없이 DAC로 보냅니다. 이퀄라이저, 체감 음량 평준화, 크로스페이드, 자동 믹스, 재생 속도, BitChord 음량은 우회됩니다.</string>
-    <string name="bit_perfect_mode_off_subtitle">오디오가 Android 믹서와 BitChord 효과를 거칩니다.</string>
+    <string name="bit_perfect_sheet_warning">트랙을 변경 없이 DAC로 보냅니다. 이퀄라이저, 체감 음량 평준화, 크로스페이드, 자동 믹스, 재생 속도, Sonara 음량은 우회됩니다.</string>
+    <string name="bit_perfect_mode_off_subtitle">오디오가 Android 믹서와 Sonara 효과를 거칩니다.</string>
     <string name="bit_perfect_mode_usb_android">USB DAC</string>
     <string name="bit_perfect_mode_usb_android_subtitle">Android 14가 믹싱이나 리샘플링 없이 각 트랙의 샘플레이트와 비트 심도로 DAC를 엽니다.</string>
     <string name="bit_perfect_requires_android_14">Android 14 이상 필요</string>
@@ -1349,12 +1349,12 @@
     <string name="playlist_cover_change">Change cover art</string>
     <string name="playlist_cover_choose">Choose image</string>
     <string name="playlist_cover_preview">Selected playlist cover artwork</string>
-    <string name="playlist_cover_help">Choose a JPEG or PNG, then save to confirm. BitChord limits images to 10 MiB for safe processing. The preview shows the full image; YouTube Music may crop it.</string>
+    <string name="playlist_cover_help">Choose a JPEG or PNG, then save to confirm. Sonara limits images to 10 MiB for safe processing. The preview shows the full image; YouTube Music may crop it.</string>
     <string name="playlist_cover_reading">Preparing preview…</string>
     <string name="playlist_cover_uploading">Uploading cover artwork…</string>
     <string name="playlist_cover_picker_failed">The photo picker could not be opened. Please try again.</string>
     <string name="playlist_cover_read_failed">This image could not be read. Please choose it again or select another image.</string>
-    <string name="playlist_cover_too_large">This image exceeds BitChord’s 10 MiB safety limit. Choose a smaller image.</string>
+    <string name="playlist_cover_too_large">This image exceeds Sonara’s 10 MiB safety limit. Choose a smaller image.</string>
     <string name="playlist_cover_format">Only JPEG and PNG images are supported. Choose another image.</string>
     <string name="playlist_cover_invalid">This image could not be decoded. Choose another JPEG or PNG.</string>
     <string name="playlist_cover_upload_failed">Couldn\'t update the cover art. You may need to verify your phone number in YouTube Music to unlock this feature.</string>
@@ -1375,7 +1375,7 @@
     </plurals>
     <string name="widget_quick_play_label">Quick picks</string>
     <string name="widget_quick_play_description">Playback controls and quick picks to start listening directly from your home screen.</string>
-    <string name="quick_tile_recognition_label">BitChord Recognize</string>
+    <string name="quick_tile_recognition_label">Sonara Recognize</string>
     <string name="recognition_notification_channel">Song recognition</string>
     <string name="recognition_notification_channel_description">Notifications for songs recognized from the widget and Quick Settings.</string>
     <string name="recognition_notification_art_description">Recognized song cover</string>
@@ -1392,10 +1392,10 @@
     <string name="show_total_duration_subtitle">Shows the song\'s full length instead of the time remaining</string>
     <string name="download_mode">Download mode</string>
     <string name="download_mode_in_app">Download in-app</string>
-    <string name="download_mode_in_app_desc">Save tracks directly to BitChord\'s offline library</string>
+    <string name="download_mode_in_app_desc">Save tracks directly to Sonara\'s offline library</string>
     <string name="download_mode_external">External downloader</string>
     <string name="download_mode_external_desc">Send tracks and playlists to an external download manager</string>
-    <string name="download_mode_footer">Choose whether BitChord manages downloads internally or delegates them to an external app.</string>
+    <string name="download_mode_footer">Choose whether Sonara manages downloads internally or delegates them to an external app.</string>
     <string name="external_downloader_app">Downloader app</string>
     <string name="external_downloader_app_footer">Select the external application to handle download requests.</string>
     <string name="external_downloader_package">Package name</string>

@@ -88,7 +88,7 @@ object LastFM {
         extra: Map<String, String> = emptyMap(),
         format: String = "json",
     ) {
-        headers.append(HttpHeaders.UserAgent, "BitChord (https://github.com/Inventor365/BitChord-PlusPC)")
+        headers.append(HttpHeaders.UserAgent, "Sonara (https://github.com/Inventor365/Sonara)")
         val paramsForSig =
             mutableMapOf(
                 "method" to method,

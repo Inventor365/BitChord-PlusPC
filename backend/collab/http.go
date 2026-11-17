@@ -1185,7 +1185,7 @@ var collabInviteTemplate = template.Must(template.New("collab_invite").Parse(`<!
             <a id="joinBtn" href="{{.IntentURI}}" class="btn">Open Playlist in BitChord</a>
             <p class="footer-note">
                 Didn’t open automatically? Tap the button above.<br>
-                Don't have BitChord yet? <a href="https://github.com/Inventor365/BitChord-PlusPC/releases" target="_blank" rel="noopener">Download it here</a>.
+                Don't have BitChord yet? <a href="https://github.com/Inventor365/Sonara/releases" target="_blank" rel="noopener">Download it here</a>.
             </p>
             <script>
                 var intentUri = {{.IntentURI}};
@@ -1208,7 +1208,7 @@ var collabInviteTemplate = template.Must(template.New("collab_invite").Parse(`<!
             <p class="subtitle">{{.StatusReason}}</p>
             <p class="footer-note">
                 Ask the playlist owner for a fresh collaborative invite link.<br>
-                <a href="https://github.com/Inventor365/BitChord-PlusPC/releases" target="_blank" rel="noopener">Download BitChord PlusPC</a>
+                <a href="https://github.com/Inventor365/Sonara/releases" target="_blank" rel="noopener">Download BitChord PlusPC</a>
             </p>
         {{end}}
     </div>

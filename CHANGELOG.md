@@ -1,6 +1,20 @@
 # Changelog
 
-All notable changes to **BitChord PlusPC** (`https://github.com/Inventor365/BitChord-PlusPC`) are documented in this file.
+All notable changes to **Sonara** (`https://github.com/Inventor365/Sonara`), formerly BitChord PlusPC, are documented in this file.
+
+---
+
+## [2.0.0] — 2026-11-17 (`versionCode = 48`) — Sonara
+
+### Changed
+- **BitChord PlusPC is now Sonara**: new name, mark, icons and repository (`Inventor365/Sonara`). The application id, signing certificate, Windows upgrade code, Linux package name, downloads folder and `bitchord://` links are unchanged, so this installs over `v1.10.x` in place and keeps everything.
+- Release files are named `Sonara-…`; the updater also accepts the older `BitChord-…` names.
+- Update checks read `Inventor365/Sonara`.
+
+### Added
+- Animated welcome screen drawing the Sonara mark.
+- Shared motion primitives (`pressScale`, `revealOnAppear`, `topGlow`); Library folder cards; press feedback on shelf, top-pick and mood cards; collaborative playlist page glow, shadowed cover and animated rows.
+- Offscreen screenshot renderer for the README and release notes.
 
 ---
 

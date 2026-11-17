@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">BitChord</string>
+    <string name="app_name">Sonara</string>
     <string name="playback_channel_name">מתנגן כעת</string>
     <string name="download_channel_name">הורדות</string>
     <string name="download_channel_description">שירים שנשמרים בתיקיית המוזיקה שלך</string>
@@ -148,7 +148,7 @@
     <string name="widget_previous">הקודם</string>
     <string name="widget_artwork">עטיפת אלבום</string>
     <string name="widget_nothing_played">עדיין לא הושמע דבר</string>
-    <string name="widget_open_bitchord">פתיחת BitChord</string>
+    <string name="widget_open_bitchord">פתיחת Sonara</string>
     <string name="widget_preview_title">שם השיר</string>
     <string name="widget_preview_artist">אמן</string>
     <string name="widget_pill_label">מתנגן כעת 4×1</string>
@@ -286,10 +286,10 @@
     <string name="beta">בטא</string>
     <string name="refresh_rate">קצב רענון</string>
     <string name="high_performance_before_enabling">לפני ההפעלה</string>
-    <string name="high_performance_battery_warning">תחילה הגדר את השימוש בסוללה של BitChord ללא הגבלה. קצבי רענון גבוהים צורכים יותר סוללה, מעבד ומאיץ גרפי, ועשויים לחמם את המכשיר.</string>
+    <string name="high_performance_battery_warning">תחילה הגדר את השימוש בסוללה של Sonara ללא הגבלה. קצבי רענון גבוהים צורכים יותר סוללה, מעבד ומאיץ גרפי, ועשויים לחמם את המכשיר.</string>
     <string name="open_battery_settings">פתח הגדרות סוללה</string>
     <string name="enable_high_performance_title">להפעיל מצב ביצועים גבוהים?</string>
-    <string name="enable_high_performance_confirmation">הפעל רק אם השימוש בסוללה של BitChord מוגדר ללא הגבלה. אנדרואיד עדיין יכולה להגביל את קצב הרענון כשהמכשיר חם או כשהסוללה חלשה.</string>
+    <string name="enable_high_performance_confirmation">הפעל רק אם השימוש בסוללה של Sonara מוגדר ללא הגבלה. אנדרואיד עדיין יכולה להגביל את קצב הרענון כשהמכשיר חם או כשהסוללה חלשה.</string>
     <string name="enable">הפעל</string>
     <string name="not_yet">עדיין לא</string>
     <string name="activity">פעילות</string>
@@ -451,7 +451,7 @@
     <string name="sleep_timer_custom">מותאם אישית</string>
     <string name="start_sleep_timer">הפעל טיימר</string>
     <string name="sources_no_lossless">שום מקור מופעל אינו יכול לספק שמע ללא אובדן נתונים. הוסף מודול מותאם אישית כדי להפעיל קבצים זמינים ללא אובדן נתונים ללא המרה.</string>
-    <string name="sources_order_footer">אם למקור אין רצועה, BitChord מנסה את הבא. מקורות מעל YouTube יכולים להחליפו כשהם מוצאים גרסה טובה יותר.</string>
+    <string name="sources_order_footer">אם למקור אין רצועה, Sonara מנסה את הבא. מקורות מעל YouTube יכולים להחליפו כשהם מוצאים גרסה טובה יותר.</string>
     <string name="sources_order_header">מקורות, נוסו בסדר זה</string>
     <string name="sources_quality_capped">חיבור זה מוגדר מתחת לאיכות גבוהה, ולכן השידורים מומרים כדי להתאים למגבלה. הורדות אינן מושפעות.</string>
     <string name="jiosaavn_mismatch_warning">עלול להתאים גרסה שגויה של שיר. ההפעלה על אחריותכם.</string>
@@ -496,7 +496,7 @@
     <string name="biggest_day_note">היום הגדול ביותר שלך היה %1$s עם %2$s של האזנה.</string>
     <string name="close_replay">סגור Replay</string>
     <string name="couldnt_draw_picture">לא ניתן ליצור תמונה</string>
-    <string name="default_replay_holder">מאזין BitChord</string>
+    <string name="default_replay_holder">מאזין Sonara</string>
     <string name="different_albums">אלבומים שונים</string>
     <string name="genres_pending">ז\'אנרים יופיעו ככל שהיסטוריית ההאזנה שלך תגדל</string>
     <string name="hour_am">%1$d AM</string>
@@ -579,7 +579,7 @@
     <string name="webdav_subtitle">מוזיקה בשרת שלכם</string>
     <string name="webdav_not_configured">חברו שרת בקטע „מקורות”</string>
     <string name="webdav_empty">לא נמצאו קובצי שמע בשרת ה-WebDAV. בדקו את הכתובת בהגדרות.</string>
-    <string name="webdav_description">כוונו את BitChord לתיקיית מוזיקה ב-WebDAV — תיקיית המוזיקה שלכם ב-Nextcloud או כל שרת שתומך ב-WebDAV.</string>
+    <string name="webdav_description">כוונו את Sonara לתיקיית מוזיקה ב-WebDAV — תיקיית המוזיקה שלכם ב-Nextcloud או כל שרת שתומך ב-WebDAV.</string>
     <string name="webdav_server_url">כתובת השרת</string>
     <string name="webdav_server_url_hint">https://cloud.example.com/remote.php/dav/files/user/Music</string>
     <string name="webdav_disconnect">ניתוק</string>
@@ -596,7 +596,7 @@
     <string name="smb_subtitle">מוזיקה בתיקייה משותפת</string>
     <string name="smb_not_configured">חברו תיקייה משותפת בקטע „מקורות”</string>
     <string name="smb_empty">לא נמצאו קובצי שמע בתיקיית ה-SMB. בדקו את השרת בקטע „מקורות”.</string>
-    <string name="smb_description">כוונו את BitChord לתיקיית מוזיקה משותפת — NAS או שיתוף Windows דרך SMB.</string>
+    <string name="smb_description">כוונו את Sonara לתיקיית מוזיקה משותפת — NAS או שיתוף Windows דרך SMB.</string>
     <string name="smb_server_hint">nas.local or 192.168.1.10:4445</string>
     <string name="smb_share_hint">שם השיתוף, למשל Music</string>
     <string name="smb_folder_hint">תיקייה (אופציונלי)</string>
@@ -641,7 +641,7 @@
     <string name="no_listening_history">אין היסטוריית האזנה</string>
     <string name="no_local_albums">שום דבר כאן לא שייך עדיין לאלבום או רשימת השמעה. הורד אלבום מלא או רשימת השמעה והם יופיעו כאן.</string>
     <string name="play_your_replay">הפעל את ה-Replay שלך</string>
-    <string name="counted_on_device_with_bitchord">נספר במכשיר זה עם BitChord</string>
+    <string name="counted_on_device_with_bitchord">נספר במכשיר זה עם Sonara</string>
     <string name="this_month">החודש</string>
     <string name="this_year">השנה</string>
     <string name="all_time">כל הזמן</string>
@@ -823,7 +823,7 @@
 
     <string name="add_addon">הוסף תוסף</string>
 
-    <string name="add_addon_detail">חבר את BitChord לשרת תוספים</string>
+    <string name="add_addon_detail">חבר את Sonara לשרת תוספים</string>
 
     <string name="addon_url_description">הדבק את כתובת ה-URL של התוסף — תיקיית שורש או manifest.json.</string>
 
@@ -1041,7 +1041,7 @@
 
     <string name="source_skipped_by_quality">לא בשימוש ב-%1$s · איכות הוגדרה ל-%2$s</string>
 
-    <string name="source_unrecognised">BitChord לא זיהה את הקישור הזה</string>
+    <string name="source_unrecognised">Sonara לא זיהה את הקישור הזה</string>
 
     <string name="start_radio">הפעל רדיו</string>
 
@@ -1076,7 +1076,7 @@
 
     <string name="auto_login_title">Sign in to YouTube on your phone</string>
 
-    <string name="auto_login_subtitle">Open BitChord on your phone to sign in</string>
+    <string name="auto_login_subtitle">Open Sonara on your phone to sign in</string>
 
     <string name="auto_empty_recents_title">No recent songs</string>
 
@@ -1120,7 +1120,7 @@
     <string name="smart_version_alignment">יישור אודיו חכם</string>
     <string name="smart_version_alignment_subtitle">ניתוח צורות הגל כדי למצוא בדיוק את רגע ההשמעה התואם</string>
 
-    <string name="equalizer_footer">Shapes the sound inside BitChord, before it reaches the system.</string>
+    <string name="equalizer_footer">Shapes the sound inside Sonara, before it reaches the system.</string>
 
     <string name="equalizer_dynamic">Dynamic</string>
 
@@ -1163,7 +1163,7 @@
 
     <string name="system_equalizer_subtitle">Your device\'s own panel</string>
 
-    <string name="system_equalizer_footer">Runs after BitChord\'s, on the whole audio session. Using both applies both.</string>
+    <string name="system_equalizer_footer">Runs after Sonara\'s, on the whole audio session. Using both applies both.</string>
 
     <string name="eq_preset_flat">Flat</string>
 
@@ -1387,7 +1387,7 @@
     <string name="onboarding_sign_in_google">התחברות עם Google</string>
     <string name="onboarding_skip_sign_in">דילוג על ההתחברות</string>
     <string name="onboarding_back">חזרה</string>
-    <string name="wear_os_section">BitChord ל-Wear OS</string>
+    <string name="wear_os_section">Sonara ל-Wear OS</string>
     <string name="wear_os_page_title">Wear OS</string>
     <string name="wear_os_your_watches">השעונים שלך</string>
     <string name="wear_os_value_none">אין שעון</string>
@@ -1397,7 +1397,7 @@
     <string name="wear_os_no_watch">אין שעון מחובר</string>
     <string name="wear_os_no_watch_subtitle">קודם צריך לצמד שעון Wear OS לטלפון הזה באפליקציית הליווי שלו.</string>
     <string name="wear_os_checking">בודק…</string>
-    <string name="wear_os_not_installed">BitChord לא מותקן בשעון הזה</string>
+    <string name="wear_os_not_installed">Sonara לא מותקן בשעון הזה</string>
     <string name="wear_os_up_to_date">מעודכן · %1$s</string>
     <string name="wear_os_update_available">יש עדכון זמין</string>
     <string name="wear_os_unknown">מותקן · לא ניתן היה לבדוק את הגרסה</string>
@@ -1414,7 +1414,7 @@
     <string name="wear_os_searching">מחפש את השעון שלך ב-Wi-Fi…</string>
     <string name="wear_os_found">השעון שלך נמצא</string>
     <string name="wear_os_pairing">מצמד…</string>
-    <string name="wear_os_installing">מתקין את BitChord בשעון שלך…</string>
+    <string name="wear_os_installing">מתקין את Sonara בשעון שלך…</string>
     <string name="wear_os_installed">ההתקנה הושלמה. אפשר לכבות שוב את ניפוי הבאגים האלחוטי.</string>
     <string name="wear_os_failed">זה לא עבד (%1$s). בדקו את הקוד ונסו שוב.</string>
     <string name="wear_os_unsupported">התקנה בשעון דורשת Android 11 ומעלה בטלפון הזה.</string>
@@ -1472,7 +1472,7 @@
     <string name="font_footer">האפשרות קלאסי מחזירה את הגופן העבה והצפוף יותר שהאפליקציה השתמשה בו לפני שהותאמה ל-Apple Music.</string>
     <string name="bit_perfect_output">פלט Bit-perfect</string>
     <string name="bit_perfect_bypassed_footer">פלט Bit-perfect מוכן, ולכן ההגדרות המעומעמות אינן פעילות ולא מתבקשות גרסאות Dolby Atmos. הן יפעלו שוב כשה-DAC ינותק או כשהמצב ייכבה.</string>
-    <string name="bit_perfect_sheet_warning">שולח את הרצועה ל-DAC ללא שינוי. האקולייזר, נרמול העוצמה, ה-Crossfade, ה-Automix, מהירות ההשמעה ועוצמת הקול של BitChord אינם פעילים.</string>
+    <string name="bit_perfect_sheet_warning">שולח את הרצועה ל-DAC ללא שינוי. האקולייזר, נרמול העוצמה, ה-Crossfade, ה-Automix, מהירות ההשמעה ועוצמת הקול של Sonara אינם פעילים.</string>
     <string name="bit_perfect_mode_off_subtitle">השמע עובר דרך המיקסר של Android והאפקטים של BitChord.</string>
     <string name="bit_perfect_mode_usb_android">USB DAC</string>
     <string name="bit_perfect_mode_usb_android_subtitle">Android 14 פותח את ה-DAC בקצב ובעומק הסיביות של כל רצועה, ללא מיקס וללא דגימה מחדש.</string>
@@ -1481,13 +1481,13 @@
     <string name="bit_perfect_mode_dap_exclusive_subtitle">לנגני מוזיקה עם DAC משלהם. פותח את יציאת האוזניות או הקו באופן בלעדי בקצב של כל רצועה. לא כל מכשיר מאפשר מצב בלעדי.</string>
     <string name="bit_perfect_requires_android_8_1">נדרש Android 8.1 ומעלה</string>
     <string name="bit_perfect_mode_usb_direct">USB DAC (מנהל התקן ישיר)</string>
-    <string name="bit_perfect_mode_usb_direct_subtitle">BitChord מפעיל את ה-DAC בעצמו, בכל גרסת Android, וקובע את עוצמת הקול ב-DAC. מבקש הרשאת USB. עשוי להישמע חזק בהרבה מהפלט הרגיל.</string>
+    <string name="bit_perfect_mode_usb_direct_subtitle">Sonara מפעיל את ה-DAC בעצמו, בכל גרסת Android, וקובע את עוצמת הקול ב-DAC. מבקש הרשאת USB. עשוי להישמע חזק בהרבה מהפלט הרגיל.</string>
     <string name="dac_volume">עוצמת קול של ה-DAC</string>
     <string name="dac_volume_subtitle">נקבעת ב-DAC עצמו; המוזיקה אינה משתנה</string>
     <string name="usb_allow_fixed_volume">אפשר רכיבי DAC ללא בקרת עוצמה</string>
     <string name="usb_allow_fixed_volume_subtitle">אחרת, DAC כזה ינגן דרך הפלט הרגיל</string>
     <string name="usb_allow_fixed_volume_confirm_title">לנגן בעוצמה מלאה?</string>
-    <string name="usb_allow_fixed_volume_confirm_message">BitChord לא יכול לקבוע את עוצמת הקול של DAC מסוג זה, ולכן הוא מנגן בעוצמה מלאה ורק הכפתור שלו עצמו, אם יש כזה, שולט בעוצמה. הצליל עלול להיות חזק באופן מסוכן עם אוזניות רגישות.</string>
+    <string name="usb_allow_fixed_volume_confirm_message">Sonara לא יכול לקבוע את עוצמת הקול של DAC מסוג זה, ולכן הוא מנגן בעוצמה מלאה ורק הכפתור שלו עצמו, אם יש כזה, שולט בעוצמה. הצליל עלול להיות חזק באופן מסוכן עם אוזניות רגישות.</string>
     <string name="convert_for_limited_dac">המרה לרכיבי DAC מוגבלים</string>
     <string name="convert_for_limited_dac_subtitle">ממיר רצועות שמעל למגבלת ה-DAC שלך לפורמט הגבוה ביותר שלו. ייתכן שהרצועות יתחילו לאט יותר, והן לא יהיו Bit-perfect ביחס למקור.</string>
     <string name="bit_perfect_confirm_title">להפעיל פלט Bit-perfect?</string>
@@ -1497,18 +1497,18 @@
     <string name="bit_perfect_status_inexact">%1$s · לא מדויק: המקור הזה אינו PCM ללא אובדן</string>
     <string name="bit_perfect_status_waiting">ממתין לרצועת Lossless ביציאה נתמכת</string>
     <string name="bit_perfect_status_unavailable">לא זמין עבור רצועה זו (%1$s)</string>
-    <string name="diwali_title">BitChord מאחלת לך דיוואלי שמח</string>
+    <string name="diwali_title">Sonara מאחלת לך דיוואלי שמח</string>
     <string name="diwali_subtitle">שחג האורות הזה ימלא את ביתך בשמחה ואת ימיך במוזיקה.</string>
     <string name="diwali_cta">בואו נחגוג</string>
     <string name="playlist_cover_change">Change cover art</string>
     <string name="playlist_cover_choose">Choose image</string>
     <string name="playlist_cover_preview">Selected playlist cover artwork</string>
-    <string name="playlist_cover_help">Choose a JPEG or PNG, then save to confirm. BitChord limits images to 10 MiB for safe processing. The preview shows the full image; YouTube Music may crop it.</string>
+    <string name="playlist_cover_help">Choose a JPEG or PNG, then save to confirm. Sonara limits images to 10 MiB for safe processing. The preview shows the full image; YouTube Music may crop it.</string>
     <string name="playlist_cover_reading">Preparing preview…</string>
     <string name="playlist_cover_uploading">Uploading cover artwork…</string>
     <string name="playlist_cover_picker_failed">The photo picker could not be opened. Please try again.</string>
     <string name="playlist_cover_read_failed">This image could not be read. Please choose it again or select another image.</string>
-    <string name="playlist_cover_too_large">This image exceeds BitChord’s 10 MiB safety limit. Choose a smaller image.</string>
+    <string name="playlist_cover_too_large">This image exceeds Sonara’s 10 MiB safety limit. Choose a smaller image.</string>
     <string name="playlist_cover_format">Only JPEG and PNG images are supported. Choose another image.</string>
     <string name="playlist_cover_invalid">This image could not be decoded. Choose another JPEG or PNG.</string>
     <string name="playlist_cover_upload_failed">Couldn\'t update the cover art. You may need to verify your phone number in YouTube Music to unlock this feature.</string>
@@ -1529,7 +1529,7 @@
     </plurals>
     <string name="widget_quick_play_label">Quick picks</string>
     <string name="widget_quick_play_description">Playback controls and quick picks to start listening directly from your home screen.</string>
-    <string name="quick_tile_recognition_label">BitChord Recognize</string>
+    <string name="quick_tile_recognition_label">Sonara Recognize</string>
     <string name="recognition_notification_channel">Song recognition</string>
     <string name="recognition_notification_channel_description">Notifications for songs recognized from the widget and Quick Settings.</string>
     <string name="recognition_notification_art_description">Recognized song cover</string>
@@ -1546,10 +1546,10 @@
     <string name="show_total_duration_subtitle">Shows the song\'s full length instead of the time remaining</string>
     <string name="download_mode">Download mode</string>
     <string name="download_mode_in_app">Download in-app</string>
-    <string name="download_mode_in_app_desc">Save tracks directly to BitChord\'s offline library</string>
+    <string name="download_mode_in_app_desc">Save tracks directly to Sonara\'s offline library</string>
     <string name="download_mode_external">External downloader</string>
     <string name="download_mode_external_desc">Send tracks and playlists to an external download manager</string>
-    <string name="download_mode_footer">Choose whether BitChord manages downloads internally or delegates them to an external app.</string>
+    <string name="download_mode_footer">Choose whether Sonara manages downloads internally or delegates them to an external app.</string>
     <string name="external_downloader_app">Downloader app</string>
     <string name="external_downloader_app_footer">Select the external application to handle download requests.</string>
     <string name="external_downloader_package">Package name</string>

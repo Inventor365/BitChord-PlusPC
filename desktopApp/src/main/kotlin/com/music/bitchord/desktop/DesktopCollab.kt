@@ -24,7 +24,7 @@ internal object DesktopCollab {
         val home = System.getProperty("user.home").orEmpty()
         val baseDir = when {
             "mac" in os -> File(home, "Library/Application Support/BitChord")
-            "win" in os -> File(System.getenv("APPDATA")?.takeIf { it.isNotBlank() } ?: "$home/AppData/Roaming", "BitChord")
+            "win" in os -> File(System.getenv("APPDATA")?.takeIf { it.isNotBlank() } ?: "$home/AppData/Roaming", "Sonara")
             else -> File(System.getenv("XDG_CONFIG_HOME")?.takeIf { it.isNotBlank() } ?: "$home/.config", "bitchord")
         }
         File(baseDir, "collab_state.json")

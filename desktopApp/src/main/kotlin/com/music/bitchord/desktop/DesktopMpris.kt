@@ -161,7 +161,7 @@ internal class DesktopMprisController(
                     connection = null
                     started = false
                 }
-                System.err.println("BitChord MPRIS unavailable: ${failure.message}")
+                System.err.println("Sonara MPRIS unavailable: ${failure.message}")
             }
         }
     }
@@ -247,7 +247,7 @@ internal class DesktopMprisController(
             "CanQuit" to variant(false),
             "CanRaise" to variant(false),
             "HasTrackList" to variant(false),
-            "Identity" to variant("BitChord"),
+            "Identity" to variant("Sonara"),
             "DesktopEntry" to variant("bitchord"),
             "SupportedUriSchemes" to variant(listOf("file", "http", "https"), "as"),
             "SupportedMimeTypes" to variant(

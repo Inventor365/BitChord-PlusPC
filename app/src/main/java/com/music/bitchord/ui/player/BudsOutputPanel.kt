@@ -339,7 +339,7 @@ fun BudsOutputPanel() {
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "Efecto espacial BitChord; no activa el 360 nativo de Samsung.",
+                        text = "Efecto espacial Sonara; no activa el 360 nativo de Samsung.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

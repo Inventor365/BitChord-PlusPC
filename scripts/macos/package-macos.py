@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """
-Deterministic macOS DMG, PKG, and ZIP packager for BitChord.
+Deterministic macOS DMG, PKG, and ZIP packager for Sonara.
 
 Modes:
   1. Native macOS (sys.platform == "darwin", without --base-dir):
-     - Builds BitChord.app via Gradle :desktopApp:createDistributable (or --app-bundle)
-     - Signs BitChord.app with Developer ID Application (--options runtime --timestamp)
+     - Builds Sonara.app via Gradle :desktopApp:createDistributable (or --app-bundle)
+     - Signs Sonara.app with Developer ID Application (--options runtime --timestamp)
        if MACOS_SIGN_IDENTITY is set, else clean ad-hoc ('-') with documented notice
      - Packages .zip (ditto), .dmg (hdiutil create -format UDZO with /Applications symlink
        and populated Data Fork / mish / Master CRC-32s), and .pkg (pkgbuild + productbuild
-       installing to /Applications/BitChord.app with normalized 0x78 0xda XAR TOC and
+       installing to /Applications/Sonara.app with normalized 0x78 0xda XAR TOC and
        stripped-header gzip 1f 8b 08 00 00 00 00 00 Payload)
      - Optionally notarizes & staples via xcrun notarytool + stapler
      - Runs scripts/macos/verify-macos-artifacts.py
 
   2. Cross-repack (--base-dir <dir>, Linux CI or macOS):
-     - Updates BitChord.app (JARs, BitChord.cfg, Info.plist, _CodeSignature/CodeResources
+     - Updates Sonara.app (JARs, Sonara.cfg, Info.plist, _CodeSignature/CodeResources
        SHA-256 digests, and Mach-O LC_CODE_SIGNATURE CodeDirectory Special Slots -1/-3)
      - Deterministically writes .zip, updates base .dmg HFS+ partition in-place using the
        HFS+ allocation bitmap (verifying with fsck.hfsplus -fn, splitting modified runs
@@ -131,7 +131,7 @@ def update_app_cfg_and_plist(
     contents = app_dir / "Contents"
     info_path = contents / "Info.plist"
     info = plistlib.loads(info_path.read_bytes())
-    exec_name = str(info.get("CFBundleExecutable", "BitChord")).strip() or "BitChord"
+    exec_name = str(info.get("CFBundleExecutable", "Sonara")).strip() or "Sonara"
     clean_ver = version.strip().lstrip("v")
 
     info["CFBundleIdentifier"] = bundle_id
@@ -197,7 +197,7 @@ def update_app_cfg_and_plist(
 def rebuild_code_resources(app_dir: Path) -> bytes:
     contents = app_dir / "Contents"
     info = plistlib.loads((contents / "Info.plist").read_bytes())
-    exec_name = str(info.get("CFBundleExecutable", "BitChord")).strip() or "BitChord"
+    exec_name = str(info.get("CFBundleExecutable", "Sonara")).strip() or "Sonara"
 
     code_res_dir = contents / "_CodeSignature"
     code_res_dir.mkdir(parents=True, exist_ok=True)
@@ -450,9 +450,9 @@ def update_hfsplus_partition_inplace(
 ) -> bytes:
     """
     Modifies an existing HFS+ partition image in place:
-    walks the Catalog B-Tree leaf chain, locates BitChord.app files whose bytes
-    changed (Info.plist, BitChord.cfg, desktopApp/shared JARs, CodeResources,
-    MacOS/BitChord), updates blocks via the HFS+ allocation bitmap, updates
+    walks the Catalog B-Tree leaf chain, locates Sonara.app files whose bytes
+    changed (Info.plist, Sonara.cfg, desktopApp/shared JARs, CodeResources,
+    MacOS/Sonara), updates blocks via the HFS+ allocation bitmap, updates
     Primary & Alternate VolumeHeaders, and validates via fsck.hfsplus -fn.
     """
     vol = bytearray(hfs_image)
@@ -530,14 +530,14 @@ def update_hfsplus_partition_inplace(
             guard += 1
         return "/".join(reversed(parts))
 
-    # Build lookup of desired regular file bytes in BitChord.app
+    # Build lookup of desired regular file bytes in Sonara.app
     desired_files: Dict[str, bytes] = {}
     for root_str, _dirs, files in os.walk(app_dir, followlinks=False):
         rp = Path(root_str)
         for fn in files:
             fp = rp / fn
             if not fp.is_symlink() and fp.is_file():
-                rel = "BitChord.app/" + fp.relative_to(app_dir).as_posix()
+                rel = "Sonara.app/" + fp.relative_to(app_dir).as_posix()
                 desired_files[rel] = fp.read_bytes()
 
     # Second pass: update any modified file's extents & logicalSize in place
@@ -969,7 +969,7 @@ def pack_xar_pkg(out_pkg: Path, app_dir: Path, version: str, bundle_id: str = "c
     with tempfile.TemporaryDirectory(prefix="bitchord-pkg-") as tmp:
         stage = Path(tmp) / "root"
         stage.mkdir()
-        shutil.copytree(app_dir, stage / "BitChord.app", symlinks=True)
+        shutil.copytree(app_dir, stage / "Sonara.app", symlinks=True)
         cpio_raw, bom_bytes, num_files, install_kb = build_odc_cpio_and_bom(stage)
         payload_gz = gzip_compress_stripped(cpio_raw)
 
@@ -977,19 +977,19 @@ def pack_xar_pkg(out_pkg: Path, app_dir: Path, version: str, bundle_id: str = "c
             '<?xml version="1.0" encoding="utf-8"?>\n'
             f'<pkg-info overwrite-permissions="true" relocatable="false" identifier="{bundle_id}" '
             f'postinstall-action="none" version="{clean_ver}" format-version="2" '
-            f'generator-version="BitChordPackager-2.0" install-location="/Applications" auth="root">\n'
+            f'generator-version="SonaraPackager-2.0" install-location="/Applications" auth="root">\n'
             f'    <payload numberOfFiles="{num_files}" installKBytes="{install_kb}"/>\n'
-            f'    <bundle id="{bundle_id}" CFBundleIdentifier="{bundle_id}" path="./BitChord.app" '
+            f'    <bundle id="{bundle_id}" CFBundleIdentifier="{bundle_id}" path="./Sonara.app" '
             f'CFBundleVersion="{clean_ver}" CFBundleShortVersionString="{clean_ver}"/>\n'
             f'    <bundle-version><bundle id="{bundle_id}"/></bundle-version>\n'
             "</pkg-info>\n"
         ).encode("utf-8")
 
-        comp_name = "BitChord-component.pkg"
+        comp_name = "Sonara-component.pkg"
         dist_xml = (
             '<?xml version="1.0" encoding="utf-8"?>\n'
             '<installer-gui-script minSpecVersion="2">\n'
-            f"    <title>BitChord {clean_ver}</title>\n"
+            f"    <title>Sonara {clean_ver}</title>\n"
             '    <options customize="never" require-scripts="false" hostArchitectures="arm64,x86_64"/>\n'
             '    <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>\n'
             f'    <choices-outline><line choice="default"><line choice="{bundle_id}"/></line></choices-outline>\n'
@@ -1227,9 +1227,9 @@ def verify_native_macos_artifacts(produced: Sequence[Path], bundle_id: str) -> N
                     check=True,
                 )
                 try:
-                    app = mount / "BitChord.app"
-                    if not (app / "Contents/MacOS/BitChord").is_file():
-                        raise PackagingError(f"{art.name}: BitChord.app is not on the mounted image")
+                    app = mount / "Sonara.app"
+                    if not (app / "Contents/MacOS/Sonara").is_file():
+                        raise PackagingError(f"{art.name}: Sonara.app is not on the mounted image")
                     if not (mount / "Applications").is_symlink():
                         raise PackagingError(f"{art.name}: the Applications shortcut is missing")
                     subprocess.run(["codesign", "--verify", "--deep", "--strict", "--verbose=2", str(app)], check=True)
@@ -1238,7 +1238,7 @@ def verify_native_macos_artifacts(produced: Sequence[Path], bundle_id: str) -> N
             elif suffix == ".zip":
                 subprocess.run(["ditto", "-x", "-k", str(art), str(work)], check=True)
                 subprocess.run(
-                    ["codesign", "--verify", "--deep", "--strict", "--verbose=2", str(work / "BitChord.app")],
+                    ["codesign", "--verify", "--deep", "--strict", "--verbose=2", str(work / "Sonara.app")],
                     check=True,
                 )
             elif suffix == ".pkg":
@@ -1247,8 +1247,8 @@ def verify_native_macos_artifacts(produced: Sequence[Path], bundle_id: str) -> N
                 listing = subprocess.run(
                     ["pkgutil", "--payload-files", str(art)], check=True, capture_output=True, text=True
                 ).stdout
-                if "BitChord.app/Contents/MacOS/BitChord" not in listing:
-                    raise PackagingError(f"{art.name}: payload does not contain BitChord.app")
+                if "Sonara.app/Contents/MacOS/Sonara" not in listing:
+                    raise PackagingError(f"{art.name}: payload does not contain Sonara.app")
         print(f"OK (Apple tools): {art.name}")
 
 
@@ -1273,16 +1273,16 @@ def run_native_macos_packaging(args: argparse.Namespace) -> List[Path]:
                 cmd.extend(["arch", "-x86_64"])
             cmd.extend([str(gradlew), ":desktopApp:createDistributable", f"-Pbitchord.version={version}", f"-Pbitchord.arch={arch}"])
             subprocess.run(cmd, cwd=REPO_ROOT, check=True)
-            built_app = REPO_ROOT / "desktopApp/build/compose/binaries/main/app/BitChord.app"
+            built_app = REPO_ROOT / "desktopApp/build/compose/binaries/main/app/Sonara.app"
             if not built_app.is_dir():
-                alt = REPO_ROOT / "desktopApp/build/compose/binaries/main-release/app/BitChord.app"
+                alt = REPO_ROOT / "desktopApp/build/compose/binaries/main-release/app/Sonara.app"
                 built_app = alt if alt.is_dir() else built_app
             if not built_app.is_dir():
-                raise PackagingError(f"Expected BitChord.app not found at {built_app}")
+                raise PackagingError(f"Expected Sonara.app not found at {built_app}")
 
         with tempfile.TemporaryDirectory(prefix="bitchord-macos-native-") as tmp:
             tmp_dir = Path(tmp)
-            staged_app = tmp_dir / "BitChord.app"
+            staged_app = tmp_dir / "Sonara.app"
             shutil.copytree(built_app, staged_app, symlinks=True)
 
             update_app_cfg_and_plist(
@@ -1299,21 +1299,21 @@ def run_native_macos_packaging(args: argparse.Namespace) -> List[Path]:
             inst_id = (args.installer_sign_identity or os.environ.get("MACOS_INSTALLER_SIGN_IDENTITY", "")).strip()
             dev_id_signed = sign_app_native_macos(staged_app, sign_id)
 
-            out_zip = out_dir / f"BitChord-{version}-macos-{arch}.zip"
-            out_dmg = out_dir / f"BitChord-{version}-macos-{arch}.dmg"
-            out_pkg = out_dir / f"BitChord-{version}-macos-{arch}.pkg"
+            out_zip = out_dir / f"Sonara-{version}-macos-{arch}.zip"
+            out_dmg = out_dir / f"Sonara-{version}-macos-{arch}.dmg"
+            out_pkg = out_dir / f"Sonara-{version}-macos-{arch}.pkg"
 
             out_zip.unlink(missing_ok=True)
             subprocess.run(["ditto", "-c", "-k", "--keepParent", str(staged_app), str(out_zip)], check=True)
 
             dmg_stage = tmp_dir / "dmg-stage"
             dmg_stage.mkdir()
-            shutil.copytree(staged_app, dmg_stage / "BitChord.app", symlinks=True)
+            shutil.copytree(staged_app, dmg_stage / "Sonara.app", symlinks=True)
             os.symlink("/Applications", dmg_stage / "Applications")
             out_dmg.unlink(missing_ok=True)
             subprocess.run(
                 [
-                    "hdiutil", "create", "-volname", "BitChord",
+                    "hdiutil", "create", "-volname", "Sonara",
                     "-srcfolder", str(dmg_stage), "-ov", "-format", "UDZO",
                     "-imagekey", "zlib-level=9", str(out_dmg),
                 ],
@@ -1324,13 +1324,13 @@ def run_native_macos_packaging(args: argparse.Namespace) -> List[Path]:
             if dev_id_signed:
                 subprocess.run(["codesign", "--force", "--timestamp", "--sign", sign_id, str(out_dmg)], check=True)
 
-            # Build .pkg via pkgbuild + productbuild installing cleanly to /Applications/BitChord.app
+            # Build .pkg via pkgbuild + productbuild installing cleanly to /Applications/Sonara.app
             pkg_root = tmp_dir / "pkg-root"
             pkg_root.mkdir()
-            shutil.copytree(staged_app, pkg_root / "BitChord.app", symlinks=True)
-            comp_pkg = tmp_dir / "BitChord-component.pkg"
-            raw_prod_pkg = tmp_dir / "BitChord-product-raw.pkg"
-            norm_pkg = tmp_dir / "BitChord-product-norm.pkg"
+            shutil.copytree(staged_app, pkg_root / "Sonara.app", symlinks=True)
+            comp_pkg = tmp_dir / "Sonara-component.pkg"
+            raw_prod_pkg = tmp_dir / "Sonara-product-raw.pkg"
+            norm_pkg = tmp_dir / "Sonara-product-norm.pkg"
 
             # By default Installer treats an app bundle as relocatable: if it finds a copy of
             # the same bundle id anywhere on the disk it installs over that one instead of into
@@ -1396,10 +1396,10 @@ def _locate_base_for_arch(base_dir: Path, arch: str) -> Tuple[Optional[Path], Op
     b_dmg: Optional[Path] = None
     b_pkg: Optional[Path] = None
 
-    if (base_dir / f"BitChord-{arch}.app").is_dir():
-        app_b = base_dir / f"BitChord-{arch}.app"
-    elif (base_dir / "BitChord.app").is_dir():
-        app_b = base_dir / "BitChord.app"
+    if (base_dir / f"Sonara-{arch}.app").is_dir():
+        app_b = base_dir / f"Sonara-{arch}.app"
+    elif (base_dir / "Sonara.app").is_dir():
+        app_b = base_dir / "Sonara.app"
     elif base_dir.suffix == ".app" and base_dir.is_dir():
         app_b = base_dir
 
@@ -1448,13 +1448,13 @@ def run_cross_repack(args: argparse.Namespace) -> List[Path]:
             ext_dir.mkdir()
 
             if app_b is not None:
-                app_dir = ext_dir / "BitChord.app"
+                app_dir = ext_dir / "Sonara.app"
                 shutil.copytree(app_b, app_dir, symlinks=True)
             elif base_zip is not None:
                 verifier.extract_zip_preserving_symlinks(base_zip, ext_dir)
                 app_dir = next(p for p in sorted(ext_dir.glob("*.app")) if p.is_dir())
             else:
-                # Extract BitChord.app directly from base_dmg's HFS+ partition
+                # Extract Sonara.app directly from base_dmg's HFS+ partition
                 dmg_b = base_dmg.read_bytes()
                 xml_off, xml_len = struct.unpack(">QQ", dmg_b[-512 + 216 : -512 + 232])
                 pl = plistlib.loads(dmg_b[xml_off : xml_off + xml_len])
@@ -1491,16 +1491,16 @@ def run_cross_repack(args: argparse.Namespace) -> List[Path]:
 
             code_res_bytes = rebuild_code_resources(app_dir)
             info_bytes = (app_dir / "Contents" / "Info.plist").read_bytes()
-            exec_name = str(plistlib.loads(info_bytes).get("CFBundleExecutable", "BitChord")).strip() or "BitChord"
+            exec_name = str(plistlib.loads(info_bytes).get("CFBundleExecutable", "Sonara")).strip() or "Sonara"
             patch_macho_code_signature_slots(
                 app_dir / "Contents" / "MacOS" / exec_name,
                 info_plist_bytes=info_bytes,
                 code_resources_bytes=code_res_bytes,
             )
 
-            out_zip = out_dir / f"BitChord-{version}-macos-{arch}.zip"
-            out_dmg = out_dir / f"BitChord-{version}-macos-{arch}.dmg"
-            out_pkg = out_dir / f"BitChord-{version}-macos-{arch}.pkg"
+            out_zip = out_dir / f"Sonara-{version}-macos-{arch}.zip"
+            out_dmg = out_dir / f"Sonara-{version}-macos-{arch}.dmg"
+            out_pkg = out_dir / f"Sonara-{version}-macos-{arch}.pkg"
 
             print(f"[{arch}] Writing deterministic ZIP -> {out_zip.name}")
             write_deterministic_zip(app_dir, out_zip)
@@ -1508,10 +1508,10 @@ def run_cross_repack(args: argparse.Namespace) -> List[Path]:
             print(f"[{arch}] Writing XAR PKG (0x78 0xda + POSIX cksum Bom + stripped gzip Payload) -> {out_pkg.name}")
             pack_xar_pkg(out_pkg, app_dir, version=version, bundle_id=args.bundle_id)
 
-            # jpackage DMGs include Contents/app/.package ('BitChord'); seal it in CodeResources & Slot -3 before repacking DMG
+            # jpackage DMGs include Contents/app/.package ('Sonara'); seal it in CodeResources & Slot -3 before repacking DMG
             pkg_marker = app_dir / "Contents" / "app" / ".package"
             if not pkg_marker.exists():
-                pkg_marker.write_bytes(b"BitChord")
+                pkg_marker.write_bytes(b"Sonara")
                 dmg_code_res = rebuild_code_resources(app_dir)
                 patch_macho_code_signature_slots(
                     app_dir / "Contents" / "MacOS" / exec_name,
@@ -1527,12 +1527,12 @@ def run_cross_repack(args: argparse.Namespace) -> List[Path]:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="Package & verify reproducible BitChord macOS .zip, .dmg, and .pkg artifacts.")
+    parser = argparse.ArgumentParser(description="Package & verify reproducible Sonara macOS .zip, .dmg, and .pkg artifacts.")
     parser.add_argument("--version", required=True, help="Release version string (e.g. 1.9.2)")
     parser.add_argument("--arch", choices=["arm64", "x64"], default=None, help="Target macOS architecture")
     parser.add_argument("--output-dir", default="dist", help="Destination directory for built artifacts")
     parser.add_argument("--bundle-id", default="com.music.bitchord", help="CFBundleIdentifier")
-    parser.add_argument("--app-bundle", default=None, help="(macOS native) Existing BitChord.app bundle")
+    parser.add_argument("--app-bundle", default=None, help="(macOS native) Existing Sonara.app bundle")
     parser.add_argument("--base-dir", default=None, help="(Cross-repack mode) Directory containing base macOS artifacts")
     parser.add_argument("--jars-dir", default=None, help="(Cross-repack mode) Directory of updated JVM JARs")
     parser.add_argument("--replace-jar", action="append", default=[], help="(Cross-repack mode) Specific JAR replacement")

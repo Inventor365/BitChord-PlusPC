@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
-Standalone structural & cryptographic verifier for BitChord macOS artifacts:
-  - .app bundles & .zip archives (Info.plist, Mach-O CPU arch, BitChord.cfg &
+Standalone structural & cryptographic verifier for Sonara macOS artifacts:
+  - .app bundles & .zip archives (Info.plist, Mach-O CPU arch, Sonara.cfg &
     classpath JARs, _CodeSignature/CodeResources SHA-256 digests, Mach-O
     LC_CODE_SIGNATURE CodeDirectory Special Slots -1 and -3 + code page slots;
     plus codesign/spctl on macOS hosts)
   - .dmg disk images (UDIF koly trailer, plist XML, blkx mish descriptors,
     BLKX_RUN_ZLIB <= 2048 sector enforcement, mish CRC-32 across non-zero-fill
     runs, Master CRC-32 at koly[352..364], Data Fork CRC-32 at koly[80..92],
-    fsck.hfsplus -fn when available, embedded HFS+ BitChord.app + /Applications
+    fsck.hfsplus -fn when available, embedded HFS+ Sonara.app + /Applications
     symlink check, plus hdiutil verify on macOS hosts)
   - .pkg flat installers (XAR header, raw zlib 0x78 0xda TOC stream, TOC &
     per-<file> archived/extracted SHA-1 checksums, Bom BOMStore header + path
     entries + POSIX cksum verification, PackageInfo version, stripped-header
-    gzip 1f 8b 08 00 00 00 00 00 Payload + bsdtar -tzf + cpio BitChord.app
+    gzip 1f 8b 08 00 00 00 00 00 Payload + bsdtar -tzf + cpio Sonara.app
     verification, plus pkgutil --check-signature on macOS hosts)
 
 Runs identically on Linux CI and macOS CI using only the Python 3 standard library.
@@ -455,7 +455,7 @@ def verify_app_bundle(
     if not exec_path.is_file():
         raise VerificationError(f"{app_dir}: missing launcher executable Contents/MacOS/{exec_name}")
 
-    # Verify Contents/app/BitChord.cfg and all classpath JARs
+    # Verify Contents/app/Sonara.cfg and all classpath JARs
     cfg_path = contents / "app" / f"{exec_name}.cfg"
     if not cfg_path.is_file():
         raise VerificationError(f"{app_dir}: missing launcher configuration {cfg_path.relative_to(app_dir)}")
@@ -1391,9 +1391,9 @@ def verify_pkg_artifact(
     # 2. Verify Bom (BOMStore)
     bom_entries = parse_bom(xar_files[bom_key])
     required_bom_suffixes = (
-        "BitChord.app/Contents/Info.plist",
-        "BitChord.app/Contents/MacOS/BitChord",
-        "BitChord.app/Contents/app/BitChord.cfg",
+        "Sonara.app/Contents/Info.plist",
+        "Sonara.app/Contents/MacOS/Sonara",
+        "Sonara.app/Contents/app/Sonara.cfg",
     )
     for req_sfx in required_bom_suffixes:
         if not any(p.endswith(req_sfx) for p in bom_entries):
@@ -1421,8 +1421,8 @@ def verify_pkg_artifact(
                     f"{pkg_path}: bsdtar -tzf Payload failed (rc={tar_proc.returncode}):\n{tar_proc.stderr.strip()}"
                 )
             listed = tar_proc.stdout.splitlines()
-            if not any("BitChord.app/Contents/MacOS/BitChord" in item for item in listed):
-                raise VerificationError(f"{pkg_path}: bsdtar -tzf Payload did not list BitChord executable")
+            if not any("Sonara.app/Contents/MacOS/Sonara" in item for item in listed):
+                raise VerificationError(f"{pkg_path}: bsdtar -tzf Payload did not list Sonara executable")
             bsdtar_verified = True
 
         cpio_raw = gzip.decompress(payload_bytes)
@@ -1556,7 +1556,7 @@ def verify_target(
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Verify macOS .app, .zip, .dmg, and .pkg release artifacts.")
     parser.add_argument("paths", nargs="+", help="Artifact file(s) or directory containing macOS artifacts")
-    parser.add_argument("--expected-version", default=None, help="Expected BitChord version string")
+    parser.add_argument("--expected-version", default=None, help="Expected Sonara version string")
     parser.add_argument("--expected-arch", choices=["arm64", "x64"], default=None, help="Expected Mach-O CPU arch")
     parser.add_argument("--bundle-id", default="com.music.bitchord", help="Expected CFBundleIdentifier")
     parser.add_argument(

@@ -37,7 +37,7 @@ import com.music.bitchord.wear.WearProtocol as P
  */
 object SelfUpdate {
 
-    private const val TAG = "BitChordWear"
+    private const val TAG = "SonaraWear"
     private const val CHANNEL = "updates"
     private const val NOTIFICATION_ID = 2
 
@@ -191,7 +191,7 @@ class InstallResultReceiver : BroadcastReceiver() {
             }
             PackageInstaller.STATUS_SUCCESS -> SelfUpdate.done(context)
             else -> Log.w(
-                "BitChordWear",
+                "SonaraWear",
                 "update failed: ${intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)}",
             )
         }

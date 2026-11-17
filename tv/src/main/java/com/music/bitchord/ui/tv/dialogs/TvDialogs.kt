@@ -1186,7 +1186,7 @@ fun TvScrobbleDialog(onDismiss: () -> Unit) {
 
     TvDialog(
         title = "Scrobbling",
-        message = "Connect these on the BitChord phone app; the TV uses the same accounts.",
+        message = "Connect these on the Sonara phone app; the TV uses the same accounts.",
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -1217,7 +1217,7 @@ fun TvAboutDialog(onDismiss: () -> Unit) {
     } else {
         "Version ${BuildConfig.VERSION_NAME} · Meticulously crafted by Pranav x Inventor365"
     }
-    TvDialog(title = "BitChord", message = subtitle, onDismissRequest = onDismiss) {
+    TvDialog(title = "Sonara", message = subtitle, onDismissRequest = onDismiss) {
         TvAppMark(size = 77.dp, modifier = Modifier.padding(bottom = 21.dp))
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
             TvListRow(
@@ -1227,13 +1227,13 @@ fun TvAboutDialog(onDismiss: () -> Unit) {
             )
             TvListRow(
                 title = "GitHub",
-                value = "Inventor365/BitChord-PlusPC",
+                value = "Inventor365/Sonara",
                 onClick = {
                     runCatching {
                         context.startActivity(
                             android.content.Intent(
                                 android.content.Intent.ACTION_VIEW,
-                                android.net.Uri.parse("https://github.com/Inventor365/BitChord-PlusPC"),
+                                android.net.Uri.parse("https://github.com/Inventor365/Sonara"),
                             ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
                         )
                     }

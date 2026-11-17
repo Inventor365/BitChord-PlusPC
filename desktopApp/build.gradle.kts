@@ -7,7 +7,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 val appVersion: String = providers.gradleProperty("bitchord.version").orNull
     ?.removePrefix("v")
     ?.takeIf { it.isNotBlank() }
-    ?: "1.10.6"
+    ?: "2.0.0"
 
 /** Which platform this build is *for*, which is the host unless told otherwise. */
 val hostIsWindows = System.getProperty("os.name").contains("Windows", ignoreCase = true)
@@ -26,7 +26,7 @@ val isArm64 = hostArch == "aarch64" || hostArch == "arm64" || hostArch == "macos
 // Windows installer metadata requires MAJOR.MINOR.BUILD even though the app's public version is
 // intentionally displayed without a patch number (1.7 rather than 1.7.0).
 // The build number is the desktop version code; it also keeps "-beta1" out of the numeric installer version.
-val desktopVersionCode = 47
+val desktopVersionCode = 48
 val nativePackageVersion = appVersion.substringBefore('-').split('.').take(2).joinToString(".") + ".$desktopVersionCode"
 
 // FFmpeg decodes audio; see DesktopAudioDecoder.
@@ -493,7 +493,7 @@ val windowsPortable by tasks.registering(Zip::class) {
     description = "Zips the portable Windows folder for copying to a Windows machine."
     dependsOn(windowsPortableAssemble)
     from(windowsPortableDir)
-    archiveFileName.set("BitChord-$appVersion-windows-portable.zip")
+    archiveFileName.set("Sonara-$appVersion-windows-portable.zip")
     destinationDirectory.set(layout.buildDirectory.dir("distributions"))
     doLast { logger.lifecycle("windowsPortable: ${archiveFile.get().asFile.absolutePath}") }
 }
@@ -544,11 +544,11 @@ compose.desktop {
                 TargetFormat.Deb,
                 TargetFormat.Rpm,
             )
-            packageName = "BitChord"
+            packageName = "Sonara"
             packageVersion = nativePackageVersion
-            description = if (targetOs == "windows") "BitChord" else "Aesthetic YouTube Music client"
-            vendor = "BitChord contributors"
-            copyright = "Copyright © 2026 BitChord contributors"
+            description = if (targetOs == "windows") "Sonara" else "A crafted music player for YouTube Music and your own library"
+            vendor = "Pranav (Inventor365) and the BitChord contributors"
+            copyright = "Copyright © 2026 Pranav (Inventor365). Built on BitChord, © its contributors. GPL-3.0."
 
             modules(
                 "java.base",
@@ -578,7 +578,7 @@ compose.desktop {
                 iconFile.set(project.file("packaging/icons/AppIcon.icns"))
                 bundleID = "com.music.bitchord"
                 appCategory = "public.app-category.music"
-                dockName = "BitChord"
+                dockName = "Sonara"
                 infoPlist {
                     extraKeysRawXml = """
                         <key>NSRequiresAquaSystemAppearance</key>
@@ -589,6 +589,9 @@ compose.desktop {
 
             linux {
                 iconFile.set(project.file("packaging/icons/AppIcon.png"))
+                // The Linux package keeps the name it has always had, so apt and dnf upgrade an
+                // existing BitChord install in place instead of installing Sonara beside it.
+                packageName = "bitchord"
                 menuGroup = "Audio"
                 appCategory = "AudioVideo;Audio;Player"
                 debMaintainer = "85984486+AbhiTheModder@users.noreply.github.com"
@@ -598,7 +601,7 @@ compose.desktop {
             windows {
                 iconFile.set(project.file("packaging/icons/AppIcon.ico"))
                 upgradeUuid = "8f3c1d24-6a2b-4f5e-9c17-2b8d54e0a913"
-                menuGroup = "BitChord"
+                menuGroup = "Sonara"
                 shortcut = true
                 dirChooser = false
                 perUserInstall = true

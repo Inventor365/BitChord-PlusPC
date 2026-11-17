@@ -1,47 +1,44 @@
 {
-  "version": "1.10.6",
-  "versionCode": 47,
-  "tvVersionCode": 47,
-  "releaseUrl": "https://github.com/Inventor365/BitChord-PlusPC/releases/tag/v1.10.6",
+  "version": "2.0.0",
+  "versionCode": 48,
+  "tvVersionCode": 48,
+  "releaseUrl": "https://github.com/Inventor365/Sonara/releases/tag/v2.0.0",
   "changelogUrl": "https://raw.githubusercontent.com/Inventor365/Bitchord-OTA/refs/heads/main/changelogs.txt?token=GHSAT0AAAAAADUIC3ZQ4LG6AXEKYTMTOL2I2XE3AZA",
   "changelog": [
-    "## BitChord v1.10.6",
-    "- **Any Google account can collaborate**: an account that has never used YouTube is given its YouTube channel automatically when it joins. Removing a song, leaving and deleting a playlist now ask first, with haptics and a confirmation.",
-    "- **Collaborative playlists that work end to end**: joining by invite link no longer fails with an HTTP 401, re-joining from another device lets you straight in, and refusals are explained in a sentence.",
-    "- **Make Collaborative carries every song**: the whole source playlist is read and each batch is confirmed; converting again tops up what is missing.",
-    "- **Faster and clearer**: playlists open as soon as they are created, invite links are instant once made, Add Songs shows readable titles with progress and haptics, and added songs appear immediately.",
-    "- **Edit title, description and cover** of a collaborative playlist as its owner.",
-    "- **Playback controls on more phones**: the notification permission is requested at first playback.",
-    "- **macOS packages are now built on macOS** and install correctly."
+    "## Sonara v2.0.0",
+    "- **BitChord PlusPC is now Sonara.** A new name and mark for the same app: this update installs over BitChord in place and keeps your library, downloads, settings and sign-in.",
+    "- **A fresher look**: an animated welcome, tinted Library folder cards, cards that respond to touch, and a collaborative playlist page that glows in its own colour and animates as songs come and go.",
+    "- **Collaborative playlists**: any Google account can join (a missing YouTube channel is set up automatically), and removing a song, leaving or deleting a playlist now asks first.",
+    "- Everything from 1.10.x: reliable invite joins, full playlist conversion, title and cover editing, instant adds."
   ],
-  "downloadUrl": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChord-v1.10.6.apk",
+  "downloadUrl": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/Sonara-v2.0.0.apk",
   "downloads": {
     "android": {
-      "universal": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChord-v1.10.6.apk",
-      "arm64-v8a": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChord-v1.10.6_arm64-v8a.apk",
-      "armeabi-v7a": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChord-v1.10.6_armeabi-v7a.apk",
-      "x86_64": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChord-v1.10.6_x86_64.apk"
+      "universal": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/Sonara-v2.0.0.apk",
+      "arm64-v8a": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/Sonara-v2.0.0_arm64-v8a.apk",
+      "armeabi-v7a": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/Sonara-v2.0.0_armeabi-v7a.apk",
+      "x86_64": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/Sonara-v2.0.0_x86_64.apk"
     },
     "tv": {
-      "universal": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChordTV-v1.10.6.apk",
-      "arm64-v8a": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChordTV-v1.10.6_arm64-v8a.apk",
-      "armeabi-v7a": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChordTV-v1.10.6_armeabi-v7a.apk",
-      "x86_64": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChordTV-v1.10.6_x86_64.apk"
+      "universal": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/SonaraTV-v2.0.0.apk",
+      "arm64-v8a": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/SonaraTV-v2.0.0_arm64-v8a.apk",
+      "armeabi-v7a": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/SonaraTV-v2.0.0_armeabi-v7a.apk",
+      "x86_64": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/SonaraTV-v2.0.0_x86_64.apk"
     },
-    "wear": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChordWear-v1.10.6.apk",
+    "wear": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/SonaraWear-v2.0.0.apk",
     "windows": {
-      "exe": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChord-1.10.6-windows-x64-setup.exe",
-      "msi": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChord-1.10.6-windows-x64.msi",
-      "portable": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChord-1.10.6-windows-x64-portable.zip"
+      "exe": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/Sonara-2.0.0-windows-x64-setup.exe",
+      "msi": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/Sonara-2.0.0-windows-x64.msi",
+      "portable": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/Sonara-2.0.0-windows-x64-portable.zip"
     },
     "macos": {
-      "arm64": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChord-1.10.6-macos-arm64.dmg",
-      "x64": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChord-1.10.6-macos-x64.dmg"
+      "arm64": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/Sonara-2.0.0-macos-arm64.dmg",
+      "x64": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/Sonara-2.0.0-macos-x64.dmg"
     },
     "linux": {
-      "appimage": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChord-1.10.6-linux-x86_64.AppImage",
-      "deb": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChord-1.10.6-linux-amd64.deb",
-      "rpm": "https://github.com/Inventor365/BitChord-PlusPC/releases/download/v1.10.6/BitChord-1.10.6-linux-x86_64.rpm"
+      "appimage": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/Sonara-2.0.0-linux-x86_64.AppImage",
+      "deb": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/Sonara-2.0.0-linux-amd64.deb",
+      "rpm": "https://github.com/Inventor365/Sonara/releases/download/v2.0.0/Sonara-2.0.0-linux-x86_64.rpm"
     }
   }
 }

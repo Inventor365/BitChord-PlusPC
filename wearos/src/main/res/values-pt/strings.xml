@@ -2,10 +2,10 @@
 <resources>
     <string name="connecting">Conectando…</string>
     <string name="no_phone_title">Celular não conectado</string>
-    <string name="no_phone_body">Abra o BitChord no celular e mantenha-o perto do relógio.</string>
+    <string name="no_phone_body">Abra o Sonara no celular e mantenha-o perto do relógio.</string>
     <string name="retry">Tentar novamente</string>
     <string name="nothing_playing">Nada tocando</string>
-    <string name="nothing_playing_body">Reproduza algo no BitChord do seu celular.</string>
+    <string name="nothing_playing_body">Reproduza algo no Sonara do seu celular.</string>
     <string name="resume">Retomar</string>
     <string name="up_next">A seguir</string>
     <string name="queue_empty">Nada na sequência</string>
@@ -38,6 +38,6 @@
     <string name="other_output">Outra saída</string>
     <string name="moving_to_watch">Movendo para o relógio…</string>
     <string name="update_channel">Atualizações</string>
-    <string name="update_ready">Atualização do BitChord pronta</string>
+    <string name="update_ready">Atualização do Sonara pronta</string>
     <string name="update_tap">Toque para instalar a atualização pelo celular.</string>
 </resources>

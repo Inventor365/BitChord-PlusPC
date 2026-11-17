@@ -328,7 +328,7 @@ class CollabManager(
 
     suspend fun signOut() {
         if (isNativeYouTubeMode) {
-            _notices.tryEmit("Collaborative playlists follow your BitChord Google / YouTube Music account.")
+            _notices.tryEmit("Collaborative playlists follow your Sonara Google / YouTube Music account.")
             return
         }
         val server = effectiveServerUrl()
@@ -1998,7 +1998,7 @@ class CollabManager(
         recomputeEffectiveSession()
         val u = _session.value?.user
         if (u != null && Innertube.hasSession) return u
-        throw CollabApiException(401, "auth_required", "Sign in to BitChord with your Google account first.")
+        throw CollabApiException(401, "auth_required", "Sign in to Sonara with your Google account first.")
     }
 
     private fun requireServerUrl(): String {

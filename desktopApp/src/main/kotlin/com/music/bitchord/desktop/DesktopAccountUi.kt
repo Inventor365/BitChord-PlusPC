@@ -348,7 +348,7 @@ internal fun DesktopSignInDialog(
             }
             Text(
                 if (webSignIn) {
-                    "Sign in with Google in a BitChord window, open or copy the sign-in link into your own browser, or import an existing browser session."
+                    "Sign in with Google in a Sonara window, open or copy the sign-in link into your own browser, or import an existing browser session."
                 } else {
                     DesktopStrings[
                         "d_google_signs_in_inside_a_browser",
@@ -520,7 +520,7 @@ internal fun DesktopSignInDialog(
                                         if (busy == WEB_SIGN_IN) {
                                             "Finish in the sign-in window, then choose \"Use this profile\""
                                         } else {
-                                            "Opens Google's sign-in page in a BitChord window"
+                                            "Opens Google's sign-in page in a Sonara window"
                                         },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = DesktopSecondary,

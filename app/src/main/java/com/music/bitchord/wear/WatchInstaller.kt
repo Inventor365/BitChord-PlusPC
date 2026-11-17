@@ -61,9 +61,9 @@ import com.music.bitchord.wear.WearProtocol as P
  */
 object WatchInstaller {
 
-    private const val TAG = "BitChordWear"
-    private const val APK_ASSET = "wear/BitChordWear.apk"
-    private const val SHA_ASSET = "wear/BitChordWear.sha256"
+    private const val TAG = "SonaraWear"
+    private const val APK_ASSET = "wear/SonaraWear.apk"
+    private const val SHA_ASSET = "wear/SonaraWear.sha256"
     private const val PAIRING_SERVICE = "_adb-tls-pairing._tcp"
     private const val CONNECT_SERVICE = "_adb-tls-connect._tcp"
 
@@ -225,9 +225,9 @@ object WatchInstaller {
 
     /** The bundled APK, as a file — sendFile and the ADB stream both want one. */
     private fun bundledApk(app: Context): File {
-        val target = File(app.cacheDir, "wear/BitChordWear.apk")
+        val target = File(app.cacheDir, "wear/SonaraWear.apk")
         val hash = bundledHash(app)
-        val stamp = File(target.parentFile, "BitChordWear.sha256")
+        val stamp = File(target.parentFile, "SonaraWear.sha256")
         if (target.exists() && stamp.exists() && stamp.readText() == hash) return target
         target.parentFile?.mkdirs()
         app.assets.open(APK_ASSET).use { input -> target.outputStream().use { input.copyTo(it) } }
@@ -415,6 +415,6 @@ object WatchInstaller {
 
         override fun getPrivateKey(): PrivateKey = key
         override fun getCertificate(): Certificate = cert
-        override fun getDeviceName(): String = "BitChord"
+        override fun getDeviceName(): String = "Sonara"
     }
 }

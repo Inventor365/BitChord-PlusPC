@@ -33,7 +33,7 @@ internal object DesktopUpdateChecker {
     )
 
     private const val DEFAULT_RELEASE_PAGE =
-        "https://github.com/Inventor365/BitChord-PlusPC/releases/latest"
+        "https://github.com/Inventor365/Sonara/releases/latest"
 
     private const val OTA_TOKEN_URL =
         "https://raw.githubusercontent.com/Inventor365/Bitchord-OTA/refs/heads/main/ota.json?token=GHSAT0AAAAAADUIC3ZQ4LG6AXEKYTMTOL2I2XE3AZA"
@@ -42,16 +42,17 @@ internal object DesktopUpdateChecker {
         "https://raw.githubusercontent.com/Inventor365/Bitchord-OTA/refs/heads/main/ota.json"
 
     private const val REPO_OTA_URL =
-        "https://raw.githubusercontent.com/Inventor365/BitChord-PlusPC/main/ota.json"
+        "https://raw.githubusercontent.com/Inventor365/Sonara/main/ota.json"
 
     private const val LATEST_RELEASE_URL =
-        "https://api.github.com/repos/Inventor365/BitChord-PlusPC/releases/latest"
+        "https://api.github.com/repos/Inventor365/Sonara/releases/latest"
 
-    val currentVersion: String = System.getProperty("bitchord.version") ?: "1.10.6"
+    val currentVersion: String = System.getProperty("bitchord.version") ?: "2.0.0"
 
     private fun normalizeRepoUrl(url: String): String = url
-        .replace("github.com/kushagrasinghx/BitChord", "github.com/Inventor365/BitChord-PlusPC", ignoreCase = true)
-        .replace("github.com/Inventor365/BitChord-PC/", "github.com/Inventor365/BitChord-PlusPC/", ignoreCase = true)
+        .replace("github.com/Inventor365/BitChord-PlusPC", "github.com/Inventor365/Sonara", ignoreCase = true)
+        .replace("github.com/kushagrasinghx/BitChord", "github.com/Inventor365/Sonara", ignoreCase = true)
+        .replace("github.com/Inventor365/BitChord-PC/", "github.com/Inventor365/Sonara/", ignoreCase = true)
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 

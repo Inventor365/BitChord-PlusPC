@@ -1,6 +1,6 @@
 # Android & Desktop Signing Guide
 
-This document explains why earlier Android updates failed with **"Invalid signature"** (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`), how BitChord PlusPC enforces deterministic signing across Phone, Android TV, and Wear OS, and how upgrades are verified before publication.
+This document explains why earlier Android updates failed with **"Invalid signature"** (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`), how Sonara enforces deterministic signing across Phone, Android TV, and Wear OS, and how upgrades are verified before publication.
 
 ---
 
@@ -18,7 +18,7 @@ Auditing the release history and build configuration identified two independent 
 
 ## 2. Deterministic Android Release Signing Architecture
 
-BitChord PlusPC enforces a single release signing identity across all three Android modules (`:app`, `:tv`, and `:wearos`):
+Sonara enforces a single release signing identity across all three Android modules (`:app`, `:tv`, and `:wearos`):
 
 - **Shared Key Requirement for Phone + Wear OS**: Google Play Services' `Wearable` Data Layer only delivers messages between `:app` (`com.music.bitchord`) and `:wearos` (`com.music.bitchord`) when both APKs share the **identical `applicationId` AND signing certificate SHA-256**.
 - **Consistent Configuration**: `:app`, `:tv`, and `:wearos` resolve credentials identically from either:
@@ -46,7 +46,7 @@ Auditing prior published releases proved that earlier workflows minted ephemeral
 | PlusPC `v1.9.2` | `f55db2039d70460369f0afe12c6703983fce4d9e3a9efbd943922f9ba1b25672` | Ephemeral key (discarded) — requires one-time clean install to `v1.10.0` |
 | **PlusPC `v1.10.0+` (Permanent)** | **`d6d9c697c070a5ca5f4e172a13b6263fe2f3a35fff5d110596509126320c3bb2`** | **Permanent RSA-4096 key stored in GitHub Secrets (`KEYSTORE_BASE64`) — seamless in-place upgrades (`v1.10.0` → all future releases)** |
 
-- **Permanent Subject DN**: `CN=BitChord PlusPC, OU=Release Engineering, O=Inventor365, L=Unknown, ST=Unknown, C=US`
+- **Permanent Subject DN**: `CN=Sonara, OU=Release Engineering, O=Inventor365, L=Unknown, ST=Unknown, C=US`
 - **Permanent Certificate SHA-256**: `d6d9c697c070a5ca5f4e172a13b6263fe2f3a35fff5d110596509126320c3bb2`
 
 Before migrating from an older ephemeral-signed release (`<= v1.9.2`), export any device-local playlists via **Library → Export (`.m3u` / `.json`)**, perform the one-time clean install of `v1.10.0`, and re-import; every subsequent PlusPC update installs directly in place without data loss.
@@ -60,11 +60,11 @@ Before publishing any release, run:
 ```bash
 ./scripts/verify-android-upgrade.sh build/release-1.10.0/dist \
   --expected-sha256 d6d9c697c070a5ca5f4e172a13b6263fe2f3a35fff5d110596509126320c3bb2 \
-  --previous-apk path/to/previous/BitChord.apk
+  --previous-apk path/to/previous/Sonara.apk
 ```
 
 The script verifies:
 1. APK Signature Scheme v2 & v3 validity via `apksigner verify --print-certs` on all 9 APKs (4 Phone ABIs + universal, 4 TV ABIs + universal, 1 Wear OS).
-2. Exact certificate SHA-256 match across Phone, TV, Wear OS, and the embedded `assets/BitChordWear.apk` inside the Phone APK.
+2. Exact certificate SHA-256 match across Phone, TV, Wear OS, and the embedded `assets/SonaraWear.apk` inside the Phone APK.
 3. Monotonic `versionCode` progression (`newVersionCode > oldVersionCode`) and matching `applicationId` against `--previous-apk`.
 4. Optional live device/emulator upgrade test (`--adb-device <serial>`) proving `adb install -r` succeeds without `INSTALL_FAILED_UPDATE_INCOMPATIBLE` and preserves app data.

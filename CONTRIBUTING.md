@@ -1,6 +1,6 @@
-# Contributing to BitChord PlusPC
+# Contributing to Sonara
 
-Thank you for contributing to **BitChord PlusPC** (`https://github.com/Inventor365/BitChord-PlusPC`). Follow these guidelines to keep development, code review, and cross-platform releases clean and reproducible.
+Thank you for contributing to **Sonara** (`https://github.com/Inventor365/Sonara`). Follow these guidelines to keep development, code review, and cross-platform releases clean and reproducible.
 
 ## Proposing Contributions
 - Substantial features, architecture changes, or cross-platform UI additions should be discussed in an issue before opening a large PR.
@@ -54,7 +54,7 @@ go test -race ./...
 
 ## Code Quality & UI Standards
 - Shared domain logic belongs in `:shared`, shared Compose UI in `:sharedUi` (mirrored to `:desktopUi` for Desktop Skia linkage).
-- New UI must match BitChord's first-party Apple Music glass aesthetic rather than bolting on unstyled widgets.
+- New UI must match Sonara's first-party Apple Music glass aesthetic rather than bolting on unstyled widgets.
 - Every significant behavioral fix or feature must include deterministic unit or integration tests.
 - Locale strings added to `app/src/main/res/values/strings.xml` or `sharedUi`/`desktopUi` `composeResources/values/strings.xml` must be translated across all supported locale directories (`LocaleStringsTest` enforces parity).
 
@@ -62,4 +62,4 @@ go test -race ./...
 Application telemetry must never misrepresent unverified hardware behavior. Distinguish source metadata, decoder format, internal DSP format, OS mixer/AudioTrack state, and physical DAC/endpoint negotiation.
 
 ## License
-BitChord PlusPC is licensed under the **GNU General Public License v3.0 (GPLv3)**. All contributions and dependencies must be GPLv3-compatible.
+Sonara is licensed under the **GNU General Public License v3.0 (GPLv3)**. All contributions and dependencies must be GPLv3-compatible.

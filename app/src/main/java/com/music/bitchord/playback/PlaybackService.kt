@@ -968,7 +968,7 @@ class PlaybackService : MediaLibraryService() {
             if (isPlaying) {
                 trackSelectedAt?.let {
                     TrackLog.d(
-                        "BitChord",
+                        "Sonara",
                         "TIMING first audio: ${SystemClock.elapsedRealtime() - it}ms since track selected",
                         about = exoPlayer.currentMediaItem?.mediaId,
                     )
@@ -1295,7 +1295,7 @@ class PlaybackService : MediaLibraryService() {
             val cutAt = swapCutAt ?: return
             swapCutAt = null
             TrackLog.d(
-                "BitChord",
+                "Sonara",
                 "swap seam: ${SystemClock.elapsedRealtime() - cutAt}ms of silence",
                 about = eventTime.mediaId(),
             )
@@ -1311,7 +1311,7 @@ class PlaybackService : MediaLibraryService() {
             val cutAt = swapCutAt ?: return
             if (state == Player.STATE_READY) {
                 TrackLog.d(
-                    "BitChord",
+                    "Sonara",
                     "swap leg: ready ${SystemClock.elapsedRealtime() - cutAt}ms after the cut",
                     about = eventTime.mediaId(),
                 )
@@ -1332,7 +1332,7 @@ class PlaybackService : MediaLibraryService() {
             )
             val cutAt = swapCutAt ?: return
             TrackLog.d(
-                "BitChord",
+                "Sonara",
                 "swap leg: $decoderName stood up in ${initializationDurationMs}ms, " +
                     "${SystemClock.elapsedRealtime() - cutAt}ms after the cut",
                 about = eventTime.mediaId(),
@@ -1635,7 +1635,7 @@ class PlaybackService : MediaLibraryService() {
                 // one that reached it and got nothing back, and the two have
                 // opposite fixes.
                 TrackLog.d(
-                    "BitChord",
+                    "Sonara",
                     "${if (proving) "auditioning" else "serving"} upgraded $videoId " +
                         "from ${Uri.parse(upgraded.url).host} " +
                         "at ${dataSpec.position} (${upgraded.format.summary})",
@@ -2255,7 +2255,7 @@ class PlaybackService : MediaLibraryService() {
                 limit = INITIAL_STATION_TRACKS,
             ).getOrElse {
                 TrackLog.w(
-                    "BitChord",
+                    "Sonara",
                     "Android Auto station failed: ${it.message}",
                     about = seed.videoId,
                 )
@@ -2368,7 +2368,7 @@ class PlaybackService : MediaLibraryService() {
                         mapped - startPosition,
                     )
                     TrackLog.d(
-                        "BitChord",
+                        "Sonara",
                         "version swap using YouTube's time map: ${startPosition}ms -> ${mapped}ms",
                         about = sourceSong.videoId,
                     )
@@ -2621,7 +2621,7 @@ class PlaybackService : MediaLibraryService() {
                         // whatever opening is largest on disk, and a short one
                         // still correlates better than not trying at all.
                         TrackLog.w(
-                            "BitChord",
+                            "Sonara",
                             "version alignment head short on disk (source=$sourceReady, " +
                                 "target=$targetReady) for '${sourceSong.title}'",
                             sourceId,
@@ -2673,7 +2673,7 @@ class PlaybackService : MediaLibraryService() {
             val measured = deferred.await()
             if (measured == null) {
                 TrackLog.w(
-                    "BitChord",
+                    "Sonara",
                     "version alignment found nothing to measure for '${sourceSong.title}'; switching with no shift",
                     sourceId,
                 )
@@ -3305,7 +3305,7 @@ class PlaybackService : MediaLibraryService() {
                 val result = loadAutoplayTracks(existing, seedSong, remaining)
                 val resolved = result.getOrElse {
                     TrackLog.w(
-                        "BitChord",
+                        "Sonara",
                         "notification autoplay failed: ${it.message}",
                         about = current.videoId,
                     )
@@ -3329,7 +3329,7 @@ class PlaybackService : MediaLibraryService() {
                         val landed = topUpPartyAutoplay(current.videoId, resolved)
                         if (!landed) {
                             TrackLog.w(
-                                "BitChord",
+                                "Sonara",
                                 "party did not take AutoPlay's tracks; releasing the seed to retry",
                                 about = current.videoId,
                             )
@@ -3873,7 +3873,7 @@ class PlaybackService : MediaLibraryService() {
         trackSelectedAt = if (alreadyAudible) null else SystemClock.elapsedRealtime()
         if (alreadyAudible) {
             TrackLog.d(
-                "BitChord",
+                "Sonara",
                 "TIMING first audio: 0ms, the crossfade covered it",
                 about = mediaItem?.mediaId,
             )
@@ -3898,7 +3898,7 @@ class PlaybackService : MediaLibraryService() {
             )
         }
         TrackLog.d(
-            "BitChord",
+            "Sonara",
             "TIMING track selected: ${mediaItem?.mediaId} (reason=$reason)",
             about = mediaItem?.mediaId,
         )
@@ -4134,7 +4134,7 @@ class PlaybackService : MediaLibraryService() {
         val attempts = recoveries.getOrDefault(mediaId, 0) + 1
         recoveries[mediaId] = attempts
         TrackLog.w(
-            "BitChord",
+            "Sonara",
             "playback failed for $mediaId at ${position}ms (${error.errorCodeName}), attempt $attempts",
             error,
             about = mediaId,
@@ -4263,7 +4263,7 @@ class PlaybackService : MediaLibraryService() {
             ?.let { videoId ->
                 StreamChoice.refuseSubstitutes(videoId)
                 TrackLog.w(
-                    "BitChord",
+                    "Sonara",
                     "$videoId broke on a substituted stream; YouTube serves it for now",
                     about = mediaId,
                 )
@@ -4370,7 +4370,7 @@ class PlaybackService : MediaLibraryService() {
         NerdStats.clearDeclared(mediaId)
         recoveries.remove(mediaId)
         TrackLog.w(
-            "BitChord",
+            "Sonara",
             "$mediaId $why; falling back to YouTube audio",
             about = mediaId,
         )
@@ -4428,7 +4428,7 @@ class PlaybackService : MediaLibraryService() {
         val restreamed = item.toSong().copy(localUri = null, localPath = null).toMediaItem()
         if (restreamed.localConfiguration?.uri == uri) {
             TrackLog.w(
-                "BitChord",
+                "Sonara",
                 "$mediaId is a local file that is gone and has no stream behind it",
                 about = mediaId,
             )
@@ -4436,7 +4436,7 @@ class PlaybackService : MediaLibraryService() {
         }
 
         TrackLog.w(
-            "BitChord",
+            "Sonara",
             "$mediaId was downloaded but $uri is gone; streaming it instead",
             about = mediaId,
         )
@@ -4505,7 +4505,7 @@ class PlaybackService : MediaLibraryService() {
         if (reopenedUri == playbackUri.toString()) return false
 
         TrackLog.w(
-            "BitChord",
+            "Sonara",
             "$mediaId was served a manifest through a progressive source; reopening it as $mime",
             about = mediaId,
         )
@@ -4580,7 +4580,7 @@ class PlaybackService : MediaLibraryService() {
         if (!neverStarted) return null
         if (consecutiveErrorSkips >= MAX_CONSECUTIVE_SKIPS) {
             TrackLog.w(
-                "BitChord",
+                "Sonara",
                 "$MAX_CONSECUTIVE_SKIPS tracks in a row failed to start; " +
                     "this is the queue or the connection, not the track — stopping here",
             )
@@ -4836,7 +4836,7 @@ class PlaybackService : MediaLibraryService() {
         val remaining = manualUpgradeThrottle.tryAcquire(SystemClock.elapsedRealtime())
         if (remaining > 0) {
             TrackLog.d(
-                "BitChord",
+                "Sonara",
                 "manual upgrade ignored for $mediaId: ${remaining}ms cooldown remaining",
                 about = mediaId,
             )
@@ -4894,7 +4894,7 @@ class PlaybackService : MediaLibraryService() {
         val expectedSec = target.durationSec
         if (TrackMatcher.isSevereMismatch(expectedSec, durationSec)) {
             TrackLog.w(
-                "BitChord",
+                "Sonara",
                 "cached rendition duration mismatch: playing ${durationSec}s vs catalogue ${expectedSec}s for $videoId; discarding cache rendition",
                 about = mediaId,
             )
@@ -5129,7 +5129,7 @@ class PlaybackService : MediaLibraryService() {
             // only lose that race on a connection that is barely keeping up.
             if (now.position > warmedThrough) {
                 TrackLog.d(
-                    "BitChord",
+                    "Sonara",
                     "upgrade landing at ${now.position}ms, past the ${warmedThrough}ms warmed for it",
                 )
             }
@@ -5355,7 +5355,7 @@ class PlaybackService : MediaLibraryService() {
             return null
         }
         TrackLog.d(
-            "BitChord",
+            "Sonara",
             "upgrade to ${stream.format.summary} proved in ${took}ms, buffered through ${warmedThrough}ms",
         )
         // Media3 locks a cache entry to one writer, and the audition lets go of
@@ -5557,7 +5557,7 @@ class PlaybackService : MediaLibraryService() {
             // to one that never loaded at all, and only the second is a fault
             // in the stream rather than a wrong match.
             TrackLog.w(
-                "BitChord",
+                "Sonara",
                 "upgrade reverted: replacement reports ${player.duration}ms against " +
                     "${previousDuration}ms (state=${player.playbackState}, " +
                     "buffered=${player.bufferedPosition}ms)",
@@ -5720,7 +5720,7 @@ class PlaybackService : MediaLibraryService() {
             val url = runCatching { fallback.await().getOrThrow() }.getOrNull()
             if (url != null) {
                 TrackLog.d(
-                    "BitChord",
+                    "Sonara",
                     "'${target.title}' was offered ${quick.format.summary} as a manifest; " +
                         "starting on YouTube and swapping to it under the music",
                     about = videoId,
@@ -5740,7 +5740,7 @@ class PlaybackService : MediaLibraryService() {
             // with the type declared and prepares it again. A cut before the
             // first note beats a track that does not play at all.
             TrackLog.w(
-                "BitChord",
+                "Sonara",
                 "'${target.title}' has only a manifest and YouTube cannot serve it; " +
                     "letting it fail once to declare its type",
                 about = videoId,
@@ -5811,7 +5811,7 @@ class PlaybackService : MediaLibraryService() {
         if (direct != null) return Resolved.Module(direct)
         val running = DirectSourceGate.stillLooking(videoId)
         TrackLog.d(
-            "BitChord",
+            "Sonara",
             if (running != null) {
                 "no addon answered for '${target.title}' within " +
                     "${DirectSourceGate.LOOKUP_TIMEOUT_MS / 1000}s; starting it on YouTube and still looking"
@@ -6528,7 +6528,7 @@ class PlaybackService : MediaLibraryService() {
             }
         }
         TrackLog.d(
-            "BitChord",
+            "Sonara",
             "quality ceiling now ${ceiling.name}; letting go of ${lost.joinToString { it.label }} " +
                 "except for ${keep.joinToString()}",
         )
@@ -6727,7 +6727,7 @@ class PlaybackService : MediaLibraryService() {
         }
         if (!wrong) return
         TrackLog.w(
-            "BitChord",
+            "Sonara",
             "'${item.mediaMetadata.title}' decodes to ${decodedMs}ms against ${expectedSec}s listed " +
                 "(tolerance ±${AppSettings.upgradeLengthSlackSeconds.value}s) on " +
                 if (substituted) "an addon copy" else "a cached copy of unknown origin",
@@ -6793,7 +6793,7 @@ class PlaybackService : MediaLibraryService() {
         if (remaining > DirectSourceGate.WINDOW_MS) return
         if (!DirectSourceGate.openNext(next.mediaId)) return
         TrackLog.d(
-            "BitChord",
+            "Sonara",
             "direct window open: ${next.mediaId} with ${remaining}ms to the transition",
             about = next.mediaId,
         )

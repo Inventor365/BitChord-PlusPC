@@ -1,6 +1,6 @@
 # Collaborative Playlists & Contributor Attribution
 
-BitChord PlusPC includes a first-party **Collaborative Playlists** system modelled on Apple Music Collaborative Playlists and Spotify Blend contributor attribution across **Android**, **Desktop (macOS, Windows, Linux)**, and **Web**.
+Sonara includes a first-party **Collaborative Playlists** system modelled on Apple Music Collaborative Playlists and Spotify Blend contributor attribution across **Android**, **Desktop (macOS, Windows, Linux)**, and **Web**.
 
 Collaborative Playlists are completely decoupled from **Listen Together** (`party/`): a collaborative playlist is persistent, asynchronous or live, and remains accessible at any time regardless of whether a Listen Together session is active.
 
@@ -10,7 +10,7 @@ Collaborative Playlists are completely decoupled from **Listen Together** (`part
 
 - **Guest Mode Unchanged**: Browsing, searching, local playback, streaming, scrobbling, and Listen Together continue to work in Guest Mode without signing in.
 - **Default Zero-Config Mode (Built-In Google / YouTube Music Sign-In)**:
-  - Signing into BitChord once with your Google / YouTube Music account (Android WebView, Desktop browser/WebView, or Web companion extension) **immediately activates Collaborative Playlists** with zero extra server URL or OAuth Client ID setup.
+  - Signing into Sonara once with your Google / YouTube Music account (Android WebView, Desktop browser/WebView, or Web companion extension) **immediately activates Collaborative Playlists** with zero extra server URL or OAuth Client ID setup.
   - Uses YouTube Music's native `browse/edit_playlist` collaboration protocol (`ACTION_CREATE_COLLABORATION_INVITE_LINK`, `ACTION_JOIN_COLLABORATION`, `ACTION_SET_CLOSED_TO_CONTRIBUTIONS`, and `PAplaylist_collaborate` collaborator facepile/panel) and interoperates directly with official `https://music.youtube.com/playlist?list=...&jct=...` invite links.
 - **Optional Self-Hosted PlusPC Collaboration Server Mode (`backend/`)**:
   - Advanced self-hosters who configure a custom Collaboration Server URL (`https://...`) authenticate via server-verified Google OpenID Connect (`backend/auth/oidc.go`, RS256 JWKS + OAuth 2.0 PKCE S256) with 256-bit `bcs_<64-hex>` session tokens and `/ws/collab` WebSocket sync.

@@ -1,10 +1,10 @@
 # macOS DMG & PKG Packaging and Verification
 
-BitChord PlusPC distributes three macOS artifact formats for both **Apple Silicon (`arm64`)** and **Intel (`x64`)**:
+Sonara distributes three macOS artifact formats for both **Apple Silicon (`arm64`)** and **Intel (`x64`)**:
 
-- `BitChord-<version>-macos-{arm64,x64}.dmg` — UDIF compressed HFS+ drag-to-Applications disk image
-- `BitChord-<version>-macos-{arm64,x64}.pkg` — Flat XAR installer package installing `/Applications/BitChord.app`
-- `BitChord-<version>-macos-{arm64,x64}.zip` — Portable zipped `.app` bundle
+- `Sonara-<version>-macos-{arm64,x64}.dmg` — UDIF compressed HFS+ drag-to-Applications disk image
+- `Sonara-<version>-macos-{arm64,x64}.pkg` — Flat XAR installer package installing `/Applications/Sonara.app`
+- `Sonara-<version>-macos-{arm64,x64}.zip` — Portable zipped `.app` bundle
 
 ---
 
@@ -30,9 +30,9 @@ All macOS packaging and structural validation lives in two versioned scripts:
 ### `scripts/macos/package-macos.py`
 Supports two deterministic execution modes:
 1. **Native macOS Runner (`darwin`)**:
-   - Assembles `BitChord.app` via `./gradlew :desktopApp:createDistributable`, signs nested dylibs/runtime and outer bundle with `codesign --force --options runtime --timestamp` (Developer ID Application when `MACOS_SIGN_IDENTITY` is configured, or clean ad-hoc `-` for unsigned test/community builds), creates the UDZO `.dmg` with `/Applications` drop link via `hdiutil`, builds the flat `.pkg` via `pkgbuild` + `productbuild`, optionally submits to `xcrun notarytool` + `stapler` when Apple credentials are provided, and runs `verify-macos-artifacts.py`.
+   - Assembles `Sonara.app` via `./gradlew :desktopApp:createDistributable`, signs nested dylibs/runtime and outer bundle with `codesign --force --options runtime --timestamp` (Developer ID Application when `MACOS_SIGN_IDENTITY` is configured, or clean ad-hoc `-` for unsigned test/community builds), creates the UDZO `.dmg` with `/Applications` drop link via `hdiutil`, builds the flat `.pkg` via `pkgbuild` + `productbuild`, optionally submits to `xcrun notarytool` + `stapler` when Apple credentials are provided, and runs `verify-macos-artifacts.py`.
 2. **Deterministic Cross-Host Repack (`--base-dir`)**:
-   - Updates `BitChord.app` (`Info.plist`, `BitChord.cfg`, application JARs, `_CodeSignature/CodeResources` `files2` SHA-256 digests, and `MacOS/BitChord` Mach-O `LC_CODE_SIGNATURE` Special Slots `-1` and `-3`), splits modified HFS+ runs into `<= 2,048`-sector zlib chunks (falling back to raw `0x00000001` if incompressible and `0x00000002` for zero runs), recomputes `mish`, Master, and Data Fork CRC-32s, rebuilds the XAR `.pkg` with updated `Bom` POSIX `cksum`s and TOC SHA-1 digests, and runs `verify-macos-artifacts.py`.
+   - Updates `Sonara.app` (`Info.plist`, `Sonara.cfg`, application JARs, `_CodeSignature/CodeResources` `files2` SHA-256 digests, and `MacOS/Sonara` Mach-O `LC_CODE_SIGNATURE` Special Slots `-1` and `-3`), splits modified HFS+ runs into `<= 2,048`-sector zlib chunks (falling back to raw `0x00000001` if incompressible and `0x00000002` for zero runs), recomputes `mish`, Master, and Data Fork CRC-32s, rebuilds the XAR `.pkg` with updated `Bom` POSIX `cksum`s and TOC SHA-1 digests, and runs `verify-macos-artifacts.py`.
 
 ### `scripts/macos/verify-macos-artifacts.py`
 Validates every `.zip`, `.dmg`, and `.pkg` before publication:
@@ -40,7 +40,7 @@ Validates every `.zip`, `.dmg`, and `.pkg` before publication:
 python3 scripts/macos/verify-macos-artifacts.py build/release-1.9.2/dist --expected-version 1.9.2
 ```
 Checks performed:
-- **`.zip` / `.app`**: `Info.plist` keys & version, Mach-O CPU type (`arm64` vs `x86_64`), `BitChord.cfg` classpath JAR presence, `_CodeSignature/CodeResources` SHA-256 integrity across all bundle files, and `MacOS/BitChord` `CodeDirectory` Special Slots `-1` and `-3` (plus `codesign --verify --deep --strict` on macOS).
+- **`.zip` / `.app`**: `Info.plist` keys & version, Mach-O CPU type (`arm64` vs `x86_64`), `Sonara.cfg` classpath JAR presence, `_CodeSignature/CodeResources` SHA-256 integrity across all bundle files, and `MacOS/Sonara` `CodeDirectory` Special Slots `-1` and `-3` (plus `codesign --verify --deep --strict` on macOS).
 - **`.dmg`**: UDIF `koly` magic, XML plist structure, max `2,048`-sector zlib chunk invariant (`run_sectors <= DecompressionBufferRequested`), `mish` CRC-32, Master CRC-32, Data Fork CRC-32, and `fsck.hfsplus -fn` catalog/extents/bitmap verification (plus `hdiutil verify` on macOS).
 - **`.pkg`**: XAR header & TOC zlib stream, SHA-1 `archived-checksum` and `extracted-checksum` for every XAR file entry, `PackageInfo` version, `Bom` `BOMStore` header, and `Payload` gzip+cpio stream extraction test (`bsdtar -tzf`).
 
@@ -49,4 +49,4 @@ Checks performed:
 ## 3. Signing & Notarization Status Disclosure
 
 - When Apple Developer credentials (`MACOS_SIGN_IDENTITY`, `MACOS_INSTALLER_IDENTITY`, `APPLE_ID`, `APPLE_TEAM_ID`, `APPLE_APP_SPECIFIC_PASSWORD`) are configured as GitHub Actions secrets, `package-macos.py` produces Developer ID–signed, notarized, and stapled `.dmg` and `.pkg` installers.
-- When built without a paid Apple Developer certificate, `BitChord.app` carries a structurally valid ad-hoc Mach-O `LC_CODE_SIGNATURE` (`flags=0x2` adhoc) and **is not Apple-notarized**. On first launch on macOS Sequoia/Sonoma, Gatekeeper requires right-clicking `BitChord.app` -> **Open** (or running `xattr -cr /Applications/BitChord.app`).
+- When built without a paid Apple Developer certificate, `Sonara.app` carries a structurally valid ad-hoc Mach-O `LC_CODE_SIGNATURE` (`flags=0x2` adhoc) and **is not Apple-notarized**. On first launch on macOS Sequoia/Sonoma, Gatekeeper requires right-clicking `Sonara.app` -> **Open** (or running `xattr -cr /Applications/Sonara.app`).
