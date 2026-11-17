@@ -455,6 +455,7 @@ fun CollabPlaylistDetailScreen(
     var showManageDialog by remember(playlistId) { mutableStateOf(false) }
     var manageInitialTab by remember(playlistId) { mutableIntStateOf(0) }
     var showEditDetails by remember(playlistId) { mutableStateOf(false) }
+    var pendingRemoval by remember(playlistId) { mutableStateOf<CollabTrackEntry?>(null) }
     val addStates = remember(playlistId) { mutableStateMapOf<String, AddState>() }
     var addError by remember(playlistId) { mutableStateOf<String?>(null) }
     val haptics = LocalHapticFeedback.current
@@ -1050,7 +1051,8 @@ fun CollabPlaylistDetailScreen(
                     }
                 },
                 onRemove = {
-                    scope.launch { manager.removeTrack(current.id, entry.entryId) }
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    pendingRemoval = entry
                 },
             )
             if (index < visibleTracks.lastIndex) {
@@ -1079,6 +1081,19 @@ fun CollabPlaylistDetailScreen(
             },
         )
     }
+    pendingRemoval?.let { entry ->
+        CollabConfirmDialog(
+            title = "Remove this song?",
+            message = "\"${entry.title}\" will be removed from ${current.title} for everyone.",
+            confirmLabel = "Remove",
+            onDismiss = { pendingRemoval = null },
+            onConfirm = {
+                pendingRemoval = null
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                scope.launch { manager.removeTrack(current.id, entry.entryId) }
+            },
+        )
+    }
     if (showEditDetails) {
         CollabEditDetailsDialog(
             detail = current,
@@ -1092,6 +1107,53 @@ fun CollabPlaylistDetailScreen(
             },
             onDismiss = { showEditDetails = false },
         )
+    }
+}
+
+/**
+ * Asks before something that cannot be taken back with a tap: removing a song for everyone,
+ * leaving, deleting. These used to happen the instant the icon was touched, with nothing to
+ * show for it but the row being gone.
+ */
+@Composable
+fun CollabConfirmDialog(
+    title: String,
+    message: String,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    busy: Boolean = false,
+) {
+    Dialog(onDismissRequest = { if (!busy) onDismiss() }) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp,
+            modifier = Modifier.fillMaxWidth().widthIn(max = 400.dp),
+        ) {
+            Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss, enabled = !busy) { Text("Cancel") }
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        enabled = !busy,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError,
+                        ),
+                        onClick = onConfirm,
+                    ) {
+                        if (busy) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        Text(confirmLabel, maxLines = 1, softWrap = false)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1658,6 +1720,52 @@ fun CollabInviteAndManageDialog(
     var confirmDelete by remember { mutableStateOf(false) }
     var statusError by remember { mutableStateOf<String?>(null) }
     var creatingInvite by remember { mutableStateOf(false) }
+    var confirmLeave by remember { mutableStateOf(false) }
+    var removing by remember { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
+
+    if (confirmDelete) {
+        CollabConfirmDialog(
+            title = "Delete this playlist?",
+            message = "\"${detail.title}\" and its ${detail.tracks.size} songs will be deleted for you and every collaborator. This can't be undone.",
+            confirmLabel = "Delete",
+            busy = removing,
+            onDismiss = { confirmDelete = false },
+            onConfirm = {
+                removing = true
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                scope.launch {
+                    manager.deletePlaylist(detail.id).fold(
+                        onSuccess = { onDeletedOrLeft() },
+                        onFailure = { statusError = it.toCollabUserMessage("Couldn't delete the playlist.") },
+                    )
+                    removing = false
+                    confirmDelete = false
+                }
+            },
+        )
+    }
+    if (confirmLeave) {
+        CollabConfirmDialog(
+            title = "Leave this playlist?",
+            message = "You'll stop being a collaborator on \"${detail.title}\" and it will be removed from your library. The songs you added stay.",
+            confirmLabel = "Leave",
+            busy = removing,
+            onDismiss = { confirmLeave = false },
+            onConfirm = {
+                removing = true
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                scope.launch {
+                    manager.leavePlaylist(detail.id).fold(
+                        onSuccess = { onDeletedOrLeft() },
+                        onFailure = { statusError = it.toCollabUserMessage("Couldn't leave the playlist.") },
+                    )
+                    removing = false
+                    confirmLeave = false
+                }
+            },
+        )
+    }
 
     LaunchedEffect(detail.id, isOwner, tab) {
         if (isOwner && tab == 0) {
@@ -1919,9 +2027,8 @@ fun CollabInviteAndManageDialog(
                         HorizontalDivider()
                         OutlinedButton(
                             onClick = {
-                                scope.launch {
-                                    manager.leavePlaylist(detail.id).onSuccess { onDeletedOrLeft() }
-                                }
+                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                confirmLeave = true
                             },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -2034,20 +2141,14 @@ fun CollabInviteAndManageDialog(
                         }
                     }
 
-                    if (!confirmDelete) {
-                        TextButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Delete Collaborative Playlist", color = MaterialTheme.colorScheme.error)
-                        }
-                    } else {
-                        Button(
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                            onClick = {
-                                scope.launch {
-                                    manager.deletePlaylist(detail.id).onSuccess { onDeletedOrLeft() }
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text("Confirm Permanent Delete") }
+                    TextButton(
+                        onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            confirmDelete = true
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Delete Collaborative Playlist", color = MaterialTheme.colorScheme.error)
                     }
                 }
 
@@ -2178,8 +2279,18 @@ fun CollabJoinInviteDialog(
                     }
                 }
 
-                errorText?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                errorText?.let { rawErr ->
+                    val needsChannel = rawErr.startsWith("CHANNEL_REQUIRED:")
+                    Text(
+                        rawErr.removePrefix("CHANNEL_REQUIRED:").trim(),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    if (needsChannel) {
+                        OutlinedButton(onClick = onOpenAuthDialog, modifier = Modifier.fillMaxWidth()) {
+                            Text("Set Up YouTube Channel")
+                        }
+                    }
                 }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {

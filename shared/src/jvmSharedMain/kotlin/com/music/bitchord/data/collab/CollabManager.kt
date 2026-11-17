@@ -741,7 +741,9 @@ class CollabManager(
         if (isNativeYouTubeMode || playlistId.startsWith(YTM_PREFIX)) {
             requireNativeGoogleSignIn()
             val rawId = playlistId.removePrefix(YTM_PREFIX).removePrefix("VL")
+            val deletedTitle = _details.value[playlistId]?.title
             Innertube.deletePlaylist(rawId)
+            _notices.tryEmit(if (deletedTitle != null) "Deleted \"$deletedTitle\"" else "Playlist deleted")
             synchronized(ytmCollabIds) {
                 ytmCollabIds.remove(rawId)
                 ytmInviteLinks.remove(rawId)
@@ -899,6 +901,7 @@ class CollabManager(
                 detail = detail.copy(tracks = filtered, trackCount = filtered.size)
             }
             storeDetailSnapshot(detail)
+            _notices.tryEmit("Removed \"${resolvedTarget.title}\" from ${detail.title}")
             detail
         } else {
             val server = requireServerUrl()
@@ -1137,7 +1140,9 @@ class CollabManager(
         if (isNativeYouTubeMode || playlistId.startsWith(YTM_PREFIX)) {
             requireNativeGoogleSignIn()
             val rawId = playlistId.removePrefix(YTM_PREFIX).removePrefix("VL")
+            val leftTitle = _details.value[playlistId]?.title
             Innertube.leaveCollaborativePlaylist(rawId)
+            _notices.tryEmit(if (leftTitle != null) "You left \"$leftTitle\"" else "You left the playlist")
             synchronized(ytmCollabIds) { ytmCollabIds.remove(rawId) }
             removeLocalPlaylist(playlistId)
         } else {
