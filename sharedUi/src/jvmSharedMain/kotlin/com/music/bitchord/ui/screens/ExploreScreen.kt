@@ -419,14 +419,21 @@ fun MoodGenrePlaylistsScreen(
         modifier = modifier.fillMaxSize(),
     ) {
         item {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.displayLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = PAGE_GUTTER, vertical = 8.dp),
-            )
+            Column(Modifier.padding(horizontal = PAGE_GUTTER, vertical = 8.dp)) {
+                val count = (state as? UiState.Success)?.data?.sumOf { it.items.size }
+                Text(
+                    text = if (count != null) "EXPLORE · $count PLAYLISTS" else "EXPLORE",
+                    style = MONO_LABEL,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.displayLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         when (state) {
             UiState.Loading -> feedSkeleton()
