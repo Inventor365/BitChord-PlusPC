@@ -96,6 +96,9 @@ import com.music.bitchord.ui.components.trackColumnWidth
 import com.music.bitchord.ui.player.MeshGradientBackground
 import com.music.bitchord.ui.player.MeshPalette
 import com.music.bitchord.ui.components.pressScale
+import androidx.compose.ui.text.font.FontWeight
+import com.music.bitchord.ui.components.revealOnAppear
+import com.music.bitchord.ui.components.topGlow
 
 /** How far the Listen now heading and feed sit above the shared top inset. */
 private val HOME_TITLE_LIFT = 28.dp
@@ -185,7 +188,10 @@ fun HomeScreen(
     ) {
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize(),
+            // A little of the mark's colour at the head of the page, when it has a heading.
+            modifier = Modifier.fillMaxSize().then(
+                if (title != null) Modifier.topGlow(BRAND_RED, depth = 280.dp, strength = 0.20f) else Modifier,
+            ),
             // The heading sits higher than the other tabs' first row: pull the
             // whole feed up by [HOME_TITLE_LIFT] with it.
             contentPadding = if (title != null) {
@@ -198,7 +204,7 @@ fun HomeScreen(
             },
         ) {
             if (title != null) {
-                item { HomeTitle(title, festiveLogo = festiveLogo, onFestiveLogoClick = onFestiveLogoClick) }
+                item { HomeTitle(title, listenerName = listenerName, festiveLogo = festiveLogo, onFestiveLogoClick = onFestiveLogoClick) }
             }
             if (!signedIn && onSignIn != null) {
                 item {
@@ -489,6 +495,7 @@ fun CompactTrackRow(
 private fun HomeTitle(
     title: String,
     modifier: Modifier = Modifier,
+    listenerName: String? = null,
     festiveLogo: Boolean = false,
     onFestiveLogoClick: (() -> Unit)? = null,
 ) {
@@ -509,18 +516,36 @@ private fun HomeTitle(
             Icon(
                 painter = painterResource(Res.drawable.ic_logo),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onBackground,
+                // The mark in its own colour, not the text colour: it is the one thing on the
+                // page that is the app's and not the listener's.
+                tint = BRAND_RED,
                 modifier = logoModifier,
             )
         }
-        // "Listen now" is hidden for now; the wordmark above stays.
-        // Text(
-        //     text = title,
-        //     style = style,
-        //     color = MaterialTheme.colorScheme.onBackground,
-        // )
+        // The page greets whoever opened it, by the hour and by name when it knows one. It
+        // replaces a fixed "Listen now", which said the same thing every time to everyone.
+        val hour = remember { java.time.LocalTime.now().hour }
+        val greeting = stringResource(
+            when (hour) {
+                in 5..11 -> Res.string.greeting_morning
+                in 12..16 -> Res.string.greeting_afternoon
+                in 17..21 -> Res.string.greeting_evening
+                else -> Res.string.greeting_night
+            },
+        )
+        val firstName = listenerName?.trim()?.substringBefore(' ')?.takeIf { it.isNotBlank() }
+        Text(
+            text = if (firstName != null) stringResource(Res.string.greeting_named, greeting, firstName) else greeting,
+            style = style,
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
+
+/** The Sonara mark's red. */
+private val BRAND_RED = Color(0xFFFF2D55)
 
 /** The wordmark's height against the heading's font size. */
 private const val LOGO_TO_FONT = 0.9f
@@ -548,7 +573,10 @@ internal fun SectionHeader(title: String, subtitle: String = "", onShowAll: (() 
         Column(Modifier.weight(1f)) {
             Text(
                 text = displayTitle,
-                style = MaterialTheme.typography.titleMedium,
+                // A step up from the cards' own titles, so a shelf's name reads as a heading
+                // rather than as one more label in the row beneath it.
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -564,14 +592,28 @@ internal fun SectionHeader(title: String, subtitle: String = "", onShowAll: (() 
             }
         }
         if (onShowAll != null) {
-            Text(
-                text = stringResource(Res.string.show_all),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
+                    .padding(start = 12.dp)
+                    .pressScale(0.94f)
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .clickable(onClick = onShowAll)
-                    .padding(start = 12.dp, top = 4.dp, bottom = 4.dp),
-            )
+                    .padding(start = 12.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+            ) {
+                Text(
+                    text = stringResource(Res.string.show_all),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Icon(
+                    imageVector = BitChordIcons.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
     }
 }

@@ -71,6 +71,23 @@
   </tr>
 </table>
 
+<br/>
+
+<table>
+  <tr>
+    <td width="33%" align="center">
+      <img src="docs/screenshots/search.png" alt="Search opening on a grid of moods and genres" width="100%" />
+      <br/>
+      <sub><b>Search</b> — opens on moods and genres to browse, not a blank page</sub>
+    </td>
+    <td width="33%" align="center">
+      <img src="docs/screenshots/library-folders.png" alt="Library folders as tinted cards" width="100%" />
+      <br/>
+      <sub><b>Library</b> — folders as tinted cards that give under the finger</sub>
+    </td>
+  </tr>
+</table>
+
 </div>
 
 ---

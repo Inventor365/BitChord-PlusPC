@@ -7,6 +7,7 @@
   "changelog": [
     "## Sonara v2.0.0",
     "- **BitChord PlusPC is now Sonara.** A new name and mark for the same app: this update installs over BitChord in place and keeps your library, downloads, settings and sign-in.",
+    "- **Home, Search and Settings, redesigned**: Home greets you by name and time of day; Search opens on a grid of moods and genres to browse; Settings leads with your account and gives each category a coloured icon.",
     "- **A fresher look**: an animated welcome, tinted Library folder cards, cards that respond to touch, and a collaborative playlist page that glows in its own colour and animates as songs come and go.",
     "- **Collaborative playlists**: any Google account can join (a missing YouTube channel is set up automatically), and removing a song, leaving or deleting a playlist now asks first.",
     "- Everything from 1.10.x: reliable invite joins, full playlist conversion, title and cover editing, instant adds."

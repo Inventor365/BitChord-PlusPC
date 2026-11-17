@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -484,24 +485,16 @@ fun SettingsScreen(
                 // What the row opens is the scrobbling screen, so the services it
                 // signs into are worth typing at this field even though none of
                 // them is named on the row itself.
-                row(accountTitle, "scrobbling", "last.fm", "listenbrainz") {
-                    val avatarUrl = account?.thumbnailUrl?.takeIf { signedIn }
-                    SettingsRow(
-                        icon = SfIcons.Person,
-                        iconContent = avatarUrl?.let { url ->
-                            {
-                                AsyncImage(
-                                    model = url,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.size(ICON_SIZE).clip(CircleShape),
-                                )
-                            }
-                        },
-                        title = accountTitle,
-                        subtitle = account?.email?.takeIf { it.isNotBlank() }
-                            ?: stringResource(if (signedIn) R.string.signed_in else R.string.not_signed_in),
+                // The listener's own card leads the page, as a phone's settings lead with
+                // its owner: their picture, name and address, and the way into the account.
+                row(accountTitle, account?.name, account?.email, "scrobbling", "last.fm", "listenbrainz") {
+                    AccountCard(
+                        signedIn = signedIn,
+                        account = account,
+                        onSignIn = onAccountScrobbling,
                         onClick = onAccountScrobbling,
+                        grouped = true,
+                        caption = accountTitle,
                     )
                 }
                 // Sits with the account rather than with Playback: a party is up to
@@ -511,6 +504,7 @@ fun SettingsScreen(
                 row(listenTogetherTitle, "jam", "party", "sync", "friends") {
                     SettingsRow(
                         icon = SfIcons.Groups,
+                        tile = TileColors.Green,
                         title = listenTogetherTitle,
                         subtitle = party.code?.let {
                             stringResource(R.string.listen_together_in_party, it)
@@ -533,6 +527,7 @@ fun SettingsScreen(
                 row(sourceTitle, sourceSubtitle, "addon", "lossless") {
                     SettingsRow(
                         icon = SfIcons.Extension,
+                        tile = TileColors.Purple,
                         title = sourceTitle,
                         subtitle = sourceSubtitle,
                         onClick = onSources,
@@ -558,6 +553,7 @@ fun SettingsScreen(
                 row(onWifiTitle, "wi-fi", "streaming quality") {
                     SettingsRow(
                         icon = SfIcons.Wifi,
+                        tile = TileColors.Blue,
                         title = onWifiTitle,
                         badge = stringResource(R.string.in_use).takeIf { metered == false },
                         value = wifiQuality.localizedLabel(),
@@ -568,6 +564,7 @@ fun SettingsScreen(
                 row(onMobileDataTitle, "cellular", "streaming quality") {
                     SettingsRow(
                         icon = SfIcons.SignalCellularAlt,
+                        tile = TileColors.Green,
                         title = onMobileDataTitle,
                         badge = stringResource(R.string.in_use).takeIf { metered == true },
                         value = cellularQuality.localizedLabel(),
@@ -2035,6 +2032,16 @@ fun SettingsScreen(
                     fontWeight = if (easterEggActive) FontWeight.SemiBold else FontWeight.Normal,
                 ),
             )
+            // The mark over the colophon, in its own red: the foot of the page signs it.
+            Icon(
+                painter = painterResource(R.drawable.ic_logo),
+                contentDescription = null,
+                tint = SONARA_RED,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 32.dp)
+                    .height(22.dp),
+            )
             Text(
                 text = buildAnnotatedString {
                     withLink(
@@ -2047,7 +2054,7 @@ fun SettingsScreen(
                             ).show()
                         },
                     ) {
-                        append("bitchord $version")
+                        append("Sonara $version")
                     }
                     append("  ")
                     withLink(LinkAnnotation.Url("https://github.com/Inventor365/Sonara", linkStyles)) {
@@ -2068,7 +2075,7 @@ fun SettingsScreen(
                     pop()
                     append("\n")
                     withLink(LinkAnnotation.Url("https://bitchord.kushagrasingh.in/", subtleLinkStyles)) {
-                        append("Credits to author")
+                        append("Built on BitChord by Kushagra Singh")
                     }
                     append(" · ~YouTube Music & Listen Together Backend")
                 },
@@ -2077,7 +2084,7 @@ fun SettingsScreen(
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 24.dp, bottom = 8.dp),
+                    .padding(top = 10.dp, bottom = 8.dp),
             )
         }
     }
@@ -2448,6 +2455,8 @@ internal fun AccountCard(
     onClick: (() -> Unit)? = null,
     /** Sits inside a [SettingsGroup] that already supplies the card, so draws none of its own. */
     grouped: Boolean = false,
+    /** A small line under the address naming what the card opens — "Account & integrations". */
+    caption: String? = null,
 ) {
     Row(
         modifier = Modifier
@@ -2515,8 +2524,18 @@ internal fun AccountCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (caption != null) {
+                Text(
+                    text = caption,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
         }
-        if (!signedIn) {
+        if (!signedIn || caption != null) {
             Spacer(Modifier.width(8.dp))
             Chevron()
         }
@@ -2640,6 +2659,25 @@ internal val GROUP_INSET = 16.dp
 internal val ROW_INSET = 16.dp
 internal val ICON_SIZE = 22.dp
 internal val ICON_GAP = 14.dp
+
+/** A coloured icon tile: a little larger than a bare glyph, centred on the glyph's spot. */
+internal val TILE_SIZE = 30.dp
+internal val TILE_GLYPH = 18.dp
+internal val TileShape = RoundedCornerShape(8.dp)
+
+/** The icon tiles' palette: saturated enough to read on both themes, white glyph on each. */
+internal object TileColors {
+    val Red = Color(0xFFFF3B5C)
+    val Orange = Color(0xFFFF8A1F)
+    val Yellow = Color(0xFFF5B400)
+    val Green = Color(0xFF2EBD59)
+    val Teal = Color(0xFF1FB5C4)
+    val Blue = Color(0xFF2F7CF6)
+    val Indigo = Color(0xFF5B5BE0)
+    val Purple = Color(0xFFA155E8)
+    val Pink = Color(0xFFF2468A)
+    val Gray = Color(0xFF8A8A93)
+}
 
 /** Where a row's text starts — dividers are inset to match, as on iOS. */
 internal val TEXT_INSET = ROW_INSET + ICON_SIZE + ICON_GAP
@@ -2846,6 +2884,11 @@ internal fun SettingsRow(
     enabled: Boolean = true,
     iconPainter: Painter? = null,
     iconContent: (@Composable () -> Unit)? = null,
+    /**
+     * Draws the glyph white on a rounded square of this colour, as a phone's own
+     * settings list does: the eye finds a row by its colour before reading it.
+     */
+    tile: Color? = null,
     onClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
@@ -2860,6 +2903,23 @@ internal fun SettingsRow(
     ) {
         if (iconContent != null) {
             iconContent()
+        } else if (tile != null && (icon != null || iconPainter != null)) {
+            // Wider than a bare glyph, so it takes the difference out of the gap after
+            // it and the title still starts at [TEXT_INSET], under the dividers' edge.
+            Box(
+                modifier = Modifier
+                    .offset(x = -(TILE_SIZE - ICON_SIZE) / 2)
+                    .size(TILE_SIZE)
+                    .clip(TileShape)
+                    .background(tile),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (iconPainter != null) {
+                    Icon(iconPainter, contentDescription = null, tint = Color.White, modifier = Modifier.size(TILE_GLYPH))
+                } else if (icon != null) {
+                    Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(TILE_GLYPH))
+                }
+            }
         } else if (iconPainter != null) {
             Icon(
                 painter = iconPainter,
@@ -2875,7 +2935,8 @@ internal fun SettingsRow(
                 modifier = Modifier.size(ICON_SIZE),
             )
         }
-        Spacer(Modifier.width(ICON_GAP))
+        val tiled = iconContent == null && tile != null && (icon != null || iconPainter != null)
+        Spacer(Modifier.width(if (tiled) ICON_GAP - (TILE_SIZE - ICON_SIZE) else ICON_GAP))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -3141,6 +3202,21 @@ enum class SettingsCategory(@param:StringRes val title: Int) {
             MISCELLANEOUS -> SfIcons.Miscellaneous
             LANGUAGE -> SfIcons.Language
         }
+
+    /** The colour of the category's tile on the main page. */
+    val tile: Color
+        get() = when (this) {
+            DOWNLOADS -> TileColors.Blue
+            PLAYBACK -> TileColors.Red
+            CONTENT_PREFERENCES -> TileColors.Orange
+            APPEARANCE -> TileColors.Indigo
+            PERFORMANCE -> TileColors.Yellow
+            LOCAL_MUSIC -> TileColors.Pink
+            STORAGE -> TileColors.Gray
+            YOUR_DATA -> TileColors.Teal
+            MISCELLANEOUS -> TileColors.Gray
+            LANGUAGE -> TileColors.Blue
+        }
 }
 
 /** The settings whose options are a page of their own — see [SettingsChoicePage]. */
@@ -3163,6 +3239,7 @@ private fun SettingsCategoryList(onOpen: (SettingsCategory) -> Unit) {
             if (index > 0) RowDivider()
             SettingsRow(
                 icon = category.icon,
+                tile = category.tile,
                 title = stringResource(category.title),
                 onClick = { onOpen(category) },
             )
@@ -3403,3 +3480,6 @@ internal fun <T> ChoiceGroup(
         }
     }
 }
+
+/** The Sonara mark's red. */
+private val SONARA_RED = Color(0xFFFF2D55)

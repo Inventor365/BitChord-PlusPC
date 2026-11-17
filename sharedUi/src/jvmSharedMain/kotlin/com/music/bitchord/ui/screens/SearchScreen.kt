@@ -104,6 +104,11 @@ import com.music.bitchord.ui.components.SearchPlayingBars
 import com.music.bitchord.ui.components.thumbnailBorder
 import com.music.bitchord.ui.components.songListSkeleton
 import java.util.Locale
+import com.music.bitchord.data.model.MoodGenre
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.ui.text.font.FontWeight
+import com.music.bitchord.ui.components.pressScale
+import com.music.bitchord.ui.components.revealOnAppear
 
 /**
  * Where Search's promoted "Top result" card sits, in window coordinates. A
@@ -207,6 +212,12 @@ fun SearchScreen(
     searchFieldPulseTrigger: Int = 0,
     /** When true, the first song result is promoted as the Top result card. */
     forceTopResult: Boolean = false,
+    /**
+     * Moods and genres to browse while nothing is searched — the grid an empty
+     * search page leads with, so it offers somewhere to go rather than only a field.
+     */
+    browseCategories: List<MoodGenre> = emptyList(),
+    onBrowseCategoryClick: (MoodGenre) -> Unit = {},
 ) {
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
@@ -345,7 +356,8 @@ fun SearchScreen(
                     }
                 }
                 results == null -> if (history.isEmpty()) {
-                    item { MessageState(stringResource(Res.string.search_empty)) }
+                    item(key = "search:empty-hero") { SearchEmptyHero() }
+                    browseGrid(browseCategories, onBrowseCategoryClick)
                 } else {
                     recentSearches(
                         history = history,
@@ -357,6 +369,7 @@ fun SearchScreen(
                         onClear = onHistoryClear,
                         onSongSwipe = onSongSwipe,
                     )
+                    browseGrid(browseCategories, onBrowseCategoryClick)
                 }
                 results is UiState.Loading -> songListSkeleton(circular = filter == SearchFilter.ARTISTS)
                 results is UiState.Error -> item { MessageState(results.message) }
@@ -416,8 +429,9 @@ fun SearchScreen(
                                         top = 16.dp,
                                         bottom = 6.dp,
                                     ),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                 )
                             }
                         }
@@ -471,6 +485,79 @@ fun SearchScreen(
         }
     }
 }
+
+/**
+ * What an untouched search page says before anything is typed: a question in
+ * large type and a line under it, in place of a single grey sentence.
+ */
+@Composable
+private fun SearchEmptyHero() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = PAGE_GUTTER, end = PAGE_GUTTER, top = 18.dp, bottom = 6.dp)
+            .revealOnAppear(order = 0, rise = 10.dp),
+    ) {
+        Text(
+            text = stringResource(Res.string.search_empty_title),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = stringResource(Res.string.search_empty),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * Two columns of the same tinted sleeves Explore draws, under a "Browse
+ * categories" heading. Each row eases in a beat after the one above it.
+ */
+private fun LazyListScope.browseGrid(
+    categories: List<MoodGenre>,
+    onClick: (MoodGenre) -> Unit,
+) {
+    if (categories.isEmpty()) return
+    item(key = "browse:header") {
+        Text(
+            text = stringResource(Res.string.browse_categories),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(start = PAGE_GUTTER, end = PAGE_GUTTER, top = 22.dp, bottom = 12.dp),
+        )
+    }
+    val rows = categories.chunked(BROWSE_COLUMNS)
+    itemsIndexed(rows, key = { _, row -> "browse:${row.first().browseId}|${row.first().params}" }) { index, row ->
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(BROWSE_SPACING),
+            modifier = Modifier
+                .padding(horizontal = PAGE_GUTTER)
+                .padding(bottom = BROWSE_SPACING)
+                .revealOnAppear(order = index + 1, rise = 14.dp),
+        ) {
+            row.forEach { item ->
+                MoodGenreSleeve(
+                    item = item,
+                    modifier = Modifier
+                        .weight(1f)
+                        .pressScale()
+                        .aspectRatio(MOOD_CARD_ASPECT)
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { onClick(item) },
+                )
+            }
+            repeat(BROWSE_COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
+        }
+    }
+}
+
+private const val BROWSE_COLUMNS = 2
+private val BROWSE_SPACING = 12.dp
 
 private data class SearchSection(val title: String?, val rows: List<SearchResult>)
 

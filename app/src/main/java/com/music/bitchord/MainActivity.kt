@@ -613,7 +613,8 @@ private fun BitChordApp(
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     // Explore loads the first time it's shown, not at launch beside Home.
     LaunchedEffect(selectedTab) {
-        if (selectedTab == TAB_EXPLORE) viewModel.onExploreShown()
+        // Search's empty page browses the same categories, so it asks for them too.
+        if (selectedTab == TAB_EXPLORE || selectedTab == TAB_SEARCH) viewModel.onExploreShown()
     }
     /**
      * Whether the player's sheet is up. The player is always a full-screen
@@ -3921,6 +3922,16 @@ private fun BitChordApp(
                                 topResultPulseTrigger = recognitionLandedTrigger,
                                 searchFieldPulseTrigger = recognitionFieldLandedTrigger,
                                 forceTopResult = (recognitionQuery != null && query == recognitionQuery),
+                                browseCategories = remember(exploreState) {
+                                    (exploreState as? UiState.Success)?.data.orEmpty()
+                                        .flatMap { it.items }
+                                        .distinctBy { it.browseId to it.params }
+                                        .take(SEARCH_BROWSE_CATEGORIES)
+                                },
+                                onBrowseCategoryClick = { category ->
+                                    viewModel.openMoodGenre(category)
+                                    selectedTab = TAB_EXPLORE
+                                },
                                 onTopResultPlaylist = { song ->
                                     viewModel.recordEntity(SearchHistoryEntity(
                                         id = song.videoId,
@@ -7232,6 +7243,9 @@ private object PlayerSheetShape : Shape {
 
 private const val TAB_HOME = 0
 private const val TAB_EXPLORE = 1
+
+/** How many mood and genre tiles the empty Search page offers. */
+private const val SEARCH_BROWSE_CATEGORIES = 10
 private const val TAB_LIBRARY = 2
 private const val TAB_SEARCH = 3
 

@@ -91,6 +91,10 @@ kotlin {
         jvmTest.dependencies {
             implementation(kotlin("test"))
             implementation("junit:junit:4.13.2")
+            // Skia's native library for this machine, so PhoneScreenshotRenderer can draw.
+            implementation(compose.desktop.currentOs)
+            // Lets the renderer's cards load their sample artwork over loopback.
+            implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
         }
         androidMain.dependencies {
             // The phone's own versions, so nothing here moves them.
@@ -114,4 +118,10 @@ compose.resources {
     publicResClass = true
     packageOfResClass = "com.music.bitchord.sharedui.resources"
     generateResClass = always
+}
+
+tasks.withType<Test> {
+    systemProperty("java.awt.headless", "true")
+    // `-Dbitchord.renderScreenshots=<dir>` makes PhoneScreenshotRenderer write its PNGs there.
+    System.getProperty("bitchord.renderScreenshots")?.let { systemProperty("bitchord.renderScreenshots", it) }
 }

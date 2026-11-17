@@ -9,7 +9,7 @@
 <p align="center">
   <img src="https://raw.githubusercontent.com/Inventor365/Sonara/main/docs/screenshots/collab-playlist.png" alt="A collaborative playlist" width="30%" />
   <img src="https://raw.githubusercontent.com/Inventor365/Sonara/main/docs/screenshots/library-folders.png" alt="Library folders" width="30%" />
-  <img src="https://raw.githubusercontent.com/Inventor365/Sonara/main/docs/screenshots/collab-edit.png" alt="Editing title, description and cover" width="30%" />
+  <img src="https://raw.githubusercontent.com/Inventor365/Sonara/main/docs/screenshots/search.png" alt="Search with browse categories" width="30%" />
 </p>
 
 ---
@@ -23,6 +23,9 @@ Sonara is the app that was BitChord PlusPC, a fork of [`kushagrasinghx/BitChord`
 ## What's new
 
 - **A new mark and a livelier welcome**: the first screen draws the Sonara arcs in and lets them breathe.
+- **Home** greets you by the time of day and by name, under the mark in its own red, with a soft glow at the head of the page. Shelf headings are larger, and *Show all* is a pill you can actually hit.
+- **Search** opens on a question rather than a blank page — *What do you want to hear?* — with a grid of mood and genre categories to browse (tap one to open it in Explore). Result sections have clearer headings.
+- **Settings** leads with your account card (picture, name, address) and gives every category a coloured icon tile, so a row is found by colour before it is read. The foot of the page is signed with the Sonara mark and credits the BitChord project it is built on.
 - **Library**: the folder list is now a grid of tinted cards that ease in and give under the finger.
 - **Motion you can feel**: shelf, top-pick and mood cards respond to touch throughout the app, on 60, 90 and 120 Hz displays alike (*Settings → Appearance* keeps the high-refresh switch).
 - **Collaborative playlists**
