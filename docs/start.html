@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Get Sonara running — install, run from source, build</title>
+<meta name="description" content="Step-by-step guide to installing Sonara on Android, Windows, macOS and Linux, and running it from source (desktop, Android, web, backend).">
+<meta name="theme-color" content="#0b0910">
+<link rel="icon" href="assets/favicon.png" type="image/png">
+<meta property="og:title" content="Get Sonara running">
+<meta property="og:description" content="Install it in a tap, or build it from source: desktop, Android, web and backend.">
+<meta property="og:image" content="https://inventor365.github.io/Sonara/assets/og.png">
+<style>
+:root{--bg:#0b0910;--panel:rgba(255,255,255,.045);--panel2:rgba(255,255,255,.08);--line:rgba(255,255,255,.10);--text:#f6f1fa;--mute:#b4a9c6;--dim:#8b809d;--coral:#ff5a6a;--crim:#f0285a;
+  --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{color-scheme:dark;scroll-behavior:smooth;scroll-padding-top:76px}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 var(--font);
+  background-image:radial-gradient(900px 600px at 0% -5%,rgba(123,74,200,.36),transparent 60%),radial-gradient(900px 640px at 100% 105%,rgba(255,61,99,.26),transparent 60%);background-attachment:fixed}
+a{color:#ffb3bd}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px calc(48px + env(safe-area-inset-bottom))}
+:focus-visible{outline:2px solid var(--coral);outline-offset:3px;border-radius:10px}
+
+/* sticky nav */
+.bar{position:sticky;top:0;z-index:10;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);background:rgba(11,9,16,.78);border-bottom:1px solid var(--line)}
+.bar .in{max-width:860px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:10px;overflow-x:auto;scrollbar-width:none}
+.bar .in::-webkit-scrollbar{display:none}
+.bar img{width:30px;height:30px;border-radius:9px;flex:none}
+.bar .sp{flex:1}
+.chip{flex:none;padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--text);text-decoration:none;font-size:13.5px;font-weight:600;white-space:nowrap}
+.chip:hover{background:var(--panel2)}
+.chip.go{background:linear-gradient(135deg,#ff6a78,#f0285a);border-color:transparent}
+
+/* hero */
+.hero{padding:44px 0 26px}
+.eyebrow{display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#ffd7dc;background:rgba(255,90,106,.14);border:1px solid rgba(255,90,106,.4);padding:5px 12px;border-radius:999px;margin-bottom:16px}
+h1{margin:0 0 12px;font-size:clamp(34px,7vw,54px);line-height:1.04;letter-spacing:-.035em}
+h1 em{font-style:normal;background:linear-gradient(90deg,#fff,#ffb3bd);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{margin:0;color:var(--mute);font-size:clamp(16px,2.4vw,19px);max-width:36em}
+.paths{display:grid;gap:12px;margin-top:26px;grid-template-columns:1fr}
+@media(min-width:700px){.paths{grid-template-columns:repeat(3,1fr)}}
+.path{display:block;padding:16px 16px 14px;border-radius:18px;border:1px solid var(--line);background:var(--panel);text-decoration:none;color:var(--text);transition:transform .15s,background .15s,border-color .15s}
+.path:hover{background:var(--panel2);border-color:rgba(255,90,106,.5);transform:translateY(-2px)}
+.path b{display:block;font-size:16.5px;margin-bottom:3px}
+.path span{color:var(--dim);font-size:13.5px;line-height:1.4;display:block}
+.path i{font-style:normal;font-size:12px;font-weight:700;color:#ffb3bd;letter-spacing:.05em;text-transform:uppercase;display:block;margin-bottom:6px}
+
+/* sections */
+section.s{padding:34px 0 8px}
+h2{margin:0 0 6px;font-size:28px;letter-spacing:-.025em;display:flex;align-items:center;gap:12px}
+h2 .n{flex:none;width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,#ff6a78,#f0285a);font-size:16px}
+.sub{margin:0 0 20px;color:var(--mute)}
+h3{margin:26px 0 8px;font-size:18px}
+
+/* tabs */
+.tabs{margin:0 0 6px}
+.tablist{display:flex;gap:6px;padding:5px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tablist::-webkit-scrollbar{display:none}
+.tab{flex:1 0 auto;border:0;background:none;color:var(--mute);font:600 14.5px var(--font);padding:10px 16px;border-radius:12px;cursor:pointer;white-space:nowrap}
+.tab[aria-selected=true]{background:linear-gradient(135deg,#ff6a78,#f0285a);color:#fff}
+.tab:not([aria-selected=true]):hover{background:rgba(255,255,255,.07);color:var(--text)}
+.panel{padding-top:18px}
+.panel[hidden]{display:none}
+
+/* steps */
+ol.steps{list-style:none;counter-reset:st;margin:0;padding:0}
+ol.steps>li{counter-increment:st;position:relative;padding:0 0 22px 50px;margin:0}
+ol.steps>li::before{content:counter(st);position:absolute;left:0;top:0;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:15px;background:var(--panel2);border:1px solid var(--line);color:#ffd7dc}
+ol.steps>li::after{content:"";position:absolute;left:16.5px;top:40px;bottom:6px;width:1px;background:var(--line)}
+ol.steps>li:last-child::after{display:none}
+ol.steps b.t{display:block;font-size:17px;margin:2px 0 4px}
+ol.steps p{margin:0 0 8px;color:var(--mute)}
+code.i{font:13.5px var(--mono);background:rgba(255,255,255,.08);padding:2px 7px;border-radius:7px;color:#ffd7dc;word-break:break-word}
+
+/* code blocks */
+.code{position:relative;margin:10px 0 12px;border-radius:14px;background:#07050b;border:1px solid var(--line)}
+.code .lab{display:flex;align-items:center;justify-content:space-between;padding:7px 8px 7px 14px;border-bottom:1px solid var(--line);color:var(--dim);font:600 12px var(--font);letter-spacing:.04em;text-transform:uppercase}
+.code pre{margin:0;padding:13px 14px;overflow-x:auto;font:13.5px/1.6 var(--mono);color:#f3dfe4}
+.code pre .c{color:#7d7190}
+.cp{border:1px solid var(--line);background:var(--panel2);color:var(--text);font:600 12px var(--font);padding:5px 11px;border-radius:9px;cursor:pointer;letter-spacing:0;text-transform:none}
+.cp:hover{background:rgba(255,255,255,.14)}
+.cp.ok{background:#1f6b44;border-color:#2c8f5c}
+
+/* callouts + tables */
+.note{display:flex;gap:12px;margin:12px 0;padding:13px 15px;border-radius:14px;border:1px solid var(--line);background:var(--panel);color:var(--mute);font-size:14.5px}
+.note::before{content:"i";flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--font);background:rgba(120,170,255,.18);color:#bcd4ff;margin-top:1px}
+.note.warn::before{content:"!";background:rgba(255,190,80,.2);color:#ffd48a}
+.note.warn{border-color:rgba(255,190,80,.3)}
+.note p{margin:0}
+.tbl{overflow-x:auto;margin:8px 0 6px;border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:520px}
+th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;background:rgba(255,255,255,.03)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:650;white-space:nowrap}
+td small{color:var(--dim)}
+
+/* faq */
+details.q{border:1px solid var(--line);background:var(--panel);border-radius:14px;margin:10px 0;padding:0 16px}
+details.q summary{cursor:pointer;list-style:none;padding:14px 0;font-weight:650;display:flex;justify-content:space-between;gap:12px;align-items:center}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::after{content:"+";color:var(--dim);font-size:20px}
+details.q[open] summary::after{content:"–"}
+details.q .a{padding:0 0 14px;color:var(--mute);font-size:15px}
+details.q .a p{margin:0 0 8px}
+
+.btn{display:inline-flex;align-items:center;gap:10px;padding:13px 20px;border-radius:14px;text-decoration:none;font-weight:700;color:#fff;background:linear-gradient(135deg,#ff6a78,#f0285a)}
+.btn:hover{filter:brightness(1.07)}
+.foot{margin-top:40px;padding-top:22px;border-top:1px solid var(--line);color:var(--dim);font-size:14px;display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between}
+.foot nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.path{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="bar"><div class="in">
+  <img src="assets/logo.png" alt="Sonara" width="30" height="30">
+  <a class="chip" href="#install">Install</a>
+  <a class="chip" href="#source">Run from source</a>
+  <a class="chip" href="#verify">Verify</a>
+  <a class="chip" href="#fix">Fix it</a>
+  <span class="sp"></span>
+  <a class="chip go" href="https://inventor365.github.io/Sonara/">Download</a>
+  <a class="chip" href="https://github.com/Inventor365/Sonara" rel="noopener">GitHub</a>
+</div></div>
+
+<main class="wrap">
+
+<header class="hero">
+  <span class="eyebrow">Getting started</span>
+  <h1>Get <em>Sonara</em> running.</h1>
+  <p class="lede">Install a ready-made build in a minute, or clone the repo and run it yourself. Based on the project's README, DESKTOP.md and CONTRIBUTING.md.</p>
+  <div class="paths">
+    <a class="path" href="#install"><i>Easiest</i><b>Install a release</b><span>Android, Windows, macOS or Linux. No tools needed.</span></a>
+    <a class="path" href="#source"><i>For developers</i><b>Run from source</b><span>Clone, then launch the desktop app or an Android build.</span></a>
+    <a class="path" href="#web"><i>Optional</i><b>Web app &amp; backend</b><span>Browser player, extension and the Listen Together server.</span></a>
+  </div>
+</header>
+
+<!-- ============ INSTALL ============ -->
+<section class="s" id="install">
+  <h2><span class="n">1</span>Install a release</h2>
+  <p class="sub">Every desktop download bundles its own Java runtime, FFmpeg and the Automix models — nothing else to install first.</p>
+  <p><a class="btn" href="https://inventor365.github.io/Sonara/">Open the one-tap download page</a></p>
+
+  <div class="tabs" data-group="install">
+    <div class="tablist" role="tablist" aria-label="Operating system">
+      <button class="tab" role="tab" data-tab="android">Android</button>
+      <button class="tab" role="tab" data-tab="windows">Windows</button>
+      <button class="tab" role="tab" data-tab="macos">macOS</button>
+      <button class="tab" role="tab" data-tab="linux">Linux</button>
+    </div>
+
+    <div class="panel" role="tabpanel" data-panel="android">
+      <ol class="steps">
+        <li><b class="t">Pick the right APK</b>
+          <p><code class="i">Sonara-v&lt;version&gt;.apk</code> is universal and works everywhere. The <code class="i">_arm64-v8a</code> split is smaller and fits most phones. TV and watch have their own files: <code class="i">SonaraTV-…</code> and <code class="i">SonaraWear-…</code>.</p></li>
+        <li><b class="t">Open it and install</b>
+          <p>Tap the downloaded file. If Android asks, allow installs from your browser or file manager, then tap <b>Install</b>.</p></li>
+        <li><b class="t">Android TV or Wear OS (optional)</b>
+          <p>TV: use Downloader, LocalSend or <code class="i">adb</code>. Watch: open <b>Settings → Wear OS</b> in the phone app to push the bundled watch app over Wi-Fi debugging.</p>
+          <div class="code"><div class="lab"><span>TV · adb</span><button class="cp" type="button">Copy</button></div><pre>adb install -r SonaraTV-v*.apk</pre></div>
+          <div class="code"><div class="lab"><span>Watch · adb</span><button class="cp" type="button">Copy</button></div><pre>adb -s &lt;watch-ip&gt;:&lt;port&gt; install -r SonaraWear-v*.apk</pre></div></li>
+      </ol>
+      <div class="note"><p><b>Updating from BitChord PlusPC or an older Sonara?</b> From v1.10.0 on, releases share one signing key, so updates install in place and keep your library. Builds from before v1.10.0 and upstream BitChord used different keys — export your playlists, uninstall once, then install.</p></div>
+    </div>
+
+    <div class="panel" role="tabpanel" data-panel="windows" hidden>
+      <ol class="steps">
+        <li><b class="t">Choose a package</b>
+          <p><code class="i">…windows-x64-setup.exe</code> is the normal installer. It installs for your user, so it never asks for admin rights. The <code class="i">.msi</code> is for managed deployments, and <code class="i">…-portable.zip</code> runs from any folder.</p></li>
+        <li><b class="t">Run it</b>
+          <p>Double-click the installer. For the portable build, unzip it and launch <code class="i">Sonara\Sonara.exe</code> — it writes nothing outside its folder.</p></li>
+        <li><b class="t">If Automix never analyses a track</b>
+          <p>Install the <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe" rel="noopener">Microsoft Visual C++ 2015–2022 Redistributable (x64)</a> and restart Sonara. It's the one component the bundled runtime can't carry.</p></li>
+      </ol>
+      <div class="note"><p>If Windows SmartScreen warns about an unrecognised app, check the file's SHA-256 against the one GitHub shows next to it (see <a href="#verify">Verify</a>) before you continue.</p></div>
+    </div>
+
+    <div class="panel" role="tabpanel" data-panel="macos" hidden>
+      <ol class="steps">
+        <li><b class="t">Match your Mac's chip</b>
+          <p><code class="i">arm64</code> for Apple Silicon (M1–M4), <code class="i">x64</code> for Intel. Not sure? Apple menu → <b>About This Mac</b>. Requires macOS 12 or newer.</p></li>
+        <li><b class="t">Install</b>
+          <p><b>.dmg</b> (recommended): open it and drag <b>Sonara</b> into Applications. <b>.pkg</b>: run the installer. <b>.zip</b>: unzip and move <code class="i">Sonara.app</code> to Applications.</p></li>
+        <li><b class="t">First launch</b>
+          <p>Community builds are ad-hoc signed, not notarized. If macOS says the app is damaged or from an unidentified developer, right-click it → <b>Open</b>, or clear the quarantine flag:</p>
+          <div class="code"><div class="lab"><span>Terminal</span><button class="cp" type="button">Copy</button></div><pre>xattr -cr /Applications/Sonara.app</pre></div></li>
+      </ol>
+    </div>
+
+    <div class="panel" role="tabpanel" data-panel="linux" hidden>
+      <ol class="steps">
+        <li><b class="t">AppImage — any distro, nothing to install</b>
+          <div class="code"><div class="lab"><span>Terminal</span><button class="cp" type="button">Copy</button></div><pre>chmod +x Sonara-*-linux-x86_64.AppImage
+./Sonara-*-linux-x86_64.AppImage</pre></div>
+          <p>On Ubuntu 24.04+ it won't start without FUSE 2:</p>
+          <div class="code"><div class="lab"><span>Terminal</span><button class="cp" type="button">Copy</button></div><pre>sudo apt install libfuse2t64
+<span class="c"># or skip FUSE entirely:</span>
+./Sonara-*-linux-x86_64.AppImage --appimage-extract-and-run</pre></div></li>
+        <li><b class="t">Or use a native package</b>
+          <div class="code"><div class="lab"><span>Debian / Ubuntu</span><button class="cp" type="button">Copy</button></div><pre>sudo apt install ./Sonara-*-linux-amd64.deb</pre></div>
+          <div class="code"><div class="lab"><span>Fedora / RHEL / openSUSE</span><button class="cp" type="button">Copy</button></div><pre>sudo dnf install ./Sonara-*-linux-x86_64.rpm</pre></div></li>
+      </ol>
+      <div class="note"><p>Packages are built on Ubuntu 22.04, so they run on that release and anything newer. They need a normal desktop session (GTK 3, X11 or XWayland, OpenGL, ALSA) — a minimal or headless install will fail at startup.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SOURCE ============ -->
+<section class="s" id="source">
+  <h2><span class="n">2</span>Run it from source</h2>
+  <p class="sub">Sonara is Kotlin Multiplatform + Compose Multiplatform, with a React web app and a Go backend. Start with the desktop app — it needs the least setup.</p>
+
+  <h3>What to install first</h3>
+  <div class="tbl"><table>
+    <tr><th>Tool</th><th>Version</th><th>You need it for</th></tr>
+    <tr><td>Git</td><td>any</td><td>Cloning the repo</td></tr>
+    <tr><td>JDK</td><td>21 (Eclipse Temurin)</td><td>Desktop app and all Gradle builds</td></tr>
+    <tr><td>Android SDK + NDK</td><td><small>compileSdk 37 · minSdk 26 · CMake 3.22.1+</small></td><td>Android phone, TV, Wear OS only. Without an SDK the build simply skips the Android modules.</td></tr>
+    <tr><td>Node.js + pnpm</td><td>Node 22+ · pnpm via corepack</td><td>Web app and browser extension</td></tr>
+    <tr><td>Go</td><td>1.27+</td><td>Listen Together / collaboration backend</td></tr>
+  </table></div>
+  <p class="sub" style="margin:8px 0 0">Gradle itself comes with the repo (<code class="i">./gradlew</code>), and its daemon is set to a 4 GB heap, so keep some RAM free for the first build.</p>
+
+  <h3>Steps</h3>
+  <ol class="steps">
+    <li><b class="t">Clone the repo</b>
+      <div class="code"><div class="lab"><span>Terminal</span><button class="cp" type="button">Copy</button></div><pre>git clone https://github.com/Inventor365/Sonara.git
+cd Sonara</pre></div></li>
+    <li><b class="t">Launch what you want</b>
+      <div class="tabs" data-group="src">
+        <div class="tablist" role="tablist" aria-label="Target">
+          <button class="tab" role="tab" data-tab="desktop">Desktop</button>
+          <button class="tab" role="tab" data-tab="android">Android</button>
+          <button class="tab" role="tab" data-tab="pkg">Package installers</button>
+        </div>
+        <div class="panel" role="tabpanel" data-panel="desktop">
+          <p style="color:var(--mute);margin:0 0 6px">Needs JDK 21 on your <code class="i">PATH</code> (or selected as Gradle's JDK).</p>
+          <div class="code"><div class="lab"><span>macOS · Linux</span><button class="cp" type="button">Copy</button></div><pre>./gradlew :desktopApp:run</pre></div>
+          <div class="code"><div class="lab"><span>Windows</span><button class="cp" type="button">Copy</button></div><pre>gradlew.bat :desktopApp:run</pre></div>
+          <div class="note"><p>On Linux the run needs the desktop's graphics and audio libraries in the shell (GTK 3, GL, ALSA, FFmpeg). NixOS users: the repo's <a href="https://github.com/Inventor365/Sonara/blob/main/DESKTOP.md" rel="noopener">DESKTOP.md</a> has a ready-made <code class="i">nix-shell</code> command.</p></div>
+        </div>
+        <div class="panel" role="tabpanel" data-panel="android" hidden>
+          <p style="color:var(--mute);margin:0 0 6px">The Android modules are only included when Gradle can find your SDK. Open the project in Android Studio (it writes <code class="i">local.properties</code> for you), or create that file yourself — setting <code class="i">ANDROID_HOME</code> works too:</p>
+          <div class="code"><div class="lab"><span>local.properties</span><button class="cp" type="button">Copy</button></div><pre>sdk.dir=/path/to/Android/Sdk</pre></div>
+          <div class="code"><div class="lab"><span>Build debug APKs</span><button class="cp" type="button">Copy</button></div><pre>./gradlew :app:assembleDevDebug :tv:assembleDebug :wearos:assembleDevDebug</pre></div>
+          <div class="code"><div class="lab"><span>Install on a USB-debugging phone</span><button class="cp" type="button">Copy</button></div><pre>./gradlew :app:installDevDebug</pre></div>
+          <div class="note"><p>Debug builds are signed with the debug key, so no keystore is needed. Release signing is covered in <a href="https://github.com/Inventor365/Sonara/blob/main/docs/SIGNING.md" rel="noopener">docs/SIGNING.md</a>. Optional keys such as <code class="i">LISTEN_TOGETHER_SERVER</code> and <code class="i">COLLAB_SERVER</code> also go in <code class="i">local.properties</code> and are never committed.</p></div>
+        </div>
+        <div class="panel" role="tabpanel" data-panel="pkg" hidden>
+          <p style="color:var(--mute);margin:0 0 6px">Each installer must be built on the OS it's for.</p>
+          <div class="code"><div class="lab"><span>macOS</span><button class="cp" type="button">Copy</button></div><pre>./gradlew :desktopApp:packageDmg
+./gradlew :desktopApp:packagePkg</pre></div>
+          <div class="code"><div class="lab"><span>Linux (needs rpm, fakeroot, binutils)</span><button class="cp" type="button">Copy</button></div><pre>./gradlew :desktopApp:packageDeb
+./gradlew :desktopApp:packageRpm</pre></div>
+          <div class="code"><div class="lab"><span>Windows (needs WiX Toolset 3 on PATH)</span><button class="cp" type="button">Copy</button></div><pre>gradlew.bat :desktopApp:packageExe
+gradlew.bat :desktopApp:packageMsi</pre></div>
+        </div>
+      </div></li>
+    <li><b class="t">Run the tests (before you open a PR)</b>
+      <div class="code"><div class="lab"><span>Terminal</span><button class="cp" type="button">Copy</button></div><pre>./gradlew :shared:jvmTest :sharedUi:jvmTest :desktopUi:jvmTest :desktopApp:test \
+  :app:testDevDebugUnitTest :tv:testDevDebugUnitTest</pre></div></li>
+  </ol>
+</section>
+
+<!-- ============ WEB + BACKEND ============ -->
+<section class="s" id="web">
+  <h2><span class="n">3</span>Web app &amp; backend <span style="font-size:14px;font-weight:600;color:var(--dim)">optional</span></h2>
+  <p class="sub">The app works in Guest mode with no server. Collaborative playlists need your own backend and a Google OAuth client ID.</p>
+
+  <h3>Web player and browser extension</h3>
+  <div class="code"><div class="lab"><span>Terminal</span><button class="cp" type="button">Copy</button></div><pre>cd web
+corepack enable
+corepack pnpm install --frozen-lockfile
+corepack pnpm --filter @bitchord/app dev          <span class="c"># player at http://localhost:5173</span>
+corepack pnpm --filter @bitchord/extension build  <span class="c"># load web/extension/.output/chrome-mv3 as an unpacked extension</span></pre></div>
+
+  <h3>Go backend (Listen Together, presence, collaborative playlists)</h3>
+  <div class="code"><div class="lab"><span>Terminal</span><button class="cp" type="button">Copy</button></div><pre>cd backend
+COLLAB_DATA_PATH=./data/collab.json \
+COLLAB_GOOGLE_CLIENT_IDS="your-client-id.apps.googleusercontent.com" \
+ALLOWED_ORIGINS="https://your-web-origin.example.com" \
+PORT=8080 \
+go run .</pre></div>
+  <p class="sub">Then point the app at it in <b>Library → Collab Account</b> (Android and desktop) or <b>Settings → Collaborative Playlists</b> (web). Reverse-proxy and systemd setups are in <a href="https://github.com/Inventor365/Sonara/blob/main/backend/README.md" rel="noopener">backend/README.md</a>.</p>
+</section>
+
+<!-- ============ VERIFY ============ -->
+<section class="s" id="verify">
+  <h2><span class="n">4</span>Verify your download</h2>
+  <p class="sub">GitHub shows a SHA-256 next to every release file. Compare it with your copy's hash.</p>
+  <div class="tabs" data-group="hash">
+    <div class="tablist" role="tablist" aria-label="Hash tool">
+      <button class="tab" role="tab" data-tab="linux">Linux</button>
+      <button class="tab" role="tab" data-tab="macos">macOS</button>
+      <button class="tab" role="tab" data-tab="windows">Windows</button>
+    </div>
+    <div class="panel" role="tabpanel" data-panel="linux"><div class="code"><div class="lab"><span>Terminal</span><button class="cp" type="button">Copy</button></div><pre>sha256sum Sonara-*</pre></div></div>
+    <div class="panel" role="tabpanel" data-panel="macos" hidden><div class="code"><div class="lab"><span>Terminal</span><button class="cp" type="button">Copy</button></div><pre>shasum -a 256 Sonara-*</pre></div></div>
+    <div class="panel" role="tabpanel" data-panel="windows" hidden><div class="code"><div class="lab"><span>PowerShell</span><button class="cp" type="button">Copy</button></div><pre>Get-FileHash .\Sonara-*-windows-x64-setup.exe -Algorithm SHA256</pre></div></div>
+  </div>
+  <p class="sub" style="margin-top:6px">Android releases from v1.10.0 on are all signed with one permanent certificate (SHA-256 <code class="i">d6d9c697…c3bb2</code>), which is why updates install over the top. The full fingerprint is in the <a href="https://github.com/Inventor365/Sonara#5-updating-safely-without-losing-data" rel="noopener">README</a>.</p>
+</section>
+
+<!-- ============ FIX ============ -->
+<section class="s" id="fix">
+  <h2><span class="n">5</span>If something goes wrong</h2>
+  <details class="q"><summary>Android: “App not installed as package conflicts with an existing package”</summary><div class="a"><p>An APK signed with a different key is already installed (upstream BitChord, or a local debug build). Export your playlists, uninstall the other build once, then install the release APK. Later updates install in place.</p></div></details>
+  <details class="q"><summary>macOS: “Sonara is damaged and can't be opened”</summary><div class="a"><p>Gatekeeper is blocking an un-notarized build. After moving the app to Applications, run <code class="i">xattr -cr /Applications/Sonara.app</code>, or right-click the app and choose Open.</p></div></details>
+  <details class="q"><summary>Linux: the AppImage won't launch on Ubuntu 24.04+</summary><div class="a"><p>Install FUSE 2 with <code class="i">sudo apt install libfuse2t64</code>, run it with <code class="i">--appimage-extract-and-run</code>, or use the <code class="i">.deb</code> instead.</p></div></details>
+  <details class="q"><summary>Windows: Sonara starts but Automix never analyses anything</summary><div class="a"><p>Install the Visual C++ 2015–2022 Redistributable (x64) from Microsoft and restart Sonara.</p></div></details>
+  <details class="q"><summary>Collaborative sign-in says “Configure Collaboration Server URL / Google Client ID”</summary><div class="a"><p>Open <b>Library → Collab Account</b> (or <b>Settings → Collaborative Playlists</b> on web) and enter your backend's HTTPS URL and your Google OAuth client ID.</p></div></details>
+</section>
+
+<footer class="foot">
+  <span>Sonara is GPL-3.0 and builds on BitChord by Kushagra Singh.</span>
+  <nav>
+    <a href="https://inventor365.github.io/Sonara/">Download</a>
+    <a href="https://github.com/Inventor365/Sonara" rel="noopener">Source</a>
+    <a href="https://github.com/Inventor365/Sonara/blob/main/CONTRIBUTING.md" rel="noopener">Contribute</a>
+    <a href="https://github.com/Inventor365/Sonara/issues" rel="noopener">Report an issue</a>
+  </nav>
+</footer>
+</main>
+
+<script>
+(function () {
+  // ----- tabs -----
+  function select(group, name) {
+    var tabs = group.querySelectorAll(':scope > .tablist > .tab, :scope > .tablist .tab');
+    var own = group.querySelector(':scope > .tablist');
+    own.querySelectorAll('.tab').forEach(function (t) {
+      var on = t.dataset.tab === name; t.setAttribute('aria-selected', on ? 'true' : 'false'); t.tabIndex = on ? 0 : -1;
+    });
+    Array.prototype.forEach.call(group.children, function (p) {
+      if (p.classList && p.classList.contains('panel')) p.hidden = p.dataset.panel !== name;
+    });
+  }
+  document.querySelectorAll('.tabs').forEach(function (g) {
+    var list = g.querySelector(':scope > .tablist'), first = list.querySelector('.tab').dataset.tab;
+    list.addEventListener('click', function (e) { var t = e.target.closest('.tab'); if (t) select(g, t.dataset.tab); });
+    list.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      var ts = Array.prototype.slice.call(list.querySelectorAll('.tab')), i = ts.indexOf(document.activeElement); if (i < 0) return;
+      var n = ts[(i + (e.key === 'ArrowRight' ? 1 : ts.length - 1)) % ts.length]; n.focus(); select(g, n.dataset.tab);
+    });
+    select(g, first);
+  });
+  // preselect the visitor's OS in the install and verify tabs
+  var ua = navigator.userAgent, os = /Android/.test(ua) ? 'android' : /Windows/.test(ua) ? 'windows' : /Mac OS X|Macintosh/.test(ua) && !/iPhone|iPad/.test(ua) ? 'macos' : /Linux|X11/.test(ua) ? 'linux' : null;
+  if (os) document.querySelectorAll('.tabs[data-group="install"], .tabs[data-group="hash"]').forEach(function (g) {
+    if (g.querySelector('.tab[data-tab="' + os + '"]')) select(g, os);
+  });
+  if (os === 'android') document.querySelectorAll('.tabs[data-group="hash"]').forEach(function (g) { select(g, 'linux'); });
+
+  // ----- copy buttons -----
+  function fallback(t) { var a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); } catch (e) {} a.remove(); }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('.cp'); if (!b) return;
+    var text = b.closest('.code').querySelector('pre').innerText.replace(/ /g, ' ');
+    var done = function () { b.textContent = 'Copied'; b.classList.add('ok'); setTimeout(function () { b.textContent = 'Copy'; b.classList.remove('ok'); }, 1400); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { fallback(text); done(); });
+    else { fallback(text); done(); }
+  });
+})();
+</script>
+</body>
+</html>

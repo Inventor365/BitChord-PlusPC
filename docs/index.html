@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Download Sonara — Android, TV, Wear OS, Windows, macOS, Linux</title>
+<meta name="description" content="One tap to download Sonara for your device. Multiplatform, open-source music client with native desktop apps, collaborative playlists and lossless audio.">
+<meta name="theme-color" content="#0b0910">
+<link rel="canonical" href="https://inventor365.github.io/Sonara/">
+<link rel="icon" href="assets/favicon.png" type="image/png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Download Sonara">
+<meta property="og:description" content="One tap. Pick your OS. It downloads. Android · TV · Wear OS · Windows · macOS · Linux.">
+<meta property="og:url" content="https://inventor365.github.io/Sonara/">
+<meta property="og:image" content="https://inventor365.github.io/Sonara/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+:root{
+  --bg:#0b0910; --panel:rgba(255,255,255,.045); --panel2:rgba(255,255,255,.075); --line:rgba(255,255,255,.10);
+  --text:#f6f1fa; --mute:#b4a9c6; --dim:#8b809d; --coral:#ff5a6a; --crim:#f0285a; --violet:#7b4ac8;
+  --r:20px; --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{color-scheme:dark;scroll-behavior:smooth}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font:16px/1.5 var(--font);
+  background-image:radial-gradient(900px 600px at 0% -5%,rgba(123,74,200,.38),transparent 60%),radial-gradient(900px 640px at 100% 105%,rgba(255,61,99,.28),transparent 60%);
+  background-attachment:fixed}
+a{color:inherit}
+.wrap{max-width:980px;margin:0 auto;padding:max(22px,env(safe-area-inset-top)) 20px calc(40px + env(safe-area-inset-bottom))}
+:focus-visible{outline:2px solid var(--coral);outline-offset:3px;border-radius:10px}
+svg.i{width:1.25em;height:1.25em;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+svg.i.fill{fill:currentColor;stroke:none}
+
+/* top bar */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:26px}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.brand img{width:44px;height:44px;border-radius:12px;display:block}
+.brand b{font-size:20px;letter-spacing:-.02em}
+.top nav{display:flex;gap:8px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);
+  color:var(--text);text-decoration:none;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.pill:hover{background:var(--panel2)}
+.pill.star{background:linear-gradient(135deg,#ff6a78,#f0285a);border-color:transparent}
+.pill.star:hover{filter:brightness(1.06)}
+.pill .n{opacity:.9;font-variant-numeric:tabular-nums}
+@media (max-width:520px){.hide-s{display:none}}
+
+/* hero */
+.hero{display:grid;gap:28px;grid-template-columns:1fr;align-items:center;margin-bottom:34px}
+@media (min-width:880px){.hero{grid-template-columns:1.25fr .75fr;gap:44px}}
+h1{margin:0 0 10px;font-size:clamp(34px,7vw,56px);line-height:1.03;letter-spacing:-.035em}
+h1 em{font-style:normal;background:linear-gradient(90deg,#fff,#ffb3bd);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{margin:0 0 22px;color:var(--mute);font-size:clamp(16px,2.4vw,19px);max-width:36em}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px}
+.tag{font-size:12.5px;font-weight:600;letter-spacing:.02em;padding:5px 11px;border-radius:999px;border:1px solid var(--line);color:var(--mute);background:rgba(255,255,255,.03)}
+.tag.live{color:#ffd7dc;border-color:rgba(255,90,106,.45);background:rgba(255,90,106,.10)}
+
+/* cta */
+.cta{padding:20px;border-radius:24px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.03));box-shadow:0 24px 60px -30px rgba(240,40,90,.55)}
+.cta .det{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--mute);margin-bottom:12px}
+.cta .det i{width:8px;height:8px;border-radius:50%;background:#46e08a;box-shadow:0 0 0 4px rgba(70,224,138,.18)}
+.btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:17px 20px;border-radius:16px;text-decoration:none;font-weight:700;font-size:18px;
+  color:#fff;background:linear-gradient(135deg,#ff6a78,#f0285a);border:0;cursor:pointer;font-family:inherit;transition:transform .12s,filter .12s}
+.btn:hover{filter:brightness(1.07)}.btn:active{transform:scale(.985)}
+.btn.ghost{background:var(--panel2);border:1px solid var(--line);font-size:16px;padding:14px 18px;font-weight:650}
+.btn + .btn{margin-top:10px}
+.btnrow{display:grid;gap:10px;grid-template-columns:1fr 1fr;align-items:stretch}
+.btnrow > .btn + .btn{margin-top:0}
+.card .btnrow{grid-template-columns:1fr}
+.btnrow .btn{flex-direction:column;gap:2px;font-size:16px;text-align:center}
+.btnrow .btn small{font-weight:500;opacity:.85;font-size:12.5px}
+.meta{margin:12px 2px 0;color:var(--dim);font-size:13px;word-break:break-all}
+.meta button{all:unset;cursor:pointer;color:var(--mute);text-decoration:underline dotted;font-family:var(--mono);font-size:12px}
+.sub{display:block;margin:12px 2px 0;font-size:14px;color:var(--mute);text-decoration:none}
+a.sub:hover{color:var(--text);text-decoration:underline}
+.note{margin:0;color:var(--mute);font-size:15px}
+.skel{height:56px;border-radius:16px;background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.12),rgba(255,255,255,.05));background-size:200% 100%;animation:sh 1.2s infinite linear}
+@keyframes sh{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.skel{animation:none}html{scroll-behavior:auto}}
+
+/* qr aside */
+.qrbox{display:none;text-align:center}
+@media (min-width:880px){.qrbox{display:block}}
+.qrbox img{width:100%;max-width:260px;border-radius:26px;box-shadow:0 30px 70px -28px rgba(240,40,90,.7)}
+.qrbox p{margin:14px 0 0;color:var(--mute);font-size:14px}
+
+/* platforms */
+h2{font-size:22px;letter-spacing:-.02em;margin:0 0 4px}
+.h2sub{margin:0 0 18px;color:var(--dim);font-size:14.5px}
+.grid{display:grid;gap:14px;grid-template-columns:1fr}
+@media (min-width:640px){.grid{grid-template-columns:1fr 1fr}}
+@media (min-width:940px){.grid{grid-template-columns:1fr 1fr 1fr}}
+.card{position:relative;display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:var(--r);background:var(--panel);border:1px solid var(--line)}
+.card.me{border-color:rgba(255,90,106,.55);background:linear-gradient(180deg,rgba(255,90,106,.11),rgba(255,255,255,.03))}
+.card .tagme{position:absolute;top:14px;right:14px;font-size:11.5px;font-weight:700;color:#ffd7dc;background:rgba(255,90,106,.18);padding:3px 9px;border-radius:999px}
+.ch{display:flex;gap:12px;align-items:center}
+.ic{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:rgba(255,255,255,.07);color:#ffb3bd}
+.ic svg.i{width:24px;height:24px}
+.ct{font-weight:700;font-size:17px;line-height:1.2}
+.cs{color:var(--dim);font-size:13px;line-height:1.3;margin-top:2px}
+.card .btn{font-size:16px;padding:14px 16px;border-radius:14px}
+details{border-top:1px solid var(--line);padding-top:10px}
+summary{cursor:pointer;color:var(--mute);font-size:14px;font-weight:600;list-style:none;display:flex;align-items:center;justify-content:space-between}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-size:18px;color:var(--dim)}
+details[open] summary::after{content:"–"}
+.more{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);text-decoration:none;font-size:14px}
+.row:hover{background:rgba(255,255,255,.09)}
+.row span:last-child{color:var(--dim);font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ios{margin-top:14px;padding:14px 16px;border-radius:var(--r);border:1px dashed var(--line);color:var(--mute);font-size:14.5px}
+
+/* footer */
+.foot{margin-top:38px;padding-top:22px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;color:var(--dim);font-size:13.5px}
+.foot nav{display:flex;flex-wrap:wrap;gap:8px}
+.foot p{margin:0;max-width:44em}
+.foot a.u{color:var(--mute)}
+
+/* after-download sheet */
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:20;transform:translateY(110%);transition:transform .28s cubic-bezier(.2,.8,.2,1);padding:0 12px calc(12px + env(safe-area-inset-bottom))}
+.sheet.on{transform:none}
+.sheet .in{max-width:640px;margin:0 auto;border-radius:24px;border:1px solid var(--line);background:rgba(20,15,28,.96);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  padding:18px 18px 16px;box-shadow:0 -20px 60px rgba(0,0,0,.55)}
+.sheet h3{margin:0 0 2px;font-size:17px;display:flex;align-items:center;gap:10px}
+.sheet h3 i{width:9px;height:9px;border-radius:50%;background:#46e08a;box-shadow:0 0 0 4px rgba(70,224,138,.2);flex:none}
+.sheet .fn{margin:0 0 10px;color:var(--dim);font:12.5px var(--mono);word-break:break-all}
+.sheet ol{margin:0 0 10px;padding-left:20px;color:var(--mute);font-size:14.5px}
+.sheet li{margin:4px 0}
+.cmd{display:flex;gap:8px;align-items:stretch;margin:8px 0 0}
+.cmd code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;padding:10px 12px;border-radius:12px;background:#07050b;border:1px solid var(--line);font:13px var(--mono);color:#ffd7dc}
+.cmd button{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:12px;padding:0 14px;font-weight:600;cursor:pointer;font-family:inherit}
+.sheet .in{position:relative}
+.sheet .x{position:absolute;right:14px;top:8px;border:0;background:none;color:var(--dim);font-size:26px;cursor:pointer;line-height:1}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,30px);opacity:0;pointer-events:none;background:#1c1426;border:1px solid var(--line);padding:10px 16px;border-radius:999px;font-size:14px;z-index:30;transition:.25s}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <a class="brand" href="./" aria-label="Sonara home"><img src="assets/logo.png" alt="" width="44" height="44"><b>Sonara</b></a>
+    <nav>
+      <button class="pill hide-s" id="share" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M12 15V3M7.5 7.5L12 3l4.5 4.5M5 12v7.5h14V12"/></svg>Share</button>
+      <a class="pill star" id="starbtn" href="https://github.com/Inventor365/Sonara" rel="noopener"><svg class="i fill" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/></svg>Star<span class="n" id="starn"></span></a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div>
+      <h1>Your music on <em>phone, TV, watch &amp; desktop.</em></h1>
+      <p class="lede">Sonara is an open-source music client with native desktop apps, word-synced lyrics, collaborative playlists and lossless audio. Tap once — the right build for your device starts downloading.</p>
+      <div class="tags" id="tags"><span class="tag live" id="tagver">Finding latest release…</span><span class="tag">Open source · GPL-3.0</span><span class="tag">Signed Android builds</span></div>
+
+      <div class="cta" id="cta" aria-live="polite">
+        <div class="skel"></div>
+        <noscript><p class="note">JavaScript is off. <a href="https://github.com/Inventor365/Sonara/releases/latest">Open the latest release</a> and pick your file.</p></noscript>
+      </div>
+    </div>
+    <aside class="qrbox" aria-label="QR code">
+      <img src="assets/sonara-qr.png" alt="QR code that opens this page" width="260" height="260">
+      <p>On a computer? Scan with your phone to get the Android app.</p>
+    </aside>
+  </section>
+
+  <section id="platforms" aria-labelledby="ph">
+    <h2 id="ph">Choose your platform</h2>
+    <p class="h2sub">Tap a button and the download starts straight away.</p>
+    <div class="grid" id="grid"></div>
+    <div class="ios" id="ios" hidden>Sonara doesn't have an iPhone or iPad app yet. The Android, desktop and web builds are all here — grab one for another device.</div>
+  </section>
+
+  <footer class="foot">
+    <p>Sonara is free, open source (GPL-3.0) and not affiliated with YouTube, Google, Apple or Spotify. It builds on <a class="u" href="https://github.com/kushagrasinghx/BitChord" rel="noopener">BitChord</a> by Kushagra Singh.</p>
+    <nav>
+      <a class="pill" href="start.html">How to run it</a>
+      <a class="pill" id="notes" href="https://github.com/Inventor365/Sonara/releases" rel="noopener">Release notes</a>
+      <a class="pill" href="https://github.com/Inventor365" rel="noopener">Follow @Inventor365</a>
+    </nav>
+  </footer>
+</div>
+
+<div class="sheet" id="sheet" role="dialog" aria-labelledby="sheetT" aria-hidden="true">
+  <div class="in">
+    <button class="x" type="button" id="sheetX" aria-label="Close">×</button>
+    <h3 id="sheetT"><i></i><span>Download started</span></h3>
+    <p class="fn" id="sheetF"></p>
+    <ol id="sheetS"></ol>
+    <div class="cmd" id="sheetC" hidden><code id="sheetCode"></code><button type="button" id="sheetCopy">Copy</button></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<!-- ======================= CORE (pure logic, no DOM) ======================= -->
+<script id="core">
+var SONARA = (function () {
+  var REPO = "Inventor365/Sonara";
+  var BASE = "https://github.com/" + REPO + "/releases/download/";
+  var RELEASES = "https://github.com/" + REPO + "/releases/latest";
+
+  function safeUrl(u) { return typeof u === "string" && u.indexOf(BASE) === 0; }
+
+  // File name -> {os, variant}. Mirrors the names produced by .github/workflows/release.yml
+  function classify(name) {
+    var n = String(name).toLowerCase(), m;
+    if ((m = /^sonaratv-v[0-9][0-9a-z.\-]*?(?:_(arm64-v8a|armeabi-v7a|x86_64))?\.apk$/.exec(n))) return { os: "tv", variant: m[1] || "universal" };
+    if (/^sonarawear-v[0-9][0-9a-z.\-]*\.apk$/.test(n)) return { os: "wear", variant: "universal" };
+    if ((m = /^sonara-v[0-9][0-9a-z.\-]*?(?:_(arm64-v8a|armeabi-v7a|x86_64))?\.apk$/.exec(n))) return { os: "android", variant: m[1] || "universal" };
+    if ((m = /^sonara-[0-9][0-9a-z.\-]*?-macos-(arm64|x64)\.(dmg|pkg|zip)$/.exec(n))) return { os: "macos", variant: m[1] + "." + m[2] };
+    if (/^sonara-[0-9][0-9a-z.\-]*?-windows-x64-setup\.exe$/.test(n)) return { os: "windows", variant: "exe" };
+    if (/^sonara-[0-9][0-9a-z.\-]*?-windows-x64\.msi$/.test(n)) return { os: "windows", variant: "msi" };
+    if (/^sonara-[0-9][0-9a-z.\-]*?-windows-x64-portable\.zip$/.test(n)) return { os: "windows", variant: "portable" };
+    if (/^sonara-[0-9][0-9a-z.\-]*?-linux-x86_64\.appimage$/.test(n)) return { os: "linux", variant: "appimage" };
+    if (/^sonara-[0-9][0-9a-z.\-]*?-linux-amd64\.deb$/.test(n)) return { os: "linux", variant: "deb" };
+    if (/^sonara-[0-9][0-9a-z.\-]*?-linux-x86_64\.rpm$/.test(n)) return { os: "linux", variant: "rpm" };
+    return null;
+  }
+
+  function emptyCatalog() { return { android: {}, tv: {}, wear: {}, windows: {}, macos: {}, linux: {} }; }
+
+  // GitHub "release" JSON -> {tag, date, page, catalog}
+  function fromApi(rel) {
+    var cat = emptyCatalog(), count = 0;
+    (rel.assets || []).forEach(function (a) {
+      var c = classify(a.name);
+      var url = a.browser_download_url;
+      if (!c || !safeUrl(url)) return;
+      cat[c.os][c.variant] = { name: a.name, url: url, size: a.size || null, digest: a.digest || null };
+      count++;
+    });
+    return count ? { tag: rel.tag_name, date: rel.published_at, page: rel.html_url, catalog: cat } : null;
+  }
+
+  // ota.json (maintained in the repo) -> same shape. No sizes, but always in step with the latest tag.
+  function fromOta(j) {
+    var d = j && j.downloads; if (!d) return null;
+    var cat = emptyCatalog(), count = 0;
+    function put(os, variant, url) {
+      if (!safeUrl(url)) return;
+      cat[os][variant] = { name: decodeURIComponent(url.split("/").pop()), url: url, size: null, digest: null }; count++;
+    }
+    var k;
+    for (k in (d.android || {})) put("android", k, d.android[k]);
+    for (k in (d.tv || {})) put("tv", k, d.tv[k]);
+    if (d.wear) put("wear", "universal", d.wear);
+    for (k in (d.windows || {})) put("windows", k, d.windows[k]);
+    for (k in (d.macos || {})) put("macos", k + ".dmg", d.macos[k]);
+    for (k in (d.linux || {})) put("linux", k === "appimage" ? "appimage" : k, d.linux[k]);
+    return count ? { tag: "v" + j.version, date: null, page: j.releaseUrl, catalog: cat } : null;
+  }
+
+  function androidAbi(l, platform, h) {
+    var arch = String(h.architecture || "").toLowerCase(), bits = String(h.bitness || "");
+    if (arch === "arm") { if (bits === "64") return "arm64-v8a"; if (bits === "32") return "armeabi-v7a"; }
+    if (arch === "x86" && bits === "64") return "x86_64";
+    var p = platform + " " + l;
+    if (/aarch64|arm64|armv9/.test(p)) return "arm64-v8a";
+    if (/armv7|armv6|armeabi/.test(p)) return "armeabi-v7a";
+    return null; // unknown (incl. "armv8l", which can be a 32-bit OS, and x86 claims) -> universal APK, always safe
+  }
+
+  function detect(ua, uaData, platform, touch) {
+    ua = ua || ""; platform = String(platform || "").toLowerCase(); uaData = uaData || {};
+    var l = ua.toLowerCase(), out = { os: "other", arch: null, abi: null };
+    if (/android/.test(l)) {
+      if (/android tv|smart-?tv|googletv|google tv|bravia|crkey|mitv|; tv\b/.test(l) || /\bAFT[A-Z0-9]{1,5}\b/.test(ua)) out.os = "tv";
+      else if (/wear ?os|wearos/.test(l)) out.os = "wear";
+      else out.os = "android";
+      out.abi = androidAbi(l, platform, uaData);
+    } else if (/iphone|ipad|ipod/.test(l) || (/macintosh/.test(l) && touch > 1)) {
+      out.os = "ios";
+    } else if (/windows nt|win64|wow64/.test(l)) {
+      out.os = "windows";
+    } else if (/macintosh|mac os x/.test(l)) {
+      out.os = "macos";
+      var a = String(uaData.architecture || "").toLowerCase();
+      out.arch = a === "arm" ? "arm64" : a === "x86" ? "x64" : null;
+    } else if (/cros/.test(l)) {
+      out.os = "chromeos";
+    } else if (/linux|x11|ubuntu|fedora|debian/.test(l)) {
+      out.os = "linux";
+    }
+    return out;
+  }
+
+  // What the big button should fetch for a detected device. Returns {entries:[...], ask:bool}
+  function recommend(info, cat) {
+    var c = cat[info.os] || {};
+    function pick(v) { return c[v] ? [{ os: info.os, variant: v, e: c[v] }] : []; }
+    if (info.os === "android" || info.os === "tv") {
+      if (info.abi && c[info.abi]) return { entries: pick(info.abi), alt: [], abiKnown: true };
+      var alt = c["arm64-v8a"] ? pick("arm64-v8a") : [];
+      return { entries: pick("universal"), alt: alt, abiKnown: false };
+    }
+    if (info.os === "wear") return { entries: pick("universal"), alt: [] };
+    if (info.os === "windows") return { entries: pick("exe"), alt: [] };
+    if (info.os === "linux") return { entries: pick("appimage"), alt: [] };
+    if (info.os === "macos") {
+      if (info.arch && c[info.arch + ".dmg"]) return { entries: pick(info.arch + ".dmg"), alt: [] };
+      return { entries: [].concat(pick("arm64.dmg"), pick("x64.dmg")), alt: [], ask: true };
+    }
+    return { entries: [], alt: [] };
+  }
+
+  function fmtSize(b) {
+    if (!b) return "";
+    var u = ["B", "kB", "MB", "GB"], i = 0, v = b;
+    while (v >= 1000 && i < 3) { v /= 1000; i++; }
+    return (v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2)) + " " + u[i];
+  }
+
+  var api = { REPO: REPO, RELEASES: RELEASES, classify: classify, fromApi: fromApi, fromOta: fromOta, detect: detect,
+              recommend: recommend, fmtSize: fmtSize, safeUrl: safeUrl, emptyCatalog: emptyCatalog };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  return api;
+})();
+</script>
+
+<!-- ======================= UI ======================= -->
+<script id="ui">
+(function () {
+  var S = SONARA, $ = function (id) { return document.getElementById(id); };
+  var ICONS = {
+    phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+    tv: '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/>',
+    watch: '<rect x="7" y="6" width="10" height="12" rx="3.5"/><path d="M9 6l.8-3h4.4L15 6M9 18l.8 3h4.4l.8-3"/>',
+    win: '<rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.2"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.2"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.2"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.2"/>',
+    laptop: '<rect x="4.5" y="5" width="15" height="10.5" rx="1.8"/><path d="M2.5 19h19"/>',
+    term: '<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M7.5 9.5l3 2.5-3 2.5M12.5 15h4"/>',
+    down: '<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/>'
+  };
+  function icon(n) { return '<svg class="i" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[n] + '</svg>'; }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  var OSES = [
+    { id: "android", title: "Android", sub: "Phone, tablet & Android Auto · Android 8+", icon: "phone" },
+    { id: "tv", title: "Android TV / Fire TV", sub: "Sideload the TV build", icon: "tv" },
+    { id: "wear", title: "Wear OS", sub: "Wear OS 3+ · also bundled in the phone app", icon: "watch" },
+    { id: "windows", title: "Windows", sub: "Windows 10 / 11 · x64", icon: "win" },
+    { id: "macos", title: "macOS", sub: "macOS 12+ · Apple Silicon & Intel", icon: "laptop" },
+    { id: "linux", title: "Linux", sub: "x86_64 · any distro", icon: "term" }
+  ];
+  var LABEL = {
+    android: { universal: "Universal APK (works on every device)", "arm64-v8a": "arm64-v8a — smaller, most phones", "armeabi-v7a": "armeabi-v7a — older 32-bit phones", x86_64: "x86_64 — emulators & Chromebooks" },
+    tv: { universal: "Universal APK (works on every TV)", "arm64-v8a": "arm64-v8a — smaller", "armeabi-v7a": "armeabi-v7a — older boxes", x86_64: "x86_64" },
+    wear: { universal: "Wear OS APK (adb install)" },
+    windows: { exe: "Installer (.exe) — recommended", msi: "MSI package", portable: "Portable (.zip)" },
+    macos: { "arm64.dmg": "Apple Silicon (M1–M4) · .dmg", "x64.dmg": "Intel · .dmg", "arm64.pkg": "Apple Silicon · .pkg", "x64.pkg": "Intel · .pkg", "arm64.zip": "Apple Silicon · .zip", "x64.zip": "Intel · .zip" },
+    linux: { appimage: "AppImage — any distro", deb: "Debian / Ubuntu (.deb)", rpm: "Fedora / RHEL / openSUSE (.rpm)" }
+  };
+  var ORDER = {
+    android: ["universal", "arm64-v8a", "armeabi-v7a", "x86_64"], tv: ["universal", "arm64-v8a", "armeabi-v7a", "x86_64"], wear: ["universal"],
+    windows: ["exe", "msi", "portable"], macos: ["arm64.dmg", "x64.dmg", "arm64.pkg", "x64.pkg", "arm64.zip", "x64.zip"], linux: ["appimage", "deb", "rpm"]
+  };
+  var PRIMARY_DEFAULT = { android: ["universal"], tv: ["universal"], wear: ["universal"], windows: ["exe"], macos: ["arm64.dmg", "x64.dmg"], linux: ["appimage"] };
+  var NICE = { android: "Android", tv: "Android TV", wear: "Wear OS", windows: "Windows", macos: "macOS", linux: "Linux" };
+
+  var state = { rel: null, info: null };
+
+  /* ---------- detect ---------- */
+  function getInfo() {
+    var h = {};
+    var info = S.detect(navigator.userAgent, h, navigator.platform, navigator.maxTouchPoints);
+    return info;
+  }
+  function refineWithHints(info, cb) {
+    var uad = navigator.userAgentData;
+    if (!uad || !uad.getHighEntropyValues) return cb(info);
+    var done = false, t = setTimeout(function () { if (!done) { done = true; cb(info); } }, 600);
+    uad.getHighEntropyValues(["architecture", "bitness", "platform"]).then(function (h) {
+      if (done) return; done = true; clearTimeout(t);
+      cb(S.detect(navigator.userAgent, h, navigator.platform, navigator.maxTouchPoints));
+    }).catch(function () { if (!done) { done = true; clearTimeout(t); cb(info); } });
+  }
+
+  /* ---------- load release (API -> ota.json -> releases page) ---------- */
+  function timeoutFetch(url, ms) {
+    var c = new AbortController(), t = setTimeout(function () { c.abort(); }, ms);
+    return fetch(url, { signal: c.signal, headers: { Accept: "application/vnd.github+json" } })
+      .then(function (r) { clearTimeout(t); if (!r.ok) throw new Error(r.status); return r.json(); });
+  }
+  function loadRelease() {
+    try {
+      var c = JSON.parse(sessionStorage.getItem("sonara.rel") || "null");
+      if (c && Date.now() - c.t < 10 * 60 * 1000 && c.rel) return Promise.resolve(c.rel);
+    } catch (e) {}
+    function remember(rel) { try { sessionStorage.setItem("sonara.rel", JSON.stringify({ t: Date.now(), rel: rel })); } catch (e) {} return rel; }
+    return timeoutFetch("https://api.github.com/repos/" + S.REPO + "/releases/latest", 6000)
+      .then(function (j) { var r = S.fromApi(j); if (!r) throw 0; return remember(r); })
+      .catch(function () {
+        return timeoutFetch("https://raw.githubusercontent.com/" + S.REPO + "/main/ota.json", 6000)
+          .then(function (j) { var r = S.fromOta(j); if (!r) throw 0; return remember(r); });
+      })
+      .catch(function () { return null; });
+  }
+
+  /* ---------- helpers ---------- */
+  function ago(iso) {
+    if (!iso) return "";
+    var s = (Date.now() - new Date(iso).getTime()) / 1000, f = typeof Intl !== "undefined" && Intl.RelativeTimeFormat ? new Intl.RelativeTimeFormat("en", { numeric: "auto" }) : null;
+    if (!f || !isFinite(s)) return "";
+    if (s < 3600) return f.format(-Math.max(1, Math.round(s / 60)), "minute");
+    if (s < 86400) return f.format(-Math.round(s / 3600), "hour");
+    if (s < 86400 * 60) return f.format(-Math.round(s / 86400), "day");
+    return f.format(-Math.round(s / 86400 / 30), "month");
+  }
+  function toast(msg) { var t = $("toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(function () { t.classList.remove("on"); }, 1800); }
+  function copy(text, msg) {
+    var done = function () { toast(msg || "Copied"); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+    else { fallbackCopy(text); done(); }
+  }
+  function fallbackCopy(text) { var ta = el("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e) {} ta.remove(); }
+
+  function dl(entry, os, variant, cls, html) {
+    var a = el("a", cls + " dl");
+    a.href = entry ? entry.url : S.RELEASES;
+    a.rel = "noopener";
+    if (entry) { a.dataset.os = os; a.dataset.variant = variant; a.dataset.name = entry.name; }
+    a.innerHTML = html;
+    return a;
+  }
+
+  /* ---------- CTA ---------- */
+  function renderCta() {
+    var box = $("cta"), info = state.info, rel = state.rel; box.innerHTML = "";
+    var cat = rel ? rel.catalog : null;
+    if (info.os === "ios") { $("ios").hidden = false; box.innerHTML = ""; box.appendChild(el("p", "note", "No iPhone or iPad build yet — pick another device from the list below.")); return; }
+    if (!cat) {
+      box.appendChild(dl(null, "", "", "btn", icon("down") + "Open the latest release"));
+      box.appendChild(el("span", "sub", "Couldn't reach GitHub just now. The releases page lists every file."));
+      return;
+    }
+    var rec = S.recommend(info, cat);
+    if (!rec.entries.length) { box.appendChild(el("p", "note", "Pick your platform below — every download starts instantly.")); return; }
+
+    var det = el("div", "det"); det.appendChild(el("i"));
+    var what = NICE[info.os] || "";
+    if (info.os === "android" || info.os === "tv") what += info.abi ? " · " + info.abi : "";
+    if (info.os === "macos") what += info.arch ? (info.arch === "arm64" ? " · Apple Silicon" : " · Intel") : "";
+    det.appendChild(el("span", "", "Detected: " + what));
+    box.appendChild(det);
+
+    if (rec.ask) {
+      box.appendChild(el("p", "note", "Which Mac do you have? (Apple menu → About This Mac)"));
+      var row = el("div", "btnrow"); row.style.marginTop = "12px";
+      rec.entries.forEach(function (r) {
+        var isArm = r.variant.indexOf("arm64") === 0;
+        row.appendChild(dl(r.e, r.os, r.variant, "btn", (isArm ? "Apple Silicon" : "Intel") + "<small>" + (isArm ? "M1 · M2 · M3 · M4" : "Intel Mac") + (r.e.size ? " · " + S.fmtSize(r.e.size) : "") + "</small>"));
+      });
+      box.appendChild(row);
+      return;
+    }
+    var r0 = rec.entries[0];
+    box.appendChild(dl(r0.e, r0.os, r0.variant, "btn", icon("down") + "Download for " + NICE[info.os]));
+    var meta = el("p", "meta");
+    meta.appendChild(document.createTextNode(r0.e.name + (r0.e.size ? " · " + S.fmtSize(r0.e.size) : "")));
+    if (r0.e.digest && /^sha256:/.test(r0.e.digest)) {
+      meta.appendChild(document.createTextNode(" · "));
+      var b = el("button", "", "SHA-256 " + r0.e.digest.slice(7, 15) + "…"); b.type = "button"; b.title = "Copy the full SHA-256 to verify your download";
+      b.addEventListener("click", function () { copy(r0.e.digest.slice(7), "SHA-256 copied"); });
+      meta.appendChild(b);
+    }
+    box.appendChild(meta);
+    if ((info.os === "android" || info.os === "tv") && !rec.abiKnown && rec.alt.length) {
+      var a = rec.alt[0];
+      box.appendChild(dl(a.e, a.os, a.variant, "btn ghost", "Smaller download" + (a.e.size ? " · " + S.fmtSize(a.e.size) : "") + " (most phones since ~2017)"));
+    }
+    var more = el("a", "sub", "Different device? Choose below ↓"); more.href = "#platforms"; box.appendChild(more);
+  }
+
+  /* ---------- platform grid ---------- */
+  function renderGrid() {
+    var grid = $("grid"), cat = state.rel ? state.rel.catalog : null, info = state.info; grid.innerHTML = "";
+    var list = OSES.slice();
+    list.sort(function (a, b) { return (b.id === info.os) - (a.id === info.os); });
+    list.forEach(function (o) {
+      var me = o.id === info.os;
+      var card = el("div", "card" + (me ? " me" : ""));
+      if (me) card.appendChild(el("span", "tagme", "Your device"));
+      var head = el("div", "ch");
+      var ic = el("div", "ic"); ic.innerHTML = icon(o.icon);
+      var tx = el("div"); tx.appendChild(el("div", "ct", o.title)); tx.appendChild(el("div", "cs", o.sub));
+      head.appendChild(ic); head.appendChild(tx); card.appendChild(head);
+
+      var entries = cat ? cat[o.id] : {};
+      var have = ORDER[o.id].filter(function (v) { return entries[v]; });
+      if (!have.length) {
+        card.appendChild(dl(null, "", "", "btn ghost", icon("down") + "Open releases page"));
+        grid.appendChild(card); return;
+      }
+      var prim = PRIMARY_DEFAULT[o.id].filter(function (v) { return entries[v]; });
+      if (me) {
+        var r = S.recommend(info, cat);
+        if (r.entries.length && !r.ask) prim = [r.entries[0].variant];
+      }
+      if (!prim.length) prim = [have[0]];
+      if (prim.length === 2) {
+        var row = el("div", "btnrow");
+        prim.forEach(function (v) { var e = entries[v], arm = v.indexOf("arm64") === 0;
+          row.appendChild(dl(e, o.id, v, "btn", (arm ? "Apple Silicon" : "Intel") + "<small>" + (arm ? "M1 – M4" : "Intel Mac") + (e.size ? " · " + S.fmtSize(e.size) : "") + "</small>")); });
+        card.appendChild(row);
+      } else {
+        var e = entries[prim[0]];
+        card.appendChild(dl(e, o.id, prim[0], "btn", icon("down") + "Download" + (e.size ? " · " + S.fmtSize(e.size) : "")));
+      }
+      var rest = have.filter(function (v) { return prim.indexOf(v) < 0; });
+      if (rest.length) {
+        var d = el("details"); d.appendChild(el("summary", "", "More formats"));
+        var more = el("div", "more");
+        rest.forEach(function (v) {
+          var e = entries[v], a = dl(e, o.id, v, "row", "<span></span><span>" + S.fmtSize(e.size) + "</span>");
+          a.firstChild.textContent = LABEL[o.id][v] || e.name; more.appendChild(a);
+        });
+        d.appendChild(more); card.appendChild(d);
+      }
+      grid.appendChild(card);
+    });
+  }
+
+  /* ---------- after-download sheet ---------- */
+  function hint(os, v, name) {
+    var H = { title: "Download started", steps: [], cmd: null };
+    if (os === "android") {
+      H.steps = ["Open the file from your notifications or the Files app.", "If Android asks, allow installs from this browser, then tap Install.", "Already have BitChord PlusPC or an earlier Sonara? It installs over it and keeps your data. If you see “App not installed”, uninstall the conflicting build once and try again."];
+    } else if (os === "tv") {
+      H.steps = ["Get the APK onto your TV with Downloader, LocalSend or a USB drive — or from a computer run:"]; H.cmd = "adb install -r " + name;
+    } else if (os === "wear") {
+      H.steps = ["Easiest: in the Sonara phone app open Settings → Wear OS and push the watch app over Wi-Fi debugging.", "Or with adb:"]; H.cmd = "adb -s <watch-ip>:<port> install -r " + name;
+    } else if (os === "windows") {
+      H.steps = v === "portable" ? ["Unzip anywhere and run Sonara\\Sonara.exe — it writes nothing outside its folder."]
+        : v === "msi" ? ["Double-click the MSI to install."] : ["Run the installer. It installs for your user and won't ask for admin rights."];
+      H.steps.push("If Automix never analyses a track, install the Microsoft Visual C++ 2015–2022 Redistributable (x64).");
+    } else if (os === "macos") {
+      H.steps = [/\.dmg$/.test(v) ? "Open the .dmg and drag Sonara into Applications." : /\.pkg$/.test(v) ? "Open the .pkg and follow the installer." : "Unzip it and move Sonara.app into Applications.",
+        "If macOS says it's damaged or from an unidentified developer (builds aren't notarized), run:"]; H.cmd = "xattr -cr /Applications/Sonara.app";
+    } else if (os === "linux") {
+      if (v === "deb") { H.steps = ["Install it with apt:"]; H.cmd = "sudo apt install ./" + name; }
+      else if (v === "rpm") { H.steps = ["Install it with dnf:"]; H.cmd = "sudo dnf install ./" + name; }
+      else { H.steps = ["Make it executable and run it — nothing to install.", "Ubuntu 24.04+ and it won't start? Run: sudo apt install libfuse2t64"]; H.cmd = "chmod +x " + name + " && ./" + name; }
+    }
+    return H;
+  }
+  var sheetTimer;
+  function showSheet(os, v, name) {
+    var H = hint(os, v, name);
+    $("sheetT").lastChild.textContent = H.title;
+    $("sheetF").textContent = name;
+    var ol = $("sheetS"); ol.innerHTML = ""; H.steps.forEach(function (s) { ol.appendChild(el("li", "", s)); });
+    var c = $("sheetC"); c.hidden = !H.cmd; if (H.cmd) $("sheetCode").textContent = H.cmd;
+    var sh = $("sheet"); sh.classList.add("on"); sh.setAttribute("aria-hidden", "false");
+  }
+  function hideSheet() { var sh = $("sheet"); sh.classList.remove("on"); sh.setAttribute("aria-hidden", "true"); }
+
+  /* ---------- wire up ---------- */
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest && ev.target.closest("a.dl");
+    if (a && a.dataset.name) { setTimeout(function () { showSheet(a.dataset.os, a.dataset.variant, a.dataset.name); }, 350); }
+  });
+  $("sheetX").addEventListener("click", hideSheet);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") hideSheet(); });
+  $("sheetCopy").addEventListener("click", function () { copy($("sheetCode").textContent, "Command copied"); });
+  $("share").addEventListener("click", function () {
+    var data = { title: "Sonara", text: "Sonara — open-source music client for every platform", url: location.href.split("#")[0] };
+    if (navigator.share) navigator.share(data).catch(function () {}); else copy(data.url, "Link copied");
+  });
+
+  // live star count (non-critical)
+  try {
+    var sc = JSON.parse(sessionStorage.getItem("sonara.stars") || "null");
+    if (sc && Date.now() - sc.t < 600000) $("starn").textContent = " · " + sc.n;
+    else timeoutFetch("https://api.github.com/repos/" + S.REPO, 5000).then(function (j) {
+      if (typeof j.stargazers_count === "number") { $("starn").textContent = " · " + j.stargazers_count; try { sessionStorage.setItem("sonara.stars", JSON.stringify({ t: Date.now(), n: j.stargazers_count })); } catch (e) {} }
+    }).catch(function () {});
+  } catch (e) {}
+
+  state.info = getInfo();
+  Promise.all([loadRelease(), new Promise(function (res) { refineWithHints(state.info, res); })]).then(function (r) {
+    state.rel = r[0]; state.info = r[1];
+    var tag = $("tagver");
+    if (state.rel && state.rel.tag) {
+      var when = ago(state.rel.date);
+      tag.textContent = state.rel.tag + (when ? " · " + when : "");
+      if (state.rel.page) $("notes").href = state.rel.page;
+    } else { tag.textContent = "Latest release"; }
+    renderCta(); renderGrid();
+  });
+})();
+</script>
+</body>
+</html>
