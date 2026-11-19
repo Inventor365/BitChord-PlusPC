@@ -1,4 +1,25 @@
-# Sonara `v2.1.2` (`versionCode = 51`)
+# Sonara `v2.1.3` (`versionCode = 52`)
+
+**Two new looks, Vice and Doom; Data Saver and Low Power Mode; smoother motion; sign in with the accounts already on your phone.**
+
+![Sonara 2.1.3: the Vice and Doom themes](https://raw.githubusercontent.com/Inventor365/Sonara/main/docs/screenshots/2.1.3/themes-strip.jpg)
+
+## What's new in 2.1.3
+
+- **Themes.** Settings → Appearance → *Theme* now offers **Vice** — neon dusk, a synthwave sun over palms, hot pink and sunset orange — and **Doom** — cold steel, chamfered plates and an emerald glow — beside the original **Sonara**. Each theme restyles every screen, the player's progress bar and lyric glow, the Sonara Pass and the welcome screen, and brings its own home-screen icon (changed when you leave the app; turn *Match app icon* off to keep yours). You can also pick a theme from the first screen of a fresh install.
+- **Data Saver.** Off, On or *On mobile data* (it also follows Android's own Data Saver). It caps audio quality, turns music video into a still banner, loads smaller artwork, preloads only the next song and holds updates and background sync for Wi-Fi.
+- **Low Power Mode.** Manual or automatic — at a battery level you choose or with the system battery saver — and off again when you plug in. It caps the screen at 60 Hz, reduces animation and blur, stills animated covers and the idle Home page, and pauses background work. Playback itself is never limited.
+- **A modes button in the top bar** shows which of Data Saver, Low Power and High Performance is on and switches them in one tap.
+- **Smoother motion.** A *Refresh rate* setting (Adaptive, or a fixed rate your screen supports); Adaptive rests at 60 Hz and goes to the top rate the moment you touch or something moves. Page and tab changes have new transitions. High Performance now boosts on motion instead of holding the top rate, which was the cause of judder.
+- **Video off.** The video quality menu has a *Video off (static banner)* choice that releases the video entirely while the audio keeps playing.
+- **Sign in with an account already on your phone.** *Sign in with Google* opens Android's account chooser; the web sign-in is still there behind it.
+- **Import from Amazon Music** by pasting a playlist's track list or a CSV export.
+- **Tab labels** under the bottom bar's icons, on by default.
+- **Fixed:** the full player could show a different song from the one actually playing after a track switched to its audio or video version mid-way.
+
+---
+
+## Sonara `v2.1.2`
 
 **Import from Apple Music, a calmer player, clearer tiles.**
 

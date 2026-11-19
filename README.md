@@ -36,11 +36,11 @@
 
 <table>
   <tr>
-    <td width="20%" align="center"><img src="docs/screenshots/welcome.png" alt="Welcome to Sonara" width="100%" /><br/><sub><b>Welcome</b></sub></td>
-    <td width="20%" align="center"><img src="docs/screenshots/pass.png" alt="Making your Sonara Pass" width="100%" /><br/><sub><b>Your Sonara Pass</b></sub></td>
-    <td width="20%" align="center"><img src="docs/screenshots/home.png" alt="Home greets you by name" width="100%" /><br/><sub><b>Home</b></sub></td>
-    <td width="20%" align="center"><img src="docs/screenshots/library-profile.png" alt="Library as your profile, with listening time" width="100%" /><br/><sub><b>Library & profile</b></sub></td>
-    <td width="20%" align="center"><img src="docs/screenshots/settings-tiles.png" alt="Settings as a grid of tiles" width="100%" /><br/><sub><b>Settings</b></sub></td>
+    <td width="20%" align="center"><img src="docs/screenshots/2.1.3/welcome-vice.jpg" alt="Welcome to Sonara, in the Vice theme" width="100%" /><br/><sub><b>Welcome</b> — pick a theme first</sub></td>
+    <td width="20%" align="center"><img src="docs/screenshots/2.1.3/home-sonara.jpg" alt="Home in the Sonara theme" width="100%" /><br/><sub><b>Sonara</b> — the original</sub></td>
+    <td width="20%" align="center"><img src="docs/screenshots/2.1.3/home-vice.jpg" alt="Home in the Vice theme: a synthwave sunset behind the page" width="100%" /><br/><sub><b>Vice</b> — neon dusk</sub></td>
+    <td width="20%" align="center"><img src="docs/screenshots/2.1.3/home-doom.jpg" alt="Home in the Doom theme: steel, a crest and an emerald glow" width="100%" /><br/><sub><b>Doom</b> — cold steel</sub></td>
+    <td width="20%" align="center"><img src="docs/screenshots/2.1.3/library-doom.jpg" alt="Library as your profile, with the Sonara Pass and listening time" width="100%" /><br/><sub><b>Library & Sonara Pass</b></sub></td>
   </tr>
 </table>
 
@@ -48,9 +48,10 @@
 
 <table>
   <tr>
-    <td width="33%" align="center"><img src="docs/screenshots/explore.png" alt="Explore with a featured card and sections" width="100%" /><br/><sub><b>Explore</b> — featured card, sections, numbered tiles</sub></td>
-    <td width="33%" align="center"><img src="docs/screenshots/search.png" alt="Search opening on mood and genre tiles" width="100%" /><br/><sub><b>Search</b> — moods and genres to browse</sub></td>
-    <td width="33%" align="center"><img src="docs/screenshots/player-controls.png" alt="Player controls with the white play disc" width="100%" /><br/><sub><b>Player</b> — the play disc and ticket-print labels</sub></td>
+    <td width="25%" align="center"><img src="docs/screenshots/2.1.3/explore-vice.jpg" alt="Explore with a featured card and numbered mood tiles" width="100%" /><br/><sub><b>Explore</b> — featured card, moods and genres</sub></td>
+    <td width="25%" align="center"><img src="docs/screenshots/2.1.3/player-vice.jpg" alt="Now Playing with word-synced lyrics and the themed progress bar" width="100%" /><br/><sub><b>Now Playing</b> — lyrics line and a themed progress bar</sub></td>
+    <td width="25%" align="center"><img src="docs/screenshots/2.1.3/modes.jpg" alt="The modes panel: Data Saver, Low Power and High Performance" width="100%" /><br/><sub><b>Modes</b> — Data Saver, Low Power, High Performance</sub></td>
+    <td width="25%" align="center"><img src="docs/screenshots/2.1.3/settings-doom.jpg" alt="Settings as a grid of tiles, in the Doom theme" width="100%" /><br/><sub><b>Settings</b> — a grid of tiles</sub></td>
   </tr>
 </table>
 
@@ -98,14 +99,19 @@
 <table>
   <tr>
     <td width="33%" align="center">
-      <img src="docs/screenshots/search.png" alt="Search opening on a grid of moods and genres" width="100%" />
+      <img src="docs/screenshots/2.1.3/library-vice.jpg" alt="Library and the Sonara Pass in the Vice theme" width="100%" />
       <br/>
-      <sub><b>Search</b> — opens on moods and genres to browse, not a blank page</sub>
+      <sub><b>Library</b> — your Pass, listening time and playlists</sub>
     </td>
     <td width="33%" align="center">
-      <img src="docs/screenshots/library-folders.png" alt="Library folders as tinted cards" width="100%" />
+      <img src="docs/screenshots/2.1.3/explore-doom.jpg" alt="Explore in the Doom theme, with chamfered tiles" width="100%" />
       <br/>
-      <sub><b>Library</b> — folders as tinted cards that give under the finger</sub>
+      <sub><b>Explore</b> — every tile in the theme's own shape</sub>
+    </td>
+    <td width="33%" align="center">
+      <img src="docs/screenshots/2.1.3/welcome-doom.jpg" alt="The welcome screen in the Doom theme" width="100%" />
+      <br/>
+      <sub><b>Welcome</b> — redrawn in whichever theme you pick</sub>
     </td>
   </tr>
 </table>
