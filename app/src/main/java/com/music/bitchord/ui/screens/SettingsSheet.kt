@@ -38,6 +38,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.ScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.automirrored.rounded.Notes
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
 import androidx.compose.material.icons.rounded.Animation
@@ -291,6 +292,8 @@ fun SettingsScreen(
     val lyricsSources by AppSettings.lyricsSources.collectAsStateWithLifecycle()
     val translationLanguage by AppSettings.translationLanguage.collectAsStateWithLifecycle()
     val theme by AppSettings.themeMode.collectAsStateWithLifecycle()
+    val appTheme by AppSettings.appTheme.collectAsStateWithLifecycle()
+    val themeIconOn by AppSettings.themeIcon.collectAsStateWithLifecycle()
     val appFont by AppSettings.appFont.collectAsStateWithLifecycle()
     val sessionId by AppSettings.audioSessionId.collectAsStateWithLifecycle()
     val outputPcmMode by AppSettings.outputPcmMode.collectAsStateWithLifecycle()
@@ -1143,14 +1146,49 @@ fun SettingsScreen(
         }
 
         if (shows(SettingsCategory.APPEARANCE)) SearchableSettingsGroup(search, header = stringResource(R.string.appearance)) {
-            val themeTitle = stringResource(R.string.theme)
+            // The look itself — Sonara, Vice or Doom — as live previews.
+            val appThemeTitle = stringResource(R.string.app_theme_title)
+            row(appThemeTitle, "theme", "vice", "doom", "sonara", "style", "look") {
+                SettingsRow(icon = Icons.Rounded.Palette, title = appThemeTitle)
+                com.music.bitchord.ui.theme.ThemePickerRow(Modifier.padding(bottom = 14.dp))
+            }
+            val themeIconTitle = stringResource(R.string.theme_icon_title)
+            row(themeIconTitle, "icon", "launcher", "home screen") {
+                SettingsRow(
+                    icon = SfIcons.Apps,
+                    title = themeIconTitle,
+                    subtitle = stringResource(R.string.theme_icon_subtitle),
+                    trailing = {
+                        IosSwitch(
+                            checked = themeIconOn,
+                            onCheckedChange = { on ->
+                                AppSettings.setThemeIcon(on)
+                                com.music.bitchord.ThemeIcons.follow(context, appTheme)
+                            },
+                        )
+                    },
+                    onClick = {
+                        AppSettings.setThemeIcon(!themeIconOn)
+                        com.music.bitchord.ThemeIcons.follow(context, appTheme)
+                    },
+                )
+            }
+            val themeTitle = stringResource(R.string.theme_mode_title)
             row(themeTitle, "dark mode", "light mode") {
-                SettingsRow(icon = Icons.Rounded.Brightness4, title = themeTitle)
+                // Vice and Doom are dark-only: the setting is kept for Sonara, and says so.
+                SettingsRow(
+                    icon = Icons.Rounded.Brightness4,
+                    title = themeTitle,
+                    subtitle = if (appTheme.tokens.darkOnly) stringResource(R.string.theme_mode_dark_only) else null,
+                )
                 SegmentedControl(
                     options = ThemeMode.entries.map { it.localizedLabel() },
                     selectedIndex = ThemeMode.entries.indexOf(theme),
                     onSelect = { AppSettings.setThemeMode(ThemeMode.entries[it]) },
-                    modifier = Modifier.padding(start = ROW_INSET, end = ROW_INSET, bottom = 14.dp),
+                    enabled = !appTheme.tokens.darkOnly,
+                    modifier = Modifier
+                        .alpha(if (appTheme.tokens.darkOnly) 0.45f else 1f)
+                        .padding(start = ROW_INSET, end = ROW_INSET, bottom = 14.dp),
                 )
             }
             val fontTitle = stringResource(R.string.font)
@@ -2098,6 +2136,7 @@ fun SettingsScreen(
                                 .clip(RoundedCornerShape(16.dp))
                                 .clickable {
                                     selectedIcon = option
+                                    com.music.bitchord.ThemeIcons.chosenByHand()
                                     AppIcon.apply(context, option)
                                 }
                                 .padding(vertical = 6.dp),
@@ -2112,6 +2151,17 @@ fun SettingsScreen(
                                     factory = { ctx ->
                                         android.widget.ImageView(ctx).apply { setImageResource(option.iconRes) }
                                     },
+                                    modifier = Modifier
+                                        .size(68.dp)
+                                        .clip(RoundedCornerShape(22.dp)),
+                                )
+                            } else if (option == AppIcon.ThemeVice || option == AppIcon.ThemeDoom) {
+                                // A theme icon's preview is the whole square, shown through the
+                                // same mask as the default.
+                                Image(
+                                    painter = painterResource(preview),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
                                     modifier = Modifier
                                         .size(68.dp)
                                         .clip(RoundedCornerShape(22.dp)),
@@ -2191,7 +2241,7 @@ fun SettingsScreen(
             Icon(
                 painter = painterResource(R.drawable.ic_logo),
                 contentDescription = null,
-                tint = SONARA_RED,
+                tint = com.music.bitchord.ui.theme.LocalThemeTokens.current.accent,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 32.dp)
@@ -2809,7 +2859,9 @@ private fun bitPerfectSubtitle(mode: BitPerfectMode, status: BitPerfectOutput.St
 
 // ---- Building blocks --------------------------------------------------------
 
-internal val GroupShape = RoundedCornerShape(22.dp)
+/** Settings' group cards and icon tiles: rounded, softer under Vice, cut under Doom. */
+internal val GroupShape: androidx.compose.ui.graphics.Shape
+    @Composable get() = com.music.bitchord.ui.theme.themedShape(22.dp)
 internal val GROUP_INSET = 16.dp
 internal val ROW_INSET = 16.dp
 internal val ICON_SIZE = 22.dp
@@ -2818,7 +2870,8 @@ internal val ICON_GAP = 14.dp
 /** A coloured icon tile: a little larger than a bare glyph, centred on the glyph's spot. */
 internal val TILE_SIZE = 30.dp
 internal val TILE_GLYPH = 18.dp
-internal val TileShape = RoundedCornerShape(8.dp)
+internal val TileShape: androidx.compose.ui.graphics.Shape
+    @Composable get() = com.music.bitchord.ui.theme.themedShape(8.dp)
 
 /** The icon tiles' palette: saturated enough to read on both themes, white glyph on each. */
 internal object TileColors {
@@ -3434,7 +3487,7 @@ private fun SettingsCategoryTile(
         modifier = modifier
             .height(108.dp)
             .pressScale(0.96f)
-            .clip(RoundedCornerShape(24.dp))
+            .clip(com.music.bitchord.ui.theme.themedShape(24.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable(onClick = onClick),
     ) {
@@ -3712,7 +3765,6 @@ internal fun <T> ChoiceGroup(
 }
 
 /** The Sonara mark's red. */
-private val SONARA_RED = Color(0xFFFF2D55)
 
 /** "On — on mobile data", "Off": a mode row's status line from what turned it on. */
 @Composable

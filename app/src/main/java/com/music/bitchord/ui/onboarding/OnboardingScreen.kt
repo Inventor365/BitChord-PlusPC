@@ -194,6 +194,15 @@ fun OnboardingScreen(
                 }
             }
         }
+
+        // Choose the look before anything else: the welcome itself is redrawn in it. Last in the
+        // box, so it sits over the page's tap-anywhere and receives its own touches.
+        com.music.bitchord.ui.theme.ThemeQuickSwitch(
+            Modifier
+                .align(Alignment.TopEnd)
+                .systemBarsPadding()
+                .padding(top = 8.dp, end = 16.dp),
+        )
     }
 }
 
