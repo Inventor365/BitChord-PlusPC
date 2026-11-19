@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -42,6 +43,7 @@ import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.spotify.SpotifyImportTrack
 import com.music.bitchord.data.spotify.SpotifyImporter
 import com.music.bitchord.data.spotify.AppleMusicImporter
+import com.music.bitchord.data.spotify.AmazonMusicImporter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.CancellationException
@@ -77,11 +79,16 @@ fun SpotifyImportAlert(
     onImported: (title: String, privacy: PlaylistPrivacy, songs: List<Song>) -> Unit,
     onDismiss: () -> Unit,
     /**
-     * Opened from the Apple Music tile: titled and hinted for an Apple Music link. Either kind
-     * of link is accepted in either mode — the importer is chosen by the link itself.
+     * Which tile opened the dialog: it sets the title, the hint and, for Amazon Music, a pasted
+     * track list in place of a link. Spotify and Apple Music links are accepted in either of
+     * their modes — the importer is chosen by the link itself.
      */
-    appleMusic: Boolean = false,
+    source: ImportSource = ImportSource.SPOTIFY,
 ) {
+    val appleMusic = source == ImportSource.APPLE_MUSIC
+    val amazon = source == ImportSource.AMAZON_MUSIC
+    val defaultAmazonName = stringResource(R.string.amazon_music_import_default_name)
+    var playlistName by remember { mutableStateOf("") }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var link by remember { mutableStateOf("") }
@@ -94,6 +101,22 @@ fun SpotifyImportAlert(
     var unmatched by remember { mutableStateOf<List<SpotifyImportTrack>?>(null) }
 
     fun start() {
+        if (amazon) {
+            startAmazon(
+                text = link,
+                name = playlistName.trim().ifEmpty { defaultAmazonName },
+                context = context,
+                onStatus = { message, isFailure -> status = message; failed = isFailure },
+                onWorking = { working = it },
+                language = if (selectedLanguage == "Manual / Other") customLanguageInput.trim().ifBlank { null } else selectedLanguage,
+                launch = { block -> scope.launch { block() } },
+                onDone = { name, songs, missed ->
+                    onImported(name, privacy, songs)
+                    if (missed.isEmpty()) onDismiss() else unmatched = missed
+                },
+            )
+            return
+        }
         val appleUrl = AppleMusicImporter.extractPlaylistUrl(link)
         val id = if (appleUrl == null) SpotifyImporter.extractPlaylistId(link) else null
         if (appleUrl == null && id == null) {
@@ -144,7 +167,13 @@ fun SpotifyImportAlert(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = stringResource(if (appleMusic) R.string.apple_music_import_title else R.string.spotify_import_title),
+                text = stringResource(
+                    when (source) {
+                        ImportSource.SPOTIFY -> R.string.spotify_import_title
+                        ImportSource.APPLE_MUSIC -> R.string.apple_music_import_title
+                        ImportSource.AMAZON_MUSIC -> R.string.amazon_music_import_title
+                    },
+                ),
                 style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp, fontWeight = FontWeight.W600),
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
@@ -178,10 +207,14 @@ fun SpotifyImportAlert(
                 }
             } else {
                 Text(
-                    text = status ?: stringResource(
-                        if (signedIn) R.string.spotify_import_description
-                        else R.string.spotify_import_description_local,
-                    ),
+                    text = status ?: if (amazon) {
+                        stringResource(R.string.amazon_music_import_description)
+                    } else {
+                        stringResource(
+                            if (signedIn) R.string.spotify_import_description
+                            else R.string.spotify_import_description_local,
+                        )
+                    },
                     modifier = Modifier.padding(top = 4.dp, bottom = 14.dp),
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 17.sp),
                     color = when {
@@ -191,20 +224,43 @@ fun SpotifyImportAlert(
                     },
                     textAlign = TextAlign.Center,
                 )
-                PillTextField(
-                    value = link,
-                    onValueChange = {
-                        link = it
-                        if (failed) {
-                            status = null
-                            failed = false
-                        }
-                    },
-                    placeholder = stringResource(if (appleMusic) R.string.apple_music_import_hint else R.string.spotify_import_hint),
-                    enabled = !working,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { if (link.isNotBlank() && !working) start() }),
-                )
+                if (amazon) {
+                    PillTextField(
+                        value = playlistName,
+                        onValueChange = { playlistName = it },
+                        placeholder = defaultAmazonName,
+                        enabled = !working,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Next),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    TracklistField(
+                        value = link,
+                        onValueChange = {
+                            link = it
+                            if (failed) {
+                                status = null
+                                failed = false
+                            }
+                        },
+                        placeholder = stringResource(R.string.amazon_music_import_list_hint),
+                        enabled = !working,
+                    )
+                } else {
+                    PillTextField(
+                        value = link,
+                        onValueChange = {
+                            link = it
+                            if (failed) {
+                                status = null
+                                failed = false
+                            }
+                        },
+                        placeholder = stringResource(if (appleMusic) R.string.apple_music_import_hint else R.string.spotify_import_hint),
+                        enabled = !working,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { if (link.isNotBlank() && !working) start() }),
+                    )
+                }
                 Text(
                     text = stringResource(R.string.spotify_import_language_preference),
                     modifier = Modifier
@@ -309,5 +365,81 @@ fun SpotifyImportAlert(
                 enabled = !working,
             )
         }
+    }
+}
+
+/** Which service an import dialog was opened for. */
+enum class ImportSource { SPOTIFY, APPLE_MUSIC, AMAZON_MUSIC }
+
+/**
+ * The Amazon Music path: Amazon publishes nothing a link could be read with (see
+ * [AmazonMusicImporter]), so the songs come from pasted text, then go through the same
+ * matching as every other import. Each way it can fail gets its own sentence.
+ */
+private fun startAmazon(
+    text: String,
+    name: String,
+    context: android.content.Context,
+    onStatus: (String, Boolean) -> Unit,
+    onWorking: (Boolean) -> Unit,
+    language: String?,
+    launch: (suspend () -> Unit) -> Unit,
+    onDone: (String, List<Song>, List<SpotifyImportTrack>) -> Unit,
+) {
+    val tracks = AmazonMusicImporter.parseTracklist(text)
+    if (tracks.isEmpty()) {
+        val linkOnly = AmazonMusicImporter.isAmazonMusicLink(text)
+        onStatus(
+            context.getString(if (linkOnly) R.string.amazon_music_import_link_only else R.string.amazon_music_import_nothing),
+            true,
+        )
+        return
+    }
+    onWorking(true)
+    onStatus(context.getString(R.string.spotify_import_matching, 0, tracks.size), false)
+    launch {
+        try {
+            val (songs, missed) = SpotifyImporter.resolveToSongs(tracks, language) { done, total ->
+                onStatus(context.getString(R.string.spotify_import_matching, done, total), false)
+            }
+            if (songs.isEmpty()) error(context.getString(R.string.spotify_import_none))
+            onDone(name, songs, missed)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            onStatus(context.getString(R.string.spotify_import_failed, e.message.orEmpty()), true)
+        }
+        onWorking(false)
+    }
+}
+
+/** A few lines tall, for a pasted track list; the pill field shows one line. */
+@Composable
+private fun TracklistField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    enabled: Boolean,
+) {
+    val style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(132.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        if (value.isEmpty()) {
+            Text(placeholder, style = style, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        androidx.compose.foundation.text.BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            enabled = enabled,
+            textStyle = style,
+            cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        )
     }
 }

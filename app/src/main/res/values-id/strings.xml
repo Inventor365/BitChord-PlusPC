@@ -1560,4 +1560,10 @@
     <string name="refresh_rate_adaptive">Adaptif</string>
     <string name="refresh_rate_adaptive_subtitle">Tetap rendah saat tidak ada yang bergerak dan meningkat saat Anda menggulir, menggeser, atau membuka halaman.</string>
     <string name="refresh_rate_held_by_high_performance">Ditahan di %1$d Hz oleh mode performa tinggi.</string>
+    <string name="amazon_music_import_title">Impor playlist Amazon Music</string>
+    <string name="amazon_music_import_description">Amazon Music tidak mengizinkan aplikasi lain membaca playlist-nya, jadi tempel lagunya: buka playlist di music.amazon.com, pilih daftar lagu lalu salin, atau tempel ekspor CSV. Sonara mencocokkannya di YouTube Music.</string>
+    <string name="amazon_music_import_list_hint">Tempel daftar lagu di sini</string>
+    <string name="amazon_music_import_default_name">Playlist Amazon Music</string>
+    <string name="amazon_music_import_link_only">Itu tautan Amazon Music, tetapi Amazon tidak membagikan isi playlist ke aplikasi lain. Salin daftar lagu dari halaman playlist, atau tempel ekspor CSV.</string>
+    <string name="amazon_music_import_nothing">Tidak ada lagu yang ditemukan dari yang Anda tempel. Coba satu lagu per baris (Judul - Artis), daftar yang disalin dari halaman playlist, atau CSV dengan kolom judul dan artis.</string>
 </resources>

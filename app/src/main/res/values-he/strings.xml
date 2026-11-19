@@ -1588,4 +1588,10 @@
     <string name="refresh_rate_adaptive">מסתגל</string>
     <string name="refresh_rate_adaptive_subtitle">נשאר נמוך כשדבר לא זז, ומאיץ בזמן גלילה, החלקה או פתיחת עמוד.</string>
     <string name="refresh_rate_held_by_high_performance">נשמר על %1$d הרץ על ידי מצב ביצועים גבוהים.</string>
+    <string name="amazon_music_import_title">ייבוא פלייליסט מ־Amazon Music</string>
+    <string name="amazon_music_import_description">Amazon Music לא מאפשר לאפליקציות אחרות לקרוא את הפלייליסטים שלו, אז הדביקו את השירים: פתחו את הפלייליסט ב־music.amazon.com, סמנו את רשימת השירים והעתיקו, או הדביקו ייצוא CSV. Sonara תמצא אותם ב־YouTube Music.</string>
+    <string name="amazon_music_import_list_hint">הדביקו כאן את רשימת השירים</string>
+    <string name="amazon_music_import_default_name">פלייליסט Amazon Music</string>
+    <string name="amazon_music_import_link_only">זה קישור של Amazon Music, אבל Amazon לא משתפת את תוכן הפלייליסט עם אפליקציות אחרות. העתיקו במקום זאת את רשימת השירים מעמוד הפלייליסט, או הדביקו ייצוא CSV.</string>
+    <string name="amazon_music_import_nothing">לא נמצאו שירים במה שהודבק. נסו שיר אחד בכל שורה (שם - אמן), את הרשימה שהועתקה מעמוד הפלייליסט או קובץ CSV עם עמודות שם ואמן.</string>
 </resources>

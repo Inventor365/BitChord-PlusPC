@@ -13,6 +13,7 @@ import android.view.View
 import android.view.MotionEvent
 import com.music.bitchord.ui.performance.DisplayRefreshController
 import com.music.bitchord.ui.navigation.PageTransitions
+import com.music.bitchord.ui.components.ImportSource
 import com.music.bitchord.ui.performance.RefreshRatePolicy
 import com.music.bitchord.ui.performance.RefreshRateRuntime
 import android.widget.Toast
@@ -826,8 +827,8 @@ private fun BitChordApp(
     var offlinePlaylistTarget by remember { mutableStateOf<Song?>(null) }
     var creatingOfflinePlaylist by remember { mutableStateOf(false) }
     var showSpotifyImportDialog by remember { mutableStateOf(false) }
-    /** Whether the import dialog was opened from the Apple Music tile. */
-    var importFromAppleMusic by rememberSaveable { mutableStateOf(false) }
+    /** Which tile opened the import dialog. */
+    var importSource by rememberSaveable { mutableStateOf(ImportSource.SPOTIFY) }
     // Which album or playlist the collection menu is open on, or null when it
     // is shut. One slot for every surface that can open it — the shelves on
     // three tabs, the search rows, the artist page's carousels, the release
@@ -4109,7 +4110,11 @@ private fun BitChordApp(
                                 onNewPlaylist = { creatingPlaylist = true },
                                 onImportSpotifyPlaylist = { showSpotifyImportDialog = true },
                                 onImportAppleMusicPlaylist = {
-                                    importFromAppleMusic = true
+                                    importSource = ImportSource.APPLE_MUSIC
+                                    showSpotifyImportDialog = true
+                                },
+                                onImportAmazonMusicPlaylist = {
+                                    importSource = ImportSource.AMAZON_MUSIC
                                     showSpotifyImportDialog = true
                                 },
                                 onShowAll = { shelf -> navigator.push(AppRoute.LibraryShowAll(shelf)) },
@@ -5690,12 +5695,12 @@ private fun BitChordApp(
         if (showSpotifyImportDialog) {
             BackHandler {
                 showSpotifyImportDialog = false
-                importFromAppleMusic = false
+                importSource = ImportSource.SPOTIFY
             }
             SpotifyImportAlert(
                 hazeState = hazeState,
                 signedIn = signedIn,
-                appleMusic = importFromAppleMusic,
+                source = importSource,
                 onImported = { title, privacy, songs ->
                     viewModel.createPlaylistWithVideoIds(
                         title,
@@ -5717,7 +5722,7 @@ private fun BitChordApp(
                 },
                 onDismiss = {
                     showSpotifyImportDialog = false
-                    importFromAppleMusic = false
+                    importSource = ImportSource.SPOTIFY
                 },
             )
         }

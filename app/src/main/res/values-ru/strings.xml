@@ -1615,4 +1615,10 @@
     <string name="refresh_rate_adaptive">Адаптивная</string>
     <string name="refresh_rate_adaptive_subtitle">Держит низкую частоту, когда ничего не движется, и повышает её при прокрутке, свайпах и открытии страниц.</string>
     <string name="refresh_rate_held_by_high_performance">Режим высокой производительности держит %1$d Гц.</string>
+    <string name="amazon_music_import_title">Импорт плейлиста Amazon Music</string>
+    <string name="amazon_music_import_description">Amazon Music не даёт другим приложениям читать свои плейлисты, поэтому вставьте песни: откройте плейлист на music.amazon.com, выделите список и скопируйте его или вставьте экспорт CSV. Sonara найдёт их на YouTube Music.</string>
+    <string name="amazon_music_import_list_hint">Вставьте сюда список песен</string>
+    <string name="amazon_music_import_default_name">Плейлист Amazon Music</string>
+    <string name="amazon_music_import_link_only">Это ссылка Amazon Music, но Amazon не передаёт содержимое плейлиста другим приложениям. Скопируйте список песен со страницы плейлиста или вставьте экспорт CSV.</string>
+    <string name="amazon_music_import_nothing">В вставленном тексте не найдено песен. Попробуйте по одной песне в строке (Название - Исполнитель), список, скопированный со страницы плейлиста, или CSV со столбцами названия и исполнителя.</string>
 </resources>

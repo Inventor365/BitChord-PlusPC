@@ -1561,4 +1561,10 @@
     <string name="refresh_rate_adaptive">自動調整</string>
     <string name="refresh_rate_adaptive_subtitle">何も動いていないときは低く保ち、スクロールやスワイプ、ページを開くときに速くなります。</string>
     <string name="refresh_rate_held_by_high_performance">高パフォーマンスモードにより %1$d Hz に固定されています。</string>
+    <string name="amazon_music_import_title">Amazon Music のプレイリストを読み込む</string>
+    <string name="amazon_music_import_description">Amazon Music は他のアプリにプレイリストを読ませないため、曲を貼り付けてください。music.amazon.com でプレイリストを開き、曲リストを選択してコピーするか、CSV エクスポートを貼り付けます。Sonara が YouTube Music で照合します。</string>
+    <string name="amazon_music_import_list_hint">ここに曲リストを貼り付け</string>
+    <string name="amazon_music_import_default_name">Amazon Music のプレイリスト</string>
+    <string name="amazon_music_import_link_only">Amazon Music のリンクですが、Amazon はプレイリストの中身を他のアプリと共有しません。代わりにプレイリストのページから曲リストをコピーするか、CSV エクスポートを貼り付けてください。</string>
+    <string name="amazon_music_import_nothing">貼り付けた内容に曲が見つかりませんでした。1 行に 1 曲（曲名 - アーティスト）、プレイリストページからコピーしたリスト、または曲名とアーティストの列がある CSV をお試しください。</string>
 </resources>

@@ -1560,4 +1560,10 @@
     <string name="refresh_rate_adaptive">自适应</string>
     <string name="refresh_rate_adaptive_subtitle">画面静止时保持低刷新率，滚动、滑动或打开页面时提高。</string>
     <string name="refresh_rate_held_by_high_performance">高性能模式将其固定在 %1$d Hz。</string>
+    <string name="amazon_music_import_title">导入 Amazon Music 播放列表</string>
+    <string name="amazon_music_import_description">Amazon Music 不允许其他应用读取播放列表，请粘贴歌曲：在 music.amazon.com 打开播放列表，选择歌曲列表并复制，或粘贴 CSV 导出文件。Sonara 会在 YouTube Music 上匹配。</string>
+    <string name="amazon_music_import_list_hint">在此粘贴歌曲列表</string>
+    <string name="amazon_music_import_default_name">Amazon Music 播放列表</string>
+    <string name="amazon_music_import_link_only">这是 Amazon Music 链接，但 Amazon 不与其他应用分享播放列表内容。请改为从播放列表页面复制歌曲列表，或粘贴 CSV 导出文件。</string>
+    <string name="amazon_music_import_nothing">粘贴的内容中没有找到歌曲。请尝试每行一首（歌名 - 歌手）、从播放列表页面复制的列表，或含有歌名和歌手列的 CSV。</string>
 </resources>

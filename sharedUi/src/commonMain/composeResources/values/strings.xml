@@ -295,4 +295,6 @@
     <string name="search_empty_title">What do you want to hear?</string>
     <string name="browse_categories">Browse categories</string>
     <string name="import_apple_music">Import Apple Music</string>
+    <string name="import_amazon_music">Import Amazon Music</string>
+    <string name="import_amazon_music_subtitle">From a pasted song list</string>
 </resources>

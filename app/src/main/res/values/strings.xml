@@ -1462,4 +1462,10 @@
     <string name="refresh_rate_adaptive">Adaptive</string>
     <string name="refresh_rate_adaptive_subtitle">Rests at a low rate when nothing moves and speeds up while you scroll, swipe or open a page.</string>
     <string name="refresh_rate_held_by_high_performance">Held at %1$d Hz by High performance mode.</string>
+    <string name="amazon_music_import_title">Import Amazon Music playlist</string>
+    <string name="amazon_music_import_description">Amazon Music doesn\'t let other apps read its playlists, so paste the songs: open the playlist at music.amazon.com, select the song list and copy it, or paste a CSV export. Sonara matches them on YouTube Music.</string>
+    <string name="amazon_music_import_list_hint">Paste the song list here</string>
+    <string name="amazon_music_import_default_name">Amazon Music playlist</string>
+    <string name="amazon_music_import_link_only">That\'s an Amazon Music link, but Amazon doesn\'t share what\'s in a playlist with other apps. Copy the song list from the playlist page instead, or paste a CSV export.</string>
+    <string name="amazon_music_import_nothing">No songs found in what you pasted. Try one song per line (Title - Artist), the list copied from the playlist page, or a CSV with title and artist columns.</string>
 </resources>

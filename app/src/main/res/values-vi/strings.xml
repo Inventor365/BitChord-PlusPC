@@ -1502,4 +1502,10 @@
     <string name="refresh_rate_adaptive">Thích ứng</string>
     <string name="refresh_rate_adaptive_subtitle">Giữ ở mức thấp khi không có gì chuyển động và tăng tốc khi bạn cuộn, vuốt hoặc mở trang.</string>
     <string name="refresh_rate_held_by_high_performance">Được giữ ở %1$d Hz bởi chế độ hiệu năng cao.</string>
+    <string name="amazon_music_import_title">Nhập danh sách phát Amazon Music</string>
+    <string name="amazon_music_import_description">Amazon Music không cho ứng dụng khác đọc danh sách phát, nên hãy dán bài hát: mở danh sách tại music.amazon.com, chọn danh sách bài và sao chép, hoặc dán tệp CSV đã xuất. Sonara sẽ đối chiếu trên YouTube Music.</string>
+    <string name="amazon_music_import_list_hint">Dán danh sách bài hát vào đây</string>
+    <string name="amazon_music_import_default_name">Danh sách phát Amazon Music</string>
+    <string name="amazon_music_import_link_only">Đây là liên kết Amazon Music, nhưng Amazon không chia sẻ nội dung danh sách phát với ứng dụng khác. Hãy sao chép danh sách bài từ trang danh sách phát, hoặc dán tệp CSV đã xuất.</string>
+    <string name="amazon_music_import_nothing">Không tìm thấy bài hát nào trong nội dung đã dán. Hãy thử mỗi dòng một bài (Tên bài - Nghệ sĩ), danh sách sao chép từ trang danh sách phát, hoặc tệp CSV có cột tên bài và nghệ sĩ.</string>
 </resources>

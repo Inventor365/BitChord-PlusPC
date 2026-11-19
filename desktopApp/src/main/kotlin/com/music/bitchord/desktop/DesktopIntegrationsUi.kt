@@ -497,6 +497,16 @@ internal fun DesktopSpotifyImportDialog(
 
     fun start() {
         if (working) return
+        // Amazon publishes nothing a link can be read with: say so, rather than "not a link".
+        if (com.music.bitchord.data.spotify.AmazonMusicImporter.isAmazonMusicLink(link)) {
+            status = DesktopStrings[
+                "amazon_music_import_link_only",
+                "That's an Amazon Music link, but Amazon doesn't share what's in a playlist with other apps. " +
+                    "On Android, Library → Import Amazon Music takes the copied song list instead.",
+            ]
+            failed = true
+            return
+        }
         // An Apple Music link is read by its own importer; the matching is shared.
         val appleUrl = com.music.bitchord.data.spotify.AppleMusicImporter.extractPlaylistUrl(link)
         val id = if (appleUrl == null) SpotifyImporter.extractPlaylistId(link) else null

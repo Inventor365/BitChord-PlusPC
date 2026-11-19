@@ -1583,4 +1583,10 @@
     <string name="refresh_rate_adaptive">अनुकूली</string>
     <string name="refresh_rate_adaptive_subtitle">कुछ न हिलने पर कम दर पर रहता है और स्क्रॉल, स्वाइप या पेज खोलते समय तेज़ हो जाता है।</string>
     <string name="refresh_rate_held_by_high_performance">हाई परफ़ॉर्मेंस मोड द्वारा %1$d Hz पर रखा गया।</string>
+    <string name="amazon_music_import_title">Amazon Music प्लेलिस्ट इम्पोर्ट करें</string>
+    <string name="amazon_music_import_description">Amazon Music दूसरे ऐप्स को अपनी प्लेलिस्ट पढ़ने नहीं देता, इसलिए गाने पेस्ट करें: music.amazon.com पर प्लेलिस्ट खोलें, गानों की सूची चुनकर कॉपी करें, या CSV एक्सपोर्ट पेस्ट करें। Sonara उन्हें YouTube Music पर ढूँढेगा।</string>
+    <string name="amazon_music_import_list_hint">गानों की सूची यहाँ पेस्ट करें</string>
+    <string name="amazon_music_import_default_name">Amazon Music प्लेलिस्ट</string>
+    <string name="amazon_music_import_link_only">यह Amazon Music लिंक है, लेकिन Amazon प्लेलिस्ट की सामग्री दूसरे ऐप्स से साझा नहीं करता। इसके बजाय प्लेलिस्ट पेज से गानों की सूची कॉपी करें, या CSV एक्सपोर्ट पेस्ट करें।</string>
+    <string name="amazon_music_import_nothing">पेस्ट किए गए टेक्स्ट में कोई गाना नहीं मिला। हर पंक्ति में एक गाना (शीर्षक - कलाकार), प्लेलिस्ट पेज से कॉपी की गई सूची, या शीर्षक और कलाकार कॉलम वाली CSV आज़माएँ।</string>
 </resources>

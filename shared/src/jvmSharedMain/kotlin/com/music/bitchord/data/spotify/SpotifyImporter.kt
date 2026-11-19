@@ -179,6 +179,7 @@ object SpotifyImporter {
 
     /** Tracks the embed page lists before it cuts off. */
     private const val EMBED_TRACK_LIMIT = 100
+    private const val SEARCH_RETRY_DELAY_MS = 900L
     private const val PAGE_SIZE = 100
     private const val PATHFINDER_URL = "https://api-partner.spotify.com/pathfinder/v1/query"
     private const val FETCH_PLAYLIST_HASH = "19ff1327c29e99c208c86d7a9d8f1929cfdf3d3202a0ff4253c821f1901aa94d"
@@ -243,6 +244,9 @@ object SpotifyImporter {
     ): Pair<List<Song>, List<SpotifyImportTrack>> = coroutineScope {
         val total = tracks.size
         val completedCount = AtomicInteger(0)
+        // Searches that failed outright (network, rate limit) rather than finding nothing:
+        // when every one did, the import failed — it did not find "none of those songs".
+        val failedSearches = AtomicInteger(0)
         val semaphore = Semaphore(4) // Bounded concurrency for search queries
 
         val cleanLang = language?.trim()?.takeIf {
@@ -265,7 +269,15 @@ object SpotifyImporter {
                         "${track.title} ${track.artist}".trim()
                     }
 
-                    val searchResult = YtMusicRepository.search(query, SearchFilter.SONGS).getOrNull()
+                    // One more try after a pause: a 429 or a dropped connection mid-import is
+                    // usually gone a second later, and costing a song for it is not worth it.
+                    val searchResult = YtMusicRepository.search(query, SearchFilter.SONGS)
+                        .recoverCatching {
+                            kotlinx.coroutines.delay(SEARCH_RETRY_DELAY_MS)
+                            YtMusicRepository.search(query, SearchFilter.SONGS).getOrThrow()
+                        }
+                        .onFailure { failedSearches.incrementAndGet() }
+                        .getOrNull()
                     val candidates = searchResult?.filterIsInstance<SearchResult.Track>()?.map { it.song }.orEmpty()
 
                     val target = TrackMatcher.Target(
@@ -304,6 +316,9 @@ object SpotifyImporter {
         }
 
         val results = deferredResults.awaitAll()
+        if (total > 0 && failedSearches.get() == total) {
+            throw java.io.IOException("Couldn't reach YouTube Music to match the songs. Check your connection and try again.")
+        }
         val songs = results.mapNotNull { it.first }
         val unmatched = results.mapNotNull { it.second }
 

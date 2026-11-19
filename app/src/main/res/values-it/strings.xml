@@ -1522,4 +1522,10 @@
     <string name="refresh_rate_adaptive">Adattivo</string>
     <string name="refresh_rate_adaptive_subtitle">Resta basso quando nulla si muove e accelera mentre scorri, fai swipe o apri una pagina.</string>
     <string name="refresh_rate_held_by_high_performance">Mantenuta a %1$d Hz dalla modalità prestazioni elevate.</string>
+    <string name="amazon_music_import_title">Importa playlist di Amazon Music</string>
+    <string name="amazon_music_import_description">Amazon Music non lascia leggere le sue playlist ad altre app, quindi incolla i brani: apri la playlist su music.amazon.com, seleziona l’elenco e copialo, oppure incolla un’esportazione CSV. Sonara li trova su YouTube Music.</string>
+    <string name="amazon_music_import_list_hint">Incolla qui l’elenco dei brani</string>
+    <string name="amazon_music_import_default_name">Playlist di Amazon Music</string>
+    <string name="amazon_music_import_link_only">È un link di Amazon Music, ma Amazon non condivide il contenuto di una playlist con altre app. Copia invece l’elenco dei brani dalla pagina della playlist, oppure incolla un’esportazione CSV.</string>
+    <string name="amazon_music_import_nothing">Nessun brano trovato nel testo incollato. Prova un brano per riga (Titolo - Artista), l’elenco copiato dalla pagina della playlist o un CSV con colonne titolo e artista.</string>
 </resources>

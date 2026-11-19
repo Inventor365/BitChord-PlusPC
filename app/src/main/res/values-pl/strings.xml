@@ -1623,4 +1623,10 @@
     <string name="refresh_rate_adaptive">Adaptacyjne</string>
     <string name="refresh_rate_adaptive_subtitle">Pozostaje niskie, gdy nic się nie rusza, i przyspiesza podczas przewijania, przesuwania lub otwierania strony.</string>
     <string name="refresh_rate_held_by_high_performance">Utrzymywane na %1$d Hz przez tryb wysokiej wydajności.</string>
+    <string name="amazon_music_import_title">Importuj playlistę z Amazon Music</string>
+    <string name="amazon_music_import_description">Amazon Music nie pozwala innym aplikacjom czytać swoich playlist, więc wklej utwory: otwórz playlistę na music.amazon.com, zaznacz listę i skopiuj ją albo wklej eksport CSV. Sonara dopasuje je w YouTube Music.</string>
+    <string name="amazon_music_import_list_hint">Wklej tutaj listę utworów</string>
+    <string name="amazon_music_import_default_name">Playlista z Amazon Music</string>
+    <string name="amazon_music_import_link_only">To link do Amazon Music, ale Amazon nie udostępnia zawartości playlist innym aplikacjom. Skopiuj zamiast tego listę utworów ze strony playlisty albo wklej eksport CSV.</string>
+    <string name="amazon_music_import_nothing">W wklejonym tekście nie znaleziono utworów. Spróbuj jeden utwór na wiersz (Tytuł - Wykonawca), listy skopiowanej ze strony playlisty lub pliku CSV z kolumnami tytułu i wykonawcy.</string>
 </resources>

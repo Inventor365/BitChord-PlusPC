@@ -1567,4 +1567,10 @@
     <string name="refresh_rate_adaptive">ปรับอัตโนมัติ</string>
     <string name="refresh_rate_adaptive_subtitle">อยู่ที่อัตราต่ำเมื่อไม่มีอะไรเคลื่อนไหว และเร็วขึ้นขณะเลื่อน ปัด หรือเปิดหน้า</string>
     <string name="refresh_rate_held_by_high_performance">ถูกตั้งไว้ที่ %1$d Hz โดยโหมดประสิทธิภาพสูง</string>
+    <string name="amazon_music_import_title">นำเข้าเพลย์ลิสต์ Amazon Music</string>
+    <string name="amazon_music_import_description">Amazon Music ไม่อนุญาตให้แอปอื่นอ่านเพลย์ลิสต์ จึงต้องวางรายชื่อเพลงเอง: เปิดเพลย์ลิสต์ที่ music.amazon.com เลือกรายการเพลงแล้วคัดลอก หรือวางไฟล์ CSV ที่ส่งออก Sonara จะจับคู่บน YouTube Music</string>
+    <string name="amazon_music_import_list_hint">วางรายชื่อเพลงที่นี่</string>
+    <string name="amazon_music_import_default_name">เพลย์ลิสต์ Amazon Music</string>
+    <string name="amazon_music_import_link_only">นี่คือลิงก์ Amazon Music แต่ Amazon ไม่แชร์เนื้อหาเพลย์ลิสต์กับแอปอื่น โปรดคัดลอกรายชื่อเพลงจากหน้าเพลย์ลิสต์แทน หรือวางไฟล์ CSV ที่ส่งออก</string>
+    <string name="amazon_music_import_nothing">ไม่พบเพลงในข้อความที่วาง ลองใส่หนึ่งเพลงต่อบรรทัด (ชื่อเพลง - ศิลปิน) รายการที่คัดลอกจากหน้าเพลย์ลิสต์ หรือไฟล์ CSV ที่มีคอลัมน์ชื่อเพลงและศิลปิน</string>
 </resources>

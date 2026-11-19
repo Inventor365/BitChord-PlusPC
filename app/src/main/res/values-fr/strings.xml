@@ -1584,4 +1584,10 @@
     <string name="refresh_rate_adaptive">Adaptatif</string>
     <string name="refresh_rate_adaptive_subtitle">Reste bas quand rien ne bouge et accélère pendant que vous faites défiler, balayez ou ouvrez une page.</string>
     <string name="refresh_rate_held_by_high_performance">Maintenu à %1$d Hz par le mode haute performance.</string>
+    <string name="amazon_music_import_title">Importer une playlist Amazon Music</string>
+    <string name="amazon_music_import_description">Amazon Music ne laisse pas les autres apps lire ses playlists : collez donc les titres. Ouvrez la playlist sur music.amazon.com, sélectionnez la liste et copiez-la, ou collez un export CSV. Sonara les retrouve sur YouTube Music.</string>
+    <string name="amazon_music_import_list_hint">Collez la liste des titres ici</string>
+    <string name="amazon_music_import_default_name">Playlist Amazon Music</string>
+    <string name="amazon_music_import_link_only">C’est un lien Amazon Music, mais Amazon ne partage pas le contenu d’une playlist avec d’autres apps. Copiez plutôt la liste des titres depuis la page de la playlist, ou collez un export CSV.</string>
+    <string name="amazon_music_import_nothing">Aucun titre trouvé dans le texte collé. Essayez un titre par ligne (Titre - Artiste), la liste copiée depuis la page de la playlist ou un CSV avec des colonnes titre et artiste.</string>
 </resources>
