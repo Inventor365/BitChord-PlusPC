@@ -250,6 +250,7 @@ import com.music.bitchord.playback.toggleShuffle
 import com.music.bitchord.playback.upgradeQuality
 import com.music.bitchord.playback.revertToOriginal
 import com.music.bitchord.playback.swapToVersion
+import com.music.bitchord.playback.optimisticVersionApplies
 import com.music.bitchord.playback.smart.VersionAudioAligner
 import com.music.bitchord.download.DownloadSession
 import com.music.bitchord.download.DownloadStore
@@ -1404,6 +1405,8 @@ private fun BitChordApp(
     var convertedVideoId by remember { mutableStateOf<String?>(null) }
     // Optimistically updated track for instant UI updates when switching versions
     var optimisticVersionSong by remember { mutableStateOf<Song?>(null) }
+    // The track [optimisticVersionSong] was made for: it is shown only while that one plays.
+    var optimisticForId by remember { mutableStateOf<String?>(null) }
 
     // Lyrics follow whatever is playing; duration lands a beat after the track.
     // Keyed on the lyric settings too, so turning a source on or off, reordering
@@ -1656,6 +1659,7 @@ private fun BitChordApp(
                 YtMusicRepository.versionTimeMap(song.videoId, target.videoId) != null
             ) {
                 optimisticVersionSong = target
+                optimisticForId = song.videoId
             }
             // Let go of the bar *before* the command goes out: the service
             // raises it again the moment its own job starts, and releasing
@@ -1666,7 +1670,7 @@ private fun BitChordApp(
             if (holdUntilAligned) AppSettings.versionAlignmentInProgress.value = false
             finishVersionSwap(
                 resumeAfterResolution = resumeAfterResolution,
-                swap = { c.swapToVersion(target) },
+                swap = { c.swapToVersion(target, replacing = song.videoId) },
                 play = c::play,
             )
         } finally {
@@ -1733,6 +1737,7 @@ private fun BitChordApp(
                 YtMusicRepository.versionTimeMap(song.videoId, target.videoId) != null
             ) {
                 optimisticVersionSong = target
+                optimisticForId = song.videoId
             }
             // Released before the handover for the same reason as the
             // music-only path above: the service owns the flag from here, and
@@ -1740,7 +1745,7 @@ private fun BitChordApp(
             if (holdUntilAligned) AppSettings.versionAlignmentInProgress.value = false
             finishVersionSwap(
                 resumeAfterResolution = resumeAfterResolution,
-                swap = { c.swapToVersion(target) },
+                swap = { c.swapToVersion(target, replacing = song.videoId) },
                 play = c::play,
             )
         } finally {
@@ -1835,6 +1840,7 @@ private fun BitChordApp(
             (optimisticVersionSong != null && player.song?.videoId != convertedAudioId && player.song?.videoId != convertedVideoId && player.song?.videoId != keepVideoId)
         ) {
             optimisticVersionSong = null
+            optimisticForId = null
         }
         if (activeRadioSeed?.first != player.song?.videoId) activeRadioSeed = null
         if (keepVideoId != player.song?.videoId) keepVideoId = null
@@ -2828,6 +2834,8 @@ private fun BitChordApp(
     // mounts it so the sheet's own setup reads on its own.
     val nowPlaying: @Composable (Song) -> Unit = { song ->
         val effectiveSong = optimisticVersionSong?.takeIf {
+            optimisticVersionApplies(song.videoId, it.videoId, optimisticForId)
+        }?.takeIf {
             it.videoId == convertedAudioId || it.videoId == convertedVideoId || it.videoId == keepVideoId ||
             it.videoId == YtMusicRepository.cachedAudioVersion(song.videoId)?.videoId ||
             it.videoId == YtMusicRepository.cachedVideoVersion(song.videoId)?.videoId
@@ -4881,6 +4889,8 @@ private fun BitChordApp(
             // so a menu opened mid-switch describes the version actually
             // becoming current, not the one about to be left.
             val versionEffectiveSong = optimisticVersionSong?.takeIf {
+                optimisticVersionApplies(song.videoId, it.videoId, optimisticForId)
+            }?.takeIf {
                 it.videoId == convertedAudioId || it.videoId == convertedVideoId || it.videoId == keepVideoId ||
                     it.videoId == YtMusicRepository.cachedAudioVersion(song.videoId)?.videoId ||
                     it.videoId == YtMusicRepository.cachedVideoVersion(song.videoId)?.videoId
@@ -4922,8 +4932,11 @@ private fun BitChordApp(
                             keepVideoId = original.videoId
                             convertedFromVideo = null
                             convertedAudioId = null
-                            if (!versionAlignmentPending(original.videoId)) optimisticVersionSong = original
-                            c.swapToVersion(original)
+                            if (!versionAlignmentPending(original.videoId)) {
+                                optimisticVersionSong = original
+                                optimisticForId = song.videoId
+                            }
+                            c.swapToVersion(original, replacing = song.videoId)
                         }
                         originalAudio != null && (
                             convertedVideoId == song.videoId ||
@@ -4932,8 +4945,11 @@ private fun BitChordApp(
                             ) -> {
                             convertedFromAudio = null
                             convertedVideoId = null
-                            if (!versionAlignmentPending(originalAudio.videoId)) optimisticVersionSong = originalAudio
-                            c.swapToVersion(originalAudio)
+                            if (!versionAlignmentPending(originalAudio.videoId)) {
+                                optimisticVersionSong = originalAudio
+                                optimisticForId = song.videoId
+                            }
+                            c.swapToVersion(originalAudio, replacing = song.videoId)
                         }
                         versionEffectiveSong.isVideo || song.isVideo -> {
                             val cached = YtMusicRepository.cachedAudioVersion(song.videoId)
@@ -4950,6 +4966,7 @@ private fun BitChordApp(
                                     playbackSourceType = song.playbackSourceType,
                                     playbackSourceId = song.playbackSourceId,
                                 )
+                                optimisticForId = song.videoId
                             }
                             scope.launch { switchToMusicOnly(song, pauseWhileResolving = false) }
                         }
@@ -4967,6 +4984,7 @@ private fun BitChordApp(
                                     playbackSourceType = song.playbackSourceType,
                                     playbackSourceId = song.playbackSourceId,
                                 )
+                                optimisticForId = song.videoId
                             }
                             scope.launch { switchToVideo(song, pauseWhileResolving = false) }
                         }

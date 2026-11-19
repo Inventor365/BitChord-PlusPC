@@ -219,6 +219,9 @@ const val EXTRA_BOUNDED_CONTEXT_CONTINUATION = "bitchord.boundedContext.continua
 const val ACTION_SWAP_VERSION = "com.music.bitchord.action.SWAP_VERSION"
 const val EXTRA_SWAP_MEDIA_ITEM = "bitchord.swap.media_item"
 
+/** The media id of the row a version swap was meant for; see [versionSwapTargetsCurrent]. */
+const val EXTRA_SWAP_REPLACING_ID = "bitchord.swap.replacing_id"
+
 /** Session command used by the media notification's and the 4×1 widget's Favorite button. */
 /** How long the service may stay in the foreground, paused, while the watch plays. */
 private const val WATCH_SESSION_FOREGROUND_MS = 6 * 60 * 60 * 1000L
@@ -8940,7 +8943,15 @@ class PlaybackService : MediaLibraryService() {
                 ACTION_UPGRADE_QUALITY -> upgradeQualityNow()
                 ACTION_SWAP_VERSION -> {
                     val bundle = args.getBundle(EXTRA_SWAP_MEDIA_ITEM)
-                    if (bundle != null) {
+                    val replacing = args.getString(EXTRA_SWAP_REPLACING_ID)
+                    val current = session.player.currentMediaItem?.mediaId
+                    if (bundle != null && !versionSwapTargetsCurrent(current, replacing)) {
+                        // The app looked the other version up for a track that is no longer
+                        // the one playing (it ended, was skipped, or a restored queue landed
+                        // elsewhere while the lookup ran). Swapping now would put that other
+                        // track's version in place of whatever is playing instead.
+                        TrackLog.w("Player", "version swap for $replacing dropped; now playing $current", replacing)
+                    } else if (bundle != null) {
                         val targetSong = songFromBundle(bundle)
                         // The listener's own choice outranks the music-only setting.
                         if (targetSong.isVideo) {

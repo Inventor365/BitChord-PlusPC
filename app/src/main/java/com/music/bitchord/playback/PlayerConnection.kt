@@ -181,13 +181,36 @@ fun MediaController.revertToOriginal() {
 
 /**
  * Asks the service to smoothly transition the playing track to another version/rendition.
+ *
+ * [replacing] is the media id of the row the version was found for. The service drops the swap
+ * when something else is playing by the time it arrives — the lookup behind a swap takes
+ * seconds, and the track can end, be skipped or be replaced meanwhile.
  */
-fun MediaController.swapToVersion(targetSong: Song) {
+fun MediaController.swapToVersion(targetSong: Song, replacing: String) {
     sendCustomCommand(
         SessionCommand(ACTION_SWAP_VERSION, Bundle.EMPTY),
-        bundleOf(EXTRA_SWAP_MEDIA_ITEM to targetSong.toSongBundle()),
+        bundleOf(
+            EXTRA_SWAP_MEDIA_ITEM to targetSong.toSongBundle(),
+            EXTRA_SWAP_REPLACING_ID to replacing,
+        ),
     )
 }
+
+/**
+ * Whether a version swap meant for [replacingId] may replace the row now playing, [currentId].
+ * A swap sent without an id (an older client) is let through, as it always was.
+ */
+internal fun versionSwapTargetsCurrent(currentId: String?, replacingId: String?): Boolean =
+    replacingId == null || currentId == replacingId
+
+/**
+ * Whether the player should show [optimisticId] — a version the app has switched to but the
+ * player may not have committed yet — over [playingId]. Only while the song it was made for
+ * ([optimisticFor]) is still the one playing, or once the player has caught up to it. Anything
+ * else is a stale swap, and showing it would put one song's title over another's audio.
+ */
+internal fun optimisticVersionApplies(playingId: String?, optimisticId: String, optimisticFor: String?): Boolean =
+    playingId != null && (playingId == optimisticFor || playingId == optimisticId)
 
 /**
  * Sends a version swap and restores playback if resolving that version paused
