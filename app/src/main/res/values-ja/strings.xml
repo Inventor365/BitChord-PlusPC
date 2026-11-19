@@ -1601,4 +1601,18 @@
     <string name="mode_state_mobile">モバイル通信時</string>
     <string name="mode_state_paused">一時停止中</string>
     <string name="mode_open_settings">パフォーマンス設定</string>
+    <string name="theme_sonara">Sonara</string>
+    <string name="theme_vice">Vice</string>
+    <string name="theme_doom">Doom</string>
+    <string name="theme_sonara_line">オリジナル</string>
+    <string name="theme_vice_line">ネオンの夕暮れ</string>
+    <string name="theme_doom_line">冷たい鋼</string>
+    <string name="theme_icon_pending">Sonara を閉じるとホーム画面のアイコンが変わります。ランチャーによっては少し時間がかかります。</string>
+    <string name="theme_preview_greeting">こんばんは</string>
+    <string name="theme_switch">テーマを変更</string>
+    <string name="app_theme_title">テーマ</string>
+    <string name="theme_icon_title">アプリアイコンを合わせる</string>
+    <string name="theme_icon_subtitle">ホーム画面でテーマ専用のアイコンを使う</string>
+    <string name="theme_mode_title">ライトとダーク</string>
+    <string name="theme_mode_dark_only">Vice と Doom はダークのみです。この設定は Sonara に適用されます。</string>
 </resources>

@@ -193,7 +193,14 @@ fun FloatingBottomBar(
     /** Called when the user taps the currently active tab (scroll-to-top). */
     onActiveTabTap: () -> Unit = {},
 ) {
-    val pillShape = RoundedCornerShape(percent = 50)
+    // Doom's bar is a chamfered plate; the others keep the capsule. Vice and Doom edge it in
+    // their neon, faintly.
+    val theme = com.music.bitchord.ui.theme.LocalThemeTokens.current
+    val pillShape: androidx.compose.foundation.shape.CornerBasedShape =
+        (theme.controlShape as? androidx.compose.foundation.shape.CornerBasedShape)
+            ?.takeIf { theme.angular }
+            ?: RoundedCornerShape(percent = 50)
+    val edgeColor = theme.glow?.copy(alpha = 0.30f) ?: GLASS_EDGE_COLOR
     val container = MaterialTheme.colorScheme.surface
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val useGlass = LocalLiquidGlassEnabled.current && isGlassSupported()
@@ -276,7 +283,7 @@ fun FloatingBottomBar(
                     )
                 },
             )
-            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, pillShape)
+            .border(GLASS_EDGE_WIDTH, edgeColor, pillShape)
             .padding(horizontal = PILL_INSET, vertical = PILL_INSET),
     ) {
         if (tabWidthPx > 0f) {

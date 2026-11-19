@@ -1600,4 +1600,18 @@
     <string name="mode_state_mobile">移动数据时</string>
     <string name="mode_state_paused">已暂停</string>
     <string name="mode_open_settings">性能设置</string>
+    <string name="theme_sonara">Sonara</string>
+    <string name="theme_vice">Vice</string>
+    <string name="theme_doom">Doom</string>
+    <string name="theme_sonara_line">原版</string>
+    <string name="theme_vice_line">霓虹黄昏</string>
+    <string name="theme_doom_line">冷钢</string>
+    <string name="theme_icon_pending">离开 Sonara 后主屏幕图标会更换，部分启动器需要一点时间。</string>
+    <string name="theme_preview_greeting">晚上好</string>
+    <string name="theme_switch">更换主题</string>
+    <string name="app_theme_title">主题</string>
+    <string name="theme_icon_title">匹配应用图标</string>
+    <string name="theme_icon_subtitle">在主屏幕使用主题专属图标</string>
+    <string name="theme_mode_title">浅色与深色</string>
+    <string name="theme_mode_dark_only">Vice 和 Doom 仅有深色，此设置适用于 Sonara。</string>
 </resources>

@@ -373,7 +373,9 @@ fun MiniPlayer(
     // height if the row's contents ever change it — which is what keeps a pill
     // a pill instead of a rounded rectangle. Same idiom as [FloatingBottomBar]
     // directly below it, so the two shapes are the same family.
-    val shape = RoundedCornerShape(percent = 50)
+    // Matches the tab bar under it: a capsule, or Doom's chamfered plate, edged in the theme's neon.
+    val miniTheme = com.music.bitchord.ui.theme.LocalThemeTokens.current
+    val shape = if (miniTheme.angular) miniTheme.controlShape else RoundedCornerShape(percent = 50)
     Box(
         modifier = modifier
             .padding(horizontal = BAR_GUTTER)
@@ -402,7 +404,7 @@ fun MiniPlayer(
                     )
                 },
             )
-            .border(0.5.dp, Color.White.copy(alpha = 0.10f), shape)
+            .border(0.5.dp, miniTheme.glow?.copy(alpha = 0.30f) ?: Color.White.copy(alpha = 0.10f), shape)
             // Deliberately silent: the whole bar is the target, so it catches
             // stray taps meant for the page behind it, and the sheet rising is
             // its own confirmation. The glyphs on it still buzz.

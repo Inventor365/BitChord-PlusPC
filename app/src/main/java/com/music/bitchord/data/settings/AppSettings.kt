@@ -442,6 +442,12 @@ object AppSettings {
 
     val playbackSpeed = MutableStateFlow(1.0f)
     val themeMode = MutableStateFlow(ThemeMode.DARK)
+
+    /** The app's look: Sonara, Vice or Doom. See [com.music.bitchord.ui.theme.ThemeId]. */
+    val appTheme = MutableStateFlow(com.music.bitchord.ui.theme.ThemeId.SONARA)
+
+    /** Change the home-screen icon along with the theme. */
+    val themeIcon = MutableStateFlow(true)
     val appFont = MutableStateFlow(AppFont.DEFAULT)
 
     /** Keep playing similar music once the queue runs out. */
@@ -1125,6 +1131,8 @@ object AppSettings {
         themeMode.value = runCatching {
             ThemeMode.valueOf(prefs.getString(KEY_THEME, null) ?: "DARK")
         }.getOrDefault(ThemeMode.DARK)
+        appTheme.value = com.music.bitchord.ui.theme.ThemeId.fromKey(prefs.getString(KEY_APP_THEME, null))
+        themeIcon.value = prefs.getBoolean(KEY_THEME_ICON, true)
         appFont.value = runCatching {
             AppFont.valueOf(prefs.getString(KEY_APP_FONT, null) ?: AppFont.DEFAULT.name)
         }.getOrDefault(AppFont.DEFAULT)
@@ -1569,6 +1577,26 @@ object AppSettings {
         themeMode.value = value
         prefs.edit().putString(KEY_THEME, value.name).apply()
     }
+
+    fun setAppTheme(value: com.music.bitchord.ui.theme.ThemeId) {
+        appTheme.value = value
+        prefs.edit().putString(KEY_APP_THEME, value.key).apply()
+    }
+
+    fun setThemeIcon(value: Boolean) {
+        themeIcon.value = value
+        prefs.edit().putBoolean(KEY_THEME_ICON, value).apply()
+    }
+
+    /** The icon the listener had chosen before a theme took the home screen over; see ThemeIcons. */
+    var iconBeforeTheme: String?
+        get() = prefs.getString(KEY_ICON_BEFORE_THEME, null)
+        set(value) = prefs.edit().putString(KEY_ICON_BEFORE_THEME, value).apply()
+
+    /** An icon change waiting for the app to leave the screen; see ThemeIcons. */
+    var pendingIcon: String?
+        get() = prefs.getString(KEY_PENDING_ICON, null)
+        set(value) = prefs.edit().putString(KEY_PENDING_ICON, value).apply()
 
     fun setAppFont(value: AppFont) {
         appFont.value = value
@@ -2528,6 +2556,10 @@ object AppSettings {
     private const val KEY_CACHE_LIMIT = "audio_cache_limit_bytes"
     private const val KEY_REDUCE_ANIMATION = "reduce_animation"
     private const val KEY_NAV_LABELS = "show_nav_labels"
+    private const val KEY_APP_THEME = "app_theme"
+    private const val KEY_THEME_ICON = "theme_icon"
+    private const val KEY_ICON_BEFORE_THEME = "icon_before_theme"
+    private const val KEY_PENDING_ICON = "pending_icon"
     private const val KEY_ONBOARDING_COMPLETE = "onboarding_complete"
     private const val KEY_DIWALI_GREETING_SHOWN = "diwali_greeting_2026_shown"
     private const val KEY_HIGH_PERFORMANCE_MODE = "high_performance_mode"

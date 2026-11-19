@@ -1663,4 +1663,18 @@
     <string name="mode_state_mobile">Dane komórkowe</string>
     <string name="mode_state_paused">Wstrzymano</string>
     <string name="mode_open_settings">Ustawienia wydajności</string>
+    <string name="theme_sonara">Sonara</string>
+    <string name="theme_vice">Vice</string>
+    <string name="theme_doom">Doom</string>
+    <string name="theme_sonara_line">Oryginał</string>
+    <string name="theme_vice_line">Neonowy zmierzch</string>
+    <string name="theme_doom_line">Zimna stal</string>
+    <string name="theme_icon_pending">Ikona na ekranie głównym zmieni się po wyjściu z Sonary. Niektóre launchery potrzebują chwili.</string>
+    <string name="theme_preview_greeting">Dobry wieczór</string>
+    <string name="theme_switch">Zmień motyw</string>
+    <string name="app_theme_title">Motyw</string>
+    <string name="theme_icon_title">Pasująca ikona</string>
+    <string name="theme_icon_subtitle">Używaj ikony motywu na ekranie głównym</string>
+    <string name="theme_mode_title">Jasny i ciemny</string>
+    <string name="theme_mode_dark_only">Vice i Doom są tylko ciemne. Dotyczy to Sonary.</string>
 </resources>

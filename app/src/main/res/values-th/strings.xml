@@ -1607,4 +1607,18 @@
     <string name="mode_state_mobile">เน็ตมือถือ</string>
     <string name="mode_state_paused">หยุดชั่วคราว</string>
     <string name="mode_open_settings">การตั้งค่าประสิทธิภาพ</string>
+    <string name="theme_sonara">Sonara</string>
+    <string name="theme_vice">Vice</string>
+    <string name="theme_doom">Doom</string>
+    <string name="theme_sonara_line">ต้นฉบับ</string>
+    <string name="theme_vice_line">แสงนีออนยามเย็น</string>
+    <string name="theme_doom_line">เหล็กเย็น</string>
+    <string name="theme_icon_pending">ไอคอนบนหน้าจอหลักจะเปลี่ยนเมื่อคุณออกจาก Sonara บางลอนเชอร์อาจใช้เวลาสักครู่</string>
+    <string name="theme_preview_greeting">สวัสดีตอนเย็น</string>
+    <string name="theme_switch">เปลี่ยนธีม</string>
+    <string name="app_theme_title">ธีม</string>
+    <string name="theme_icon_title">ไอคอนแอปตามธีม</string>
+    <string name="theme_icon_subtitle">ใช้ไอคอนของธีมบนหน้าจอหลัก</string>
+    <string name="theme_mode_title">สว่างและมืด</string>
+    <string name="theme_mode_dark_only">Vice และ Doom มีแต่โหมดมืด การตั้งค่านี้ใช้กับ Sonara</string>
 </resources>

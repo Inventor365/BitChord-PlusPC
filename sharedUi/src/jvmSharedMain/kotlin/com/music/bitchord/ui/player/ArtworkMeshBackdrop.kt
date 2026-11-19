@@ -338,6 +338,9 @@ fun ArtworkMeshBackdrop(
         incoming = null
     }
 
+    // The theme's own light over the sleeve's colours: Vice's violet sky and pink floor, Doom's
+    // green-black. Empty under Sonara, where the sleeve alone colours the player.
+    val themeTint = com.music.bitchord.ui.theme.LocalThemeTokens.current.playerTint
     Canvas(
         modifier = modifier
             .fillMaxSize()
@@ -363,6 +366,7 @@ fun ArtworkMeshBackdrop(
                 ),
             ),
         )
+        if (themeTint.isNotEmpty()) drawRect(Brush.verticalGradient(themeTint))
     }
 }
 

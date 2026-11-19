@@ -1542,4 +1542,18 @@
     <string name="mode_state_mobile">Dữ liệu di động</string>
     <string name="mode_state_paused">Tạm dừng</string>
     <string name="mode_open_settings">Cài đặt hiệu năng</string>
+    <string name="theme_sonara">Sonara</string>
+    <string name="theme_vice">Vice</string>
+    <string name="theme_doom">Doom</string>
+    <string name="theme_sonara_line">Bản gốc</string>
+    <string name="theme_vice_line">Hoàng hôn neon</string>
+    <string name="theme_doom_line">Thép lạnh</string>
+    <string name="theme_icon_pending">Biểu tượng màn hình chính sẽ đổi khi bạn rời Sonara. Một số trình khởi chạy cần chút thời gian.</string>
+    <string name="theme_preview_greeting">Chào buổi tối</string>
+    <string name="theme_switch">Đổi chủ đề</string>
+    <string name="app_theme_title">Chủ đề</string>
+    <string name="theme_icon_title">Biểu tượng khớp chủ đề</string>
+    <string name="theme_icon_subtitle">Dùng biểu tượng của chủ đề trên màn hình chính</string>
+    <string name="theme_mode_title">Sáng và tối</string>
+    <string name="theme_mode_dark_only">Vice và Doom chỉ có giao diện tối. Cài đặt này áp dụng cho Sonara.</string>
 </resources>

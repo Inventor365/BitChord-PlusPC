@@ -82,8 +82,8 @@ fun IosSwitch(
     )
     val track by animateColorAsState(
         targetValue = when {
-            checked && dark -> Color(0xFFFF2D55)
-            checked -> Color(0xFFFF2D55)
+            // The theme's accent: Sonara's red, Vice's pink, Doom's emerald.
+            checked -> com.music.bitchord.ui.theme.LocalThemeTokens.current.accent
             else -> Color(0xFF8E8E93).copy(alpha = if (dark) 0.36f else 0.22f)
         },
         label = "iosSwitchTrack",

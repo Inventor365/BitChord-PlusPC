@@ -85,6 +85,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.delay
+import com.music.bitchord.ui.theme.themedShape
 
 /**
  * The signed-in library: the saved collections, as shelves of cards.
@@ -386,7 +387,7 @@ private fun LibraryLinkCard(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(themedShape(12.dp))
                 .background(tint.copy(alpha = 0.26f)),
         ) {
             if (link.logo != null) {

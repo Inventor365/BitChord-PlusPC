@@ -108,6 +108,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.foundation.border
+import com.music.bitchord.ui.theme.themedShape
+import com.music.bitchord.ui.theme.drawThemeTexture
 
 /**
  * The left and right inset every page's content sits at — the artist page's
@@ -574,8 +576,8 @@ private fun SongRowContent(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .matchParentSize()
-                        .clip(RoundedCornerShape(8.dp))
-                        .thumbnailBorder(RoundedCornerShape(8.dp))
+                        .clip(themedShape(8.dp))
+                        .thumbnailBorder(themedShape(8.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                 )
                 if (searchPlayingStyle && isCurrent && isPlaying) {
@@ -887,35 +889,27 @@ fun SignInBanner(
                 scaleX = scale
                 scaleY = scale
             }
-            .clip(RoundedCornerShape(22.dp))
+            .clip(themedShape(22.dp))
             .clickable(interactionSource = interaction, indication = null, onClick = onSignIn),
     ) {
         // The Sonara Pass's own materials — ink, an ember of the mark's red in the corner
         // and a grid of dots — so the invitation reads as the app's, not as a poster.
+        // In the theme's own: Vice's violet with a pink ember, Doom's steel with an emerald one.
+        val signInTheme = com.music.bitchord.ui.theme.LocalThemeTokens.current
         androidx.compose.foundation.Canvas(Modifier.matchParentSize()) {
             drawRect(
-                androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color(0xFF2A0B14), Color(0xFF111114), Color(0xFF18181C))),
+                androidx.compose.ui.graphics.Brush.linearGradient(signInTheme.passGradient),
             )
             drawCircle(
                 androidx.compose.ui.graphics.Brush.radialGradient(
-                    listOf(SonaraAccent.copy(alpha = 0.55f), SonaraAccent.copy(alpha = 0.10f), Color.Transparent),
+                    listOf(signInTheme.accent.copy(alpha = 0.55f), signInTheme.accent.copy(alpha = 0.10f), Color.Transparent),
                     center = androidx.compose.ui.geometry.Offset(size.width * 0.95f, 0f),
                     radius = size.width * 0.8f,
                 ),
                 radius = size.width * 0.8f,
                 center = androidx.compose.ui.geometry.Offset(size.width * 0.95f, 0f),
             )
-            val step = 14.dp.toPx()
-            val r = 0.9.dp.toPx()
-            var y = step / 2f
-            while (y < size.height) {
-                var x = step / 2f
-                while (x < size.width) {
-                    drawCircle(Color.White.copy(alpha = 0.05f), r, androidx.compose.ui.geometry.Offset(x, y))
-                    x += step
-                }
-                y += step
-            }
+            drawThemeTexture(signInTheme)
         }
         Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 18.dp)) {
             Text(

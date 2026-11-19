@@ -1617,4 +1617,18 @@
     <string name="mode_state_mobile">流動數據時</string>
     <string name="mode_state_paused">已暫停</string>
     <string name="mode_open_settings">效能設定</string>
+    <string name="theme_sonara">Sonara</string>
+    <string name="theme_vice">Vice</string>
+    <string name="theme_doom">Doom</string>
+    <string name="theme_sonara_line">原版</string>
+    <string name="theme_vice_line">霓虹黃昏</string>
+    <string name="theme_doom_line">冷鋼</string>
+    <string name="theme_icon_pending">離開 Sonara 後主畫面圖示會更換，部分啟動器需要一點時間。</string>
+    <string name="theme_preview_greeting">晚安</string>
+    <string name="theme_switch">更換主題</string>
+    <string name="app_theme_title">主題</string>
+    <string name="theme_icon_title">搭配應用程式圖示</string>
+    <string name="theme_icon_subtitle">在主畫面使用主題專屬圖示</string>
+    <string name="theme_mode_title">淺色與深色</string>
+    <string name="theme_mode_dark_only">Vice 與 Doom 僅有深色，此設定適用於 Sonara。</string>
 </resources>

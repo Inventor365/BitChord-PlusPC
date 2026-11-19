@@ -6,7 +6,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.Typography
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.shape.CutCornerShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.Shapes
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.text.font.FontVariation
+import androidx.compose.ui.unit.dp
+import com.music.bitchord.ui.theme.DoomColors
+import com.music.bitchord.ui.theme.LocalThemeTokens
+import com.music.bitchord.ui.theme.ThemeId
+import com.music.bitchord.ui.theme.ThemeTokens
+import com.music.bitchord.ui.theme.ViceColors
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
@@ -138,19 +154,213 @@ private fun Typography.withFamily(family: FontFamily) = Typography(
     labelSmall = labelSmall.copy(fontFamily = family),
 )
 
+/**
+ * Vice: Miami at dusk. Violet-black surfaces, hot pink primary, sunset orange and cyan.
+ * Every on-colour clears WCAG AA against what it sits on (see ThemeContrastTest).
+ */
+private val ViceScheme = darkColorScheme(
+    primary = ViceColors.HotPink,
+    onPrimary = Color(0xFF1A0010),
+    primaryContainer = Color(0xFF5A1046),
+    onPrimaryContainer = Color(0xFFFFD8EC),
+    inversePrimary = Color(0xFFB0006A),
+    secondary = ViceColors.Sunset,
+    onSecondary = Color(0xFF231000),
+    secondaryContainer = Color(0xFF5C2C0E),
+    onSecondaryContainer = Color(0xFFFFDCC6),
+    tertiary = ViceColors.Cyan,
+    onTertiary = Color(0xFF00201F),
+    tertiaryContainer = Color(0xFF004F50),
+    onTertiaryContainer = Color(0xFFB8FFFE),
+    background = ViceColors.Night,
+    onBackground = Color(0xFFF6EEFF),
+    surface = ViceColors.Surface,
+    onSurface = Color(0xFFF6EEFF),
+    surfaceVariant = ViceColors.SurfaceHigh,
+    onSurfaceVariant = ViceColors.Lilac,
+    surfaceTint = ViceColors.HotPink,
+    inverseSurface = Color(0xFFEDE3FA),
+    inverseOnSurface = Color(0xFF1E1530),
+    error = Color(0xFFFF6E6E),
+    onError = Color(0xFF2B0000),
+    errorContainer = Color(0xFF6B1219),
+    onErrorContainer = Color(0xFFFFDAD6),
+    outline = ViceColors.Outline,
+    outlineVariant = Color(0xFF2B1D44),
+    scrim = Color.Black,
+    surfaceBright = Color(0xFF2C1D48),
+    surfaceDim = ViceColors.Night,
+    surfaceContainerLowest = Color(0xFF07040F),
+    surfaceContainerLow = Color(0xFF110A20),
+    surfaceContainer = ViceColors.Surface,
+    surfaceContainerHigh = Color(0xFF1C1231),
+    surfaceContainerHighest = ViceColors.SurfaceHigh,
+)
+
+/**
+ * Doom: Latverian steel. Gunmetal and black, toxic emerald primary, cold brass and steel.
+ */
+private val DoomScheme = darkColorScheme(
+    primary = DoomColors.Emerald,
+    onPrimary = Color(0xFF00170A),
+    primaryContainer = Color(0xFF0E4A2C),
+    onPrimaryContainer = Color(0xFFB6FFD3),
+    inversePrimary = Color(0xFF00733D),
+    secondary = DoomColors.Brass,
+    onSecondary = Color(0xFF1C1300),
+    secondaryContainer = Color(0xFF4A3B16),
+    onSecondaryContainer = Color(0xFFF3E1B1),
+    tertiary = DoomColors.Steel,
+    onTertiary = Color(0xFF0E1418),
+    tertiaryContainer = Color(0xFF34404A),
+    onTertiaryContainer = Color(0xFFDDE6EE),
+    background = DoomColors.Void,
+    onBackground = Color(0xFFE7ECEF),
+    surface = DoomColors.Gunmetal,
+    onSurface = Color(0xFFE7ECEF),
+    surfaceVariant = DoomColors.Plate,
+    onSurfaceVariant = DoomColors.Ash,
+    surfaceTint = DoomColors.Emerald,
+    inverseSurface = Color(0xFFDDE3E7),
+    inverseOnSurface = Color(0xFF161B1F),
+    error = Color(0xFFFF6B5E),
+    onError = Color(0xFF2B0300),
+    errorContainer = Color(0xFF6A1A12),
+    onErrorContainer = Color(0xFFFFDAD4),
+    outline = DoomColors.Outline,
+    outlineVariant = Color(0xFF232B31),
+    scrim = Color.Black,
+    surfaceBright = Color(0xFF283037),
+    surfaceDim = DoomColors.Void,
+    surfaceContainerLowest = Color(0xFF040506),
+    surfaceContainerLow = Color(0xFF0D1114),
+    surfaceContainer = DoomColors.Gunmetal,
+    surfaceContainerHigh = Color(0xFF181E22),
+    surfaceContainerHighest = DoomColors.Plate,
+)
+
+/** Righteous: rounded, retro, a little glam — Vice's headings. OFL; see assets/licenses. */
+val RighteousFamily = FontFamily(Font(R.font.righteous_regular, FontWeight.W400))
+
+/** Cinzel: Roman capitals, cut sharp — Doom's headings. A variable font; OFL, see assets/licenses. */
+@OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
+val CinzelFamily = FontFamily(
+    Font(R.font.cinzel_variable, FontWeight.W600, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
+    Font(R.font.cinzel_variable, FontWeight.W700, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
+    Font(R.font.cinzel_variable, FontWeight.W800, variationSettings = FontVariation.Settings(FontVariation.weight(800))),
+)
+
+/** [id]'s colour scheme. Vice and Doom have only their dark one. */
+fun themeColorScheme(id: ThemeId, dark: Boolean): ColorScheme = when (id) {
+    ThemeId.SONARA -> if (dark) DarkColors else LightColors
+    ThemeId.VICE -> ViceScheme
+    ThemeId.DOOM -> DoomScheme
+}
+
+/** The tokens for [id], with the heading face only the app module can load filled in. */
+fun themeTokensFor(id: ThemeId): ThemeTokens = when (id) {
+    ThemeId.SONARA -> ThemeTokens.Sonara
+    ThemeId.VICE -> ThemeTokens.Vice.copy(headingFamily = RighteousFamily)
+    ThemeId.DOOM -> ThemeTokens.Doom.copy(headingFamily = CinzelFamily)
+}
+
+/**
+ * The page titles and greetings in the theme's own face; titles of songs, body and labels stay
+ * in the app's face, which is set for reading at small sizes. Cinzel's small capitals read
+ * larger than their size, and Righteous rounder, so both are set a step looser.
+ */
+private fun Typography.withHeadings(tokens: ThemeTokens): Typography {
+    val family = tokens.headingFamily ?: return this
+    val spacing = if (tokens.angular) 0.6.sp else 0.2.sp
+    val weight = if (tokens.angular) FontWeight.W700 else FontWeight.W400
+    fun TextStyle.heading() = copy(fontFamily = family, fontWeight = weight, letterSpacing = spacing)
+    return copy(
+        displayLarge = displayLarge.heading(),
+        displayMedium = displayMedium.heading(),
+        displaySmall = displaySmall.heading(),
+        headlineLarge = headlineLarge.heading(),
+        headlineMedium = headlineMedium.heading(),
+        headlineSmall = headlineSmall.heading(),
+    )
+}
+
+/** The Material shape scale in the theme's language: soft for Vice, chamfered for Doom. */
+private fun shapesFor(tokens: ThemeTokens): Shapes = when {
+    tokens.angular -> Shapes(
+        extraSmall = CutCornerShape(4.dp),
+        small = CutCornerShape(7.dp),
+        medium = CutCornerShape(10.dp),
+        large = CutCornerShape(14.dp),
+        extraLarge = CutCornerShape(20.dp),
+    )
+    tokens.id == ThemeId.VICE -> Shapes(
+        extraSmall = RoundedCornerShape(8.dp),
+        small = RoundedCornerShape(12.dp),
+        medium = RoundedCornerShape(18.dp),
+        large = RoundedCornerShape(24.dp),
+        extraLarge = RoundedCornerShape(32.dp),
+    )
+    else -> Shapes()
+}
+
+/**
+ * The app's theme: [themeId]'s colour scheme, type, shapes and tokens. Vice and Doom are
+ * dark-only, so [darkTheme] applies to Sonara alone. A change of theme crossfades every colour
+ * over [THEME_FADE_MS]; [reduceMotion] makes it a cut.
+ */
 @Composable
 fun BitChordTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     font: AppFont = AppFont.DEFAULT,
+    themeId: ThemeId = ThemeId.SONARA,
+    reduceMotion: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(
-        colorScheme = if (darkTheme) DarkColors else LightColors,
-        typography = when (font) {
-            AppFont.DEFAULT -> BitChordTypography
-            AppFont.LEGACY -> LegacyTypography
-        },
-        content = content,
+    val tokens = remember(themeId) { themeTokensFor(themeId) }
+    val target = themeColorScheme(themeId, darkTheme)
+    val base = when (font) {
+        AppFont.DEFAULT -> BitChordTypography
+        AppFont.LEGACY -> LegacyTypography
+    }
+    val typography = remember(base, tokens) { base.withHeadings(tokens) }
+    CompositionLocalProvider(LocalThemeTokens provides tokens) {
+        MaterialTheme(
+            colorScheme = animatedColorScheme(target, animate = !reduceMotion),
+            typography = typography,
+            shapes = remember(tokens) { shapesFor(tokens) },
+            content = content,
+        )
+    }
+}
+
+/** How long a change of theme takes to fade across. */
+private const val THEME_FADE_MS = 420
+
+/** [target], with every role easing to its new colour when the theme or mode changes. */
+@Composable
+private fun animatedColorScheme(target: ColorScheme, animate: Boolean): ColorScheme {
+    val spec = if (animate) tween<Color>(THEME_FADE_MS) else snap()
+    @Composable
+    fun Color.eased(label: String) = animateColorAsState(this, spec, label = label).value
+    return target.copy(
+        primary = target.primary.eased("primary"),
+        onPrimary = target.onPrimary.eased("onPrimary"),
+        primaryContainer = target.primaryContainer.eased("primaryContainer"),
+        onPrimaryContainer = target.onPrimaryContainer.eased("onPrimaryContainer"),
+        secondary = target.secondary.eased("secondary"),
+        onSecondary = target.onSecondary.eased("onSecondary"),
+        tertiary = target.tertiary.eased("tertiary"),
+        background = target.background.eased("background"),
+        onBackground = target.onBackground.eased("onBackground"),
+        surface = target.surface.eased("surface"),
+        onSurface = target.onSurface.eased("onSurface"),
+        surfaceVariant = target.surfaceVariant.eased("surfaceVariant"),
+        onSurfaceVariant = target.onSurfaceVariant.eased("onSurfaceVariant"),
+        surfaceContainer = target.surfaceContainer.eased("surfaceContainer"),
+        surfaceContainerHigh = target.surfaceContainerHigh.eased("surfaceContainerHigh"),
+        surfaceContainerHighest = target.surfaceContainerHighest.eased("surfaceContainerHighest"),
+        outline = target.outline.eased("outline"),
+        outlineVariant = target.outlineVariant.eased("outlineVariant"),
     )
 }
 

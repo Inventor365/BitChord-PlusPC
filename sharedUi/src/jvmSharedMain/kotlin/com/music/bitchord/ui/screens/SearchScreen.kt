@@ -109,6 +109,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.text.font.FontWeight
 import com.music.bitchord.ui.components.pressScale
 import com.music.bitchord.ui.components.revealOnAppear
+import com.music.bitchord.ui.theme.themedShape
 
 /**
  * Where Search's promoted "Top result" card sits, in window coordinates. A
@@ -960,8 +961,8 @@ private fun TypeaheadSongRow(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .matchParentSize()
-                        .clip(RoundedCornerShape(8.dp))
-                        .thumbnailBorder(RoundedCornerShape(8.dp))
+                        .clip(themedShape(8.dp))
+                        .thumbnailBorder(themedShape(8.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                 )
                 if (isCurrent && isPlaying) SearchPlayingBars(Modifier.align(Alignment.Center))
@@ -1153,8 +1154,8 @@ private fun RecentSearchEntityRow(
                     contentDescription = null,
                     modifier = Modifier
                         .size(52.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .thumbnailBorder(RoundedCornerShape(8.dp))
+                        .clip(themedShape(8.dp))
+                        .thumbnailBorder(themedShape(8.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                 )
                 if (isCurrent && isPlaying) {
@@ -1219,11 +1220,11 @@ private fun BrowseRow(item: BrowseItem, onClick: () -> Unit, onLongPress: (() ->
                 .size(52.dp)
                 .clip(
                     if (item.type == BrowseType.ARTIST) CircleShape
-                    else RoundedCornerShape(8.dp),
+                    else themedShape(8.dp),
                 )
                 .thumbnailBorder(
                     if (item.type == BrowseType.ARTIST) CircleShape
-                    else RoundedCornerShape(8.dp),
+                    else themedShape(8.dp),
                 )
                 .background(MaterialTheme.colorScheme.surfaceVariant),
         )

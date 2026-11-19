@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.music.bitchord.ui.theme.themedShape
 
 /**
  * Grey stand-ins for content still on the wire, laid out to the same metrics as
@@ -43,7 +44,8 @@ import androidx.compose.ui.unit.dp
 /** How long one highlight sweep takes to cross a placeholder. */
 private const val SHIMMER_PERIOD_MS = 1400
 
-private val BlockShape = RoundedCornerShape(6.dp)
+private val BlockShape: androidx.compose.ui.graphics.Shape
+    @androidx.compose.runtime.Composable get() = themedShape(6.dp)
 private val LineShape = RoundedCornerShape(4.dp)
 
 // Ragged widths, so a run of rows reads as text rather than as a barcode.
@@ -120,7 +122,7 @@ fun SongRowSkeleton(index: Int = 0, circular: Boolean = false, modifier: Modifie
             .padding(horizontal = PAGE_GUTTER, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ShimmerBox(Modifier.size(52.dp), if (circular) CircleShape else RoundedCornerShape(8.dp))
+        ShimmerBox(Modifier.size(52.dp), if (circular) CircleShape else themedShape(8.dp))
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             SkeletonLine(fraction = TitleWidths[index % TitleWidths.size], height = 14.dp)

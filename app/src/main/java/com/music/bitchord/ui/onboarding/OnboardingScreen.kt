@@ -215,7 +215,17 @@ private fun WelcomeBackdrop(page: Int) {
         animationSpec = tween(900, easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)),
         label = "ember-anchor",
     )
-    FadingDotGrid(Modifier.fillMaxSize(), color = Color.White.copy(alpha = 0.075f), fade = 0.9f)
+    val tokens = com.music.bitchord.ui.theme.LocalThemeTokens.current
+    val ember = SonaraColors.Red
+    val emberDeep = SonaraColors.Ember
+    val ink = SonaraColors.Ink
+    val hero = remember { com.music.bitchord.ui.theme.ThemeBackdropPainter() }
+    if (tokens.motif == com.music.bitchord.ui.theme.ThemeMotif.NONE) {
+        FadingDotGrid(Modifier.fillMaxSize(), color = Color.White.copy(alpha = 0.075f), fade = 0.9f)
+    } else {
+        // Vice's sunset or Doom's crest over the ink, as Home will show it.
+        Canvas(Modifier.fillMaxSize()) { hero.draw(this, tokens, ink) }
+    }
     Canvas(Modifier.fillMaxSize()) {
         val c = Offset(
             size.width * (anchor + 0.08f * sin(t)),
@@ -224,7 +234,7 @@ private fun WelcomeBackdrop(page: Int) {
         val r = size.width * 0.95f
         drawCircle(
             Brush.radialGradient(
-                listOf(SonaraColors.Red.copy(alpha = 0.42f), SonaraColors.Ember.copy(alpha = 0.22f), Color.Transparent),
+                listOf(ember.copy(alpha = 0.42f), emberDeep.copy(alpha = 0.22f), Color.Transparent),
                 center = c,
                 radius = r,
             ),
@@ -233,7 +243,7 @@ private fun WelcomeBackdrop(page: Int) {
         )
         // The page's foot sinks back to ink under the buttons.
         drawRect(
-            Brush.verticalGradient(0.55f to Color.Transparent, 1f to SonaraColors.Ink.copy(alpha = 0.9f)),
+            Brush.verticalGradient(0.55f to Color.Transparent, 1f to ink.copy(alpha = 0.9f)),
         )
     }
 }
@@ -573,6 +583,21 @@ private fun PillButton(
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(if (pressed) 0.97f else 1f, spring(stiffness = 900f), label = "pillScale")
     val alpha by animateFloatAsState(if (enabled) 1f else 0.4f, tween(180), label = "pillAlpha")
+    // Sonara's white pill; under Vice and Doom the primary is filled with the theme's accent in
+    // its own shape (Doom's cut plate), with the theme's on-accent label.
+    val theme = com.music.bitchord.ui.theme.LocalThemeTokens.current
+    val themed = theme.id != com.music.bitchord.ui.theme.ThemeId.SONARA
+    val shape = if (theme.angular) theme.controlShape else CircleShape
+    val fill = when {
+        !primary -> Color.White.copy(alpha = 0.16f)
+        themed -> theme.accent
+        else -> Color.White
+    }
+    val labelColor = when {
+        !primary -> Color.White
+        themed -> theme.onAccent
+        else -> Color.Black
+    }
     Row(
         Modifier
             .fillMaxWidth()
@@ -582,8 +607,8 @@ private fun PillButton(
                 scaleY = scale
                 this.alpha = alpha
             }
-            .clip(CircleShape)
-            .background(if (primary) Color.White else Color.White.copy(alpha = 0.16f))
+            .clip(shape)
+            .background(fill)
             .clickable(
                 interactionSource = interaction,
                 indication = null,
@@ -602,7 +627,7 @@ private fun PillButton(
             style = MaterialTheme.typography.titleMedium,
             fontSize = 17.sp,
             fontWeight = FontWeight.W700,
-            color = if (primary) Color.Black else Color.White,
+            color = labelColor,
             textAlign = TextAlign.Center,
             maxLines = 1,
         )

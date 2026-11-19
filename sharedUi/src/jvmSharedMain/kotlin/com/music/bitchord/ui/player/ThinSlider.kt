@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
@@ -99,6 +100,15 @@ fun ThinSlider(
     inactiveColor: Color = Color.White.copy(alpha = 0.26f),
     /** Halfway between the two track colours: visible against unplayed, invisible under played. */
     markerColor: Color = Color.White.copy(alpha = 0.5f),
+    /**
+     * A theme's colours for the played part, left to right, in place of [activeColor] — Vice's
+     * pink-to-sunset, Doom's emerald. Empty keeps the plain fill.
+     */
+    fillColors: List<Color> = emptyList(),
+    /** A soft glow under the played part, in a theme's neon; null for none. */
+    fillGlow: Color? = null,
+    /** Cut the bar's ends square, for an angular theme. */
+    squareEnds: Boolean = false,
 ) {
     var dragging by remember { mutableStateOf(false) }
     val height by animateDpAsState(
@@ -186,7 +196,7 @@ fun ThinSlider(
                 .fillMaxWidth()
                 .height(height),
         ) {
-            val radius = CornerRadius(size.height / 2f)
+            val radius = CornerRadius(if (squareEnds) size.height / 6f else size.height / 2f)
             drawRoundRect(color = inactiveColor, cornerRadius = radius)
             // Between the two track colours, and drawn *under* the played fill:
             // once the playhead reaches the window the transition is no longer
@@ -243,14 +253,37 @@ fun ThinSlider(
             val filled = size.width * fraction * fillFactor
             if (filled > 0f) {
                 val alpha = if (dragging) activeColor.alpha else mixPulse?.alpha(activeColor.alpha) ?: activeColor.alpha
-                drawRoundRect(
-                    color = activeColor.copy(alpha = alpha),
-                    size = Size(
-                        filled.coerceAtLeast(size.height * fillFactor).coerceAtMost(size.width),
-                        size.height,
-                    ),
-                    cornerRadius = radius,
+                val fillSize = Size(
+                    filled.coerceAtLeast(size.height * fillFactor).coerceAtMost(size.width),
+                    size.height,
                 )
+                if (fillGlow != null) {
+                    // The neon's bloom: three ever wider, fainter copies of the fill behind it,
+                    // so it falls off like light instead of outlining the bar.
+                    for ((spread, strength) in GLOW_STEPS) {
+                        val bloom = size.height * spread
+                        drawRoundRect(
+                            color = fillGlow.copy(alpha = strength * alpha),
+                            topLeft = Offset(-bloom / 2f, -bloom / 2f),
+                            size = Size(fillSize.width + bloom, fillSize.height + bloom),
+                            cornerRadius = CornerRadius(radius.x + bloom / 2f),
+                        )
+                    }
+                }
+                if (fillColors.size >= 2) {
+                    drawRoundRect(
+                        brush = Brush.horizontalGradient(fillColors, startX = 0f, endX = size.width),
+                        size = fillSize,
+                        cornerRadius = radius,
+                        alpha = alpha,
+                    )
+                } else {
+                    drawRoundRect(
+                        color = activeColor.copy(alpha = alpha),
+                        size = fillSize,
+                        cornerRadius = radius,
+                    )
+                }
             }
         }
         // Composed only while switching or mixing. The infinite animation therefore costs no
@@ -489,3 +522,6 @@ private fun MixSheen(height: Dp, color: Color) {
         )
     }
 }
+
+/** The progress glow's falloff: how far each layer spreads (in bar heights) and how strong it is. */
+private val GLOW_STEPS = listOf(0.5f to 0.16f, 1.1f to 0.08f, 1.8f to 0.035f)

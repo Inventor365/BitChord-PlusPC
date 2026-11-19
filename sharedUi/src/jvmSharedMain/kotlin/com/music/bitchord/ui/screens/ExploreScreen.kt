@@ -58,6 +58,7 @@ import com.music.bitchord.ui.components.PullToRefresh
 import com.music.bitchord.ui.components.ShimmerBox
 import com.music.bitchord.ui.components.feedSkeleton
 import com.music.bitchord.ui.components.pressScale
+import com.music.bitchord.ui.theme.themedShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -185,7 +186,7 @@ private fun FeaturedMoodCard(item: MoodGenre, onClick: () -> Unit, modifier: Mod
             .pressScale(0.98f)
             .fillMaxWidth()
             .aspectRatio(2.1f)
-            .clip(RoundedCornerShape(26.dp))
+            .clip(themedShape(26.dp))
             .clickable(onClick = onClick),
     )
 }
@@ -369,7 +370,8 @@ private fun fallbackMoodColor(title: String): Color = when ((title.hashCode() an
 /** Gap between mood cards, in both directions. */
 private val MOOD_SPACING = 12.dp
 
-private val MOOD_CARD_SHAPE = RoundedCornerShape(22.dp)
+private val MOOD_CARD_SHAPE: androidx.compose.ui.graphics.Shape
+    @androidx.compose.runtime.Composable get() = themedShape(22.dp)
 
 /** Width over height; a two-column phone row lands at about 100dp tall. */
 const val MOOD_CARD_ASPECT = 1.72f

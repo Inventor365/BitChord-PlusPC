@@ -47,7 +47,7 @@ val ActionArtShape = RoundedCornerShape(18.dp)
 fun ActionArt(
     icon: ImageVector?,
     modifier: Modifier = Modifier,
-    accent: Color = SonaraAccent,
+    accent: Color = com.music.bitchord.ui.theme.LocalThemeTokens.current.accent,
     painter: Painter? = null,
     painterTint: Color? = null,
 ) {

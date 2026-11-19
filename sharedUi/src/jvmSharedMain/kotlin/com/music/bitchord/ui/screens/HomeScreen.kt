@@ -99,6 +99,7 @@ import com.music.bitchord.ui.components.pressScale
 import androidx.compose.ui.text.font.FontWeight
 import com.music.bitchord.ui.components.revealOnAppear
 import com.music.bitchord.ui.components.topGlow
+import com.music.bitchord.ui.theme.themedShape
 
 /** How far the Listen now heading and feed sit above the shared top inset. */
 private val HOME_TITLE_LIFT = 28.dp
@@ -190,7 +191,7 @@ fun HomeScreen(
             state = listState,
             // A little of the mark's colour at the head of the page, when it has a heading.
             modifier = Modifier.fillMaxSize().then(
-                if (title != null) Modifier.topGlow(BRAND_RED, depth = 280.dp, strength = 0.20f) else Modifier,
+                if (title != null) Modifier.topGlow(com.music.bitchord.ui.theme.LocalThemeTokens.current.accent, depth = 280.dp, strength = 0.20f) else Modifier,
             ),
             // The heading sits higher than the other tabs' first row: pull the
             // whole feed up by [HOME_TITLE_LIFT] with it.
@@ -518,7 +519,7 @@ private fun HomeTitle(
                 contentDescription = null,
                 // The mark in its own colour, not the text colour: it is the one thing on the
                 // page that is the app's and not the listener's.
-                tint = BRAND_RED,
+                tint = com.music.bitchord.ui.theme.LocalThemeTokens.current.accent,
                 modifier = logoModifier,
             )
         }
@@ -545,7 +546,6 @@ private fun HomeTitle(
 }
 
 /** The Sonara mark's red. */
-private val BRAND_RED = Color(0xFFFF2D55)
 
 /** The wordmark's height against the heading's font size. */
 private const val LOGO_TO_FONT = 0.9f
@@ -864,8 +864,8 @@ fun VideoShelfCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(VIDEO_ASPECT)
-                .clip(RoundedCornerShape(12.dp))
-                .thumbnailBorder(RoundedCornerShape(12.dp))
+                .clip(themedShape(12.dp))
+                .thumbnailBorder(themedShape(12.dp))
                 .background(placeholderColor),
         ) {
             AsyncImage(
@@ -927,7 +927,7 @@ internal fun NewShelfCard(
             icon = icon,
             painter = logo?.let { painterResource(it) },
             painterTint = MaterialTheme.colorScheme.onBackground,
-            accent = accent ?: if (logo != null) Color(0xFF1DB954) else com.music.bitchord.ui.components.SonaraAccent,
+            accent = accent ?: if (logo != null) Color(0xFF1DB954) else com.music.bitchord.ui.theme.LocalThemeTokens.current.accent,
         )
         Spacer(Modifier.height(10.dp))
         Text(
@@ -959,7 +959,7 @@ private fun ServiceCard(colors: List<Color>, trackKey: String, icon: ImageVector
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(12.dp)),
+            .clip(themedShape(12.dp)),
         contentAlignment = Alignment.Center,
     ) {
         MeshGradientBackground(
@@ -1006,7 +1006,7 @@ internal fun ShelfCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1f)
-                        .clip(RoundedCornerShape(12.dp)),
+                        .clip(themedShape(12.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     MeshGradientBackground(
@@ -1048,8 +1048,8 @@ internal fun ShelfCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .thumbnailBorder(RoundedCornerShape(12.dp))
+                        .clip(themedShape(12.dp))
+                        .thumbnailBorder(themedShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                 ) {
                     AsyncImage(

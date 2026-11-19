@@ -33,6 +33,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.music.bitchord.ui.theme.LocalThemeTokens
+import com.music.bitchord.ui.theme.drawThemeTexture
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -81,13 +83,16 @@ import kotlinx.coroutines.launch
  *   of their Library, with a soundprint drawn from their own id.
  */
 object SonaraColors {
-    val Red = Color(0xFFFF2D55)
-    val Coral = Color(0xFFFF6B81)
-    val Blush = Color(0xFFFF9AAB)
-    val Ember = Color(0xFF5C0A1C)
-    val Ink = Color(0xFF0A0A0C)
-    val PassTop = Color(0xFF2A0B14)
-    val PassBottom = Color(0xFF111114)
+    // Read from the active theme, so the mark, the Pass and the welcome screen follow it. Under
+    // Sonara these are the values the app has always used.
+    val Red: Color @Composable get() = LocalThemeTokens.current.accent
+    val Coral: Color @Composable get() = LocalThemeTokens.current.accent2
+    val Blush: Color @Composable get() = LocalThemeTokens.current.accent3
+    val Ember: Color @Composable get() = LocalThemeTokens.current.accentDeep
+    val Ink: Color @Composable get() = LocalThemeTokens.current.ink
+    val PassTop: Color @Composable get() = LocalThemeTokens.current.passGradient[0]
+    val PassBottom: Color @Composable get() = LocalThemeTokens.current.passGradient[1]
+    val PassEnd: Color @Composable get() = LocalThemeTokens.current.passGradient[2]
 }
 
 /** The large corner every floating card uses. */
@@ -134,7 +139,8 @@ fun Modifier.dottedGrid(color: Color, spacing: Dp = 18.dp, dot: Dp = 1.1.dp): Mo
  * top. [progress] (0..1, one per arc) opens each from its middle; [phase] lets them breathe.
  */
 fun DrawScope.drawSonaraArcs(
-    colors: List<Color> = listOf(SonaraColors.Blush, SonaraColors.Coral, SonaraColors.Red),
+    // Sonara's own arcs; a themed caller passes [themedArcColors].
+    colors: List<Color> = listOf(Color(0xFFFF9AAB), Color(0xFFFF6B81), Color(0xFFFF2D55)),
     progress: List<Float> = listOf(1f, 1f, 1f),
     phase: Float = 0f,
     strokeScale: Float = 1f,
@@ -181,11 +187,13 @@ fun AnimatedSonaraMark(modifier: Modifier = Modifier, glow: Boolean = true, star
         animationSpec = infiniteRepeatable(tween(durationMillis = 4_200, easing = LinearEasing)),
         label = "sonara-mark-phase",
     )
+    val arcColors = themedArcColors()
+    val glowColor = SonaraColors.Red
     Canvas(modifier) {
         if (glow) {
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(SonaraColors.Red.copy(alpha = 0.34f), Color.Transparent),
+                    colors = listOf(glowColor.copy(alpha = 0.34f), Color.Transparent),
                     center = Offset(size.width / 2f, size.height * 0.56f),
                     radius = size.minDimension * 0.62f,
                 ),
@@ -193,8 +201,15 @@ fun AnimatedSonaraMark(modifier: Modifier = Modifier, glow: Boolean = true, star
                 center = Offset(size.width / 2f, size.height * 0.56f),
             )
         }
-        drawSonaraArcs(progress = sweep.map { it.value }, phase = phase)
+        drawSonaraArcs(colors = arcColors, progress = sweep.map { it.value }, phase = phase)
     }
+}
+
+/** The mark's three arcs in the active theme's accents, inner to outer. */
+@Composable
+fun themedArcColors(): List<Color> {
+    val tokens = LocalThemeTokens.current
+    return listOf(tokens.accent3, tokens.accent2, tokens.accent)
 }
 
 /** When this install first ran, which is when its listener joined. */
@@ -231,20 +246,23 @@ fun SonaraPassCard(
     avatarUrl: String? = null,
     onClick: (() -> Unit)? = null,
 ) {
-    val shape = RoundedCornerShape(24.dp)
+    val tokens = LocalThemeTokens.current
+    // Rounded under Sonara and Vice, cut like a plate under Doom.
+    val shape = if (tokens.angular) tokens.cardShape else RoundedCornerShape(24.dp)
     val bars = remember(passId) { soundprint(passId, 38) }
+    val arcColors = themedArcColors()
     Box(
         modifier
             .then(if (onClick != null) Modifier.pressScale(0.97f) else Modifier)
             .fillMaxWidth()
             .aspectRatio(1.62f)
             .clip(shape)
-            .background(Brush.linearGradient(listOf(SonaraColors.PassTop, SonaraColors.PassBottom, Color(0xFF18181C))))
+            .background(Brush.linearGradient(tokens.passGradient))
             .drawBehind {
-                // The ember: the mark's red, glowing out of the top-right corner.
+                // The ember: the theme's accent, glowing out of the top-right corner.
                 drawCircle(
                     brush = Brush.radialGradient(
-                        listOf(SonaraColors.Red.copy(alpha = 0.55f), SonaraColors.Red.copy(alpha = 0.12f), Color.Transparent),
+                        listOf(tokens.accent.copy(alpha = 0.55f), tokens.accent.copy(alpha = 0.12f), Color.Transparent),
                         center = Offset(size.width * 0.96f, size.height * 0.02f),
                         radius = size.width * 0.72f,
                     ),
@@ -264,8 +282,9 @@ fun SonaraPassCard(
                     ),
                 )
             }
-            .dottedGrid(Color.White.copy(alpha = 0.045f), spacing = 14.dp, dot = 0.9.dp)
-            .border(1.dp, Color.White.copy(alpha = 0.10f), shape)
+            // The theme's material: Sonara's dots, Vice's grid, Doom's brushed steel and rivets.
+            .drawBehind { drawThemeTexture(tokens) }
+            .border(1.dp, if (tokens.angular) tokens.accent2.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.10f), shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
     ) {
         // The mark again, large and faint, cut off by the card's edge.
@@ -290,7 +309,7 @@ fun SonaraPassCard(
         CompositionLocalProvider(LocalDensity provides Density(outer.density * k, outer.fontScale)) {
         Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Canvas(Modifier.size(width = 26.dp, height = 18.dp)) { drawSonaraArcs(strokeScale = 1.15f) }
+                Canvas(Modifier.size(width = 26.dp, height = 18.dp)) { drawSonaraArcs(colors = arcColors, strokeScale = 1.15f) }
                 Spacer(Modifier.width(8.dp))
                 MonoLabel("Sonara Pass", color = Color.White.copy(alpha = 0.82f), size = 10.sp)
                 Spacer(Modifier.weight(1f))
@@ -319,7 +338,7 @@ fun SonaraPassCard(
                     bars.forEachIndexed { i, h ->
                         val barH = size.height * (0.22f + 0.78f * h)
                         drawRoundRect(
-                            color = if (i % 9 == 4) SonaraColors.Coral else Color.White.copy(alpha = 0.72f),
+                            color = if (i % 9 == 4) tokens.accent2 else Color.White.copy(alpha = 0.72f),
                             topLeft = Offset(i * gap, size.height - barH),
                             size = Size(w, barH),
                             cornerRadius = androidx.compose.ui.geometry.CornerRadius(w / 2f),
@@ -408,7 +427,7 @@ fun ListeningTimeCard(
         modifier
             .fillMaxWidth()
             .pressScale(0.98f)
-            .clip(SonaraCardShape)
+            .clip(LocalThemeTokens.current.cardShape)
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable(onClick = onViewStats)
             .padding(horizontal = 22.dp, vertical = 20.dp),

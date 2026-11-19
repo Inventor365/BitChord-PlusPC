@@ -1623,4 +1623,18 @@
     <string name="mode_state_mobile">मोबाइल डेटा पर</string>
     <string name="mode_state_paused">रुका हुआ</string>
     <string name="mode_open_settings">परफ़ॉर्मेंस सेटिंग्स</string>
+    <string name="theme_sonara">Sonara</string>
+    <string name="theme_vice">Vice</string>
+    <string name="theme_doom">Doom</string>
+    <string name="theme_sonara_line">मूल</string>
+    <string name="theme_vice_line">नियॉन शाम</string>
+    <string name="theme_doom_line">ठंडा स्टील</string>
+    <string name="theme_icon_pending">Sonara से बाहर जाने पर होम-स्क्रीन आइकन बदल जाएगा। कुछ लॉन्चर थोड़ा समय लेते हैं।</string>
+    <string name="theme_preview_greeting">शुभ संध्या</string>
+    <string name="theme_switch">थीम बदलें</string>
+    <string name="app_theme_title">थीम</string>
+    <string name="theme_icon_title">मेल खाता ऐप आइकन</string>
+    <string name="theme_icon_subtitle">होम स्क्रीन पर थीम का अपना आइकन इस्तेमाल करें</string>
+    <string name="theme_mode_title">लाइट और डार्क</string>
+    <string name="theme_mode_dark_only">Vice और Doom सिर्फ़ डार्क हैं। यह Sonara पर लागू होता है।</string>
 </resources>

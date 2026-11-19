@@ -939,6 +939,8 @@ private fun SweptLyricLine(
             onTextLayout = { layout = it },
             modifier = riseAgainst(room),
         )
+        // The words stay the player's white; only their bloom takes the theme's neon.
+        val glowColor = com.music.bitchord.ui.theme.LocalThemeTokens.current.lyricGlow ?: color
         if (glowAlpha > 0.01f) {
             val glowAlphaLayer = if (glowLayerOutset > 0.dp) {
                 Modifier.alphaLayerWithOutset(alpha = { glowAlpha }, outset = glowLayerOutset)
@@ -948,7 +950,7 @@ private fun SweptLyricLine(
             Text(
                 text = line.text,
                 style = style,
-                color = color,
+                color = glowColor,
                 maxLines = maxLines,
                 overflow = overflow,
                 modifier = glowAlphaLayer

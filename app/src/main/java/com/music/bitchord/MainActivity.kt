@@ -475,6 +475,8 @@ class MainActivity : AppCompatActivity() {
         }
         setContent {
             val theme by AppSettings.themeMode.collectAsStateWithLifecycle()
+            val appTheme by AppSettings.appTheme.collectAsStateWithLifecycle()
+            val themeReduceMotion by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
             val appFont by AppSettings.appFont.collectAsStateWithLifecycle()
             val highPerformance by AppSettings.highPerformanceMode.collectAsStateWithLifecycle()
             val liquidGlassEnabled by AppSettings.liquidGlass.collectAsStateWithLifecycle()
@@ -488,12 +490,14 @@ class MainActivity : AppCompatActivity() {
                 val decision = RefreshRatePolicy.resolve(refreshPreference, refreshController.supportedRates(), refreshOverride)
                 refreshController.apply(decision, composeView)
             }
-            val darkTheme = when (theme) {
-                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            // Vice and Doom are made for the dark: the Light setting is Sonara's alone.
+            val systemDark = isSystemInDarkTheme()
+            val darkTheme = appTheme.tokens.darkOnly || when (theme) {
+                ThemeMode.SYSTEM -> systemDark
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true
             }
-            BitChordTheme(darkTheme = darkTheme, font = appFont) {
+            BitChordTheme(darkTheme = darkTheme, font = appFont, themeId = appTheme, reduceMotion = themeReduceMotion) {
                 // The glass surfaces sample this layer, and a layer records only
                 // what is drawn into it — which, for BitChord, is a page that
                 // paints no background of its own. Everywhere a page is not
@@ -504,9 +508,13 @@ class MainActivity : AppCompatActivity() {
                 // the floor the pages have always been drawn against, so it is
                 // laid down here too and the recording is opaque like the screen.
                 val windowBackground = MaterialTheme.colorScheme.background
-                val paintBackdrop: ContentDrawScope.() -> Unit = remember(windowBackground) {
+                // The theme's hero (Vice's sunset, Doom's crest) is part of that floor, so every
+                // page is drawn over it and the glass samples it too. Sonara's is flat, as before.
+                val themeTokens = com.music.bitchord.ui.theme.LocalThemeTokens.current
+                val backdropPainter = remember { com.music.bitchord.ui.theme.ThemeBackdropPainter() }
+                val paintBackdrop: ContentDrawScope.() -> Unit = remember(windowBackground, themeTokens) {
                     {
-                        drawRect(windowBackground)
+                        backdropPainter.draw(this, themeTokens, windowBackground)
                         drawContent()
                     }
                 }
@@ -3120,10 +3128,15 @@ private fun BitChordApp(
         if (!navigator.pop() && !viewModel.closeMoodGenre()) selectedTab = TAB_HOME
     }
 
+    // The floor every page is drawn on: the page colour, and under Vice or Doom the theme's
+    // hero — sunset or crest — at the top. Static: drawn again only when the window changes.
+    val pageFloor = MaterialTheme.colorScheme.background
+    val floorTokens = com.music.bitchord.ui.theme.LocalThemeTokens.current
+    val floorPainter = remember { com.music.bitchord.ui.theme.ThemeBackdropPainter() }
     Box(
         Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .drawBehind { floorPainter.draw(this, floorTokens, pageFloor) }
             // Nothing of the page under a portrait player that is fully up:
             // that player is its own window, opaque from edge to edge, and
             // this one drawing on behind it — the page, the glass bar and the

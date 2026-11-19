@@ -1624,4 +1624,18 @@
     <string name="mode_state_mobile">Données mobiles</string>
     <string name="mode_state_paused">En pause</string>
     <string name="mode_open_settings">Réglages de performances</string>
+    <string name="theme_sonara">Sonara</string>
+    <string name="theme_vice">Vice</string>
+    <string name="theme_doom">Doom</string>
+    <string name="theme_sonara_line">L\'original</string>
+    <string name="theme_vice_line">Crépuscule néon</string>
+    <string name="theme_doom_line">Acier froid</string>
+    <string name="theme_icon_pending">L\'icône de l\'écran d\'accueil change quand vous quittez Sonara. Certains lanceurs prennent un instant.</string>
+    <string name="theme_preview_greeting">Bonsoir</string>
+    <string name="theme_switch">Changer de thème</string>
+    <string name="app_theme_title">Thème</string>
+    <string name="theme_icon_title">Icône assortie</string>
+    <string name="theme_icon_subtitle">Utiliser l\'icône du thème sur l\'écran d\'accueil</string>
+    <string name="theme_mode_title">Clair et sombre</string>
+    <string name="theme_mode_dark_only">Vice et Doom sont uniquement sombres. Ceci s\'applique à Sonara.</string>
 </resources>

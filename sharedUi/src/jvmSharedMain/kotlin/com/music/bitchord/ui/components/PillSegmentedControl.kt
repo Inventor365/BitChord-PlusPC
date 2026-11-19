@@ -70,8 +70,18 @@ fun PillSegmentedControl(
     val style = MaterialTheme.typography.labelMedium
     val measurer = rememberTextMeasurer()
     val light = MaterialTheme.colorScheme.surface.luminance() > 0.5f
-    val trackColor = TRACK_FILL.copy(alpha = if (light) LIGHT_TRACK_ALPHA else DARK_TRACK_ALPHA)
-    val pillColor = if (light) Color.White else DARK_PILL
+    // Sonara keeps Apple's greys; Vice and Doom wash the selection in their accent, and Doom
+    // cuts both track and pill like plate.
+    val theme = com.music.bitchord.ui.theme.LocalThemeTokens.current
+    val themed = theme.id != com.music.bitchord.ui.theme.ThemeId.SONARA
+    val trackColor = if (themed) {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+    } else {
+        TRACK_FILL.copy(alpha = if (light) LIGHT_TRACK_ALPHA else DARK_TRACK_ALPHA)
+    }
+    val pillColor = if (themed) theme.accent.copy(alpha = 0.30f) else if (light) Color.White else DARK_PILL
+    val trackShape = if (theme.angular) theme.controlShape else TrackShape
+    val pillShape = if (theme.angular) theme.chipShape else PillShape
     val labelColor = if (light) Color.Black else Color.White
     val reduceAnimation by PlayerSettings.reduceAnimation.collectAsStateWithLifecycle()
     val selected = selectedIndex.takeIf { it in options.indices }
@@ -79,7 +89,7 @@ fun PillSegmentedControl(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
-            .clip(TrackShape)
+            .clip(trackShape)
             .background(trackColor),
     ) {
         val inset = with(density) { TRACK_PADDING.toPx() }
@@ -155,7 +165,7 @@ fun PillSegmentedControl(
                                     placeable.place(pillStart.roundToInt(), 0)
                                 }
                             }
-                            .clip(PillShape)
+                            .clip(pillShape)
                             .background(pillColor),
                     )
                 }

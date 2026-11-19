@@ -1474,4 +1474,18 @@
     <string name="mode_state_mobile">모바일 데이터</string>
     <string name="mode_state_paused">일시 중지됨</string>
     <string name="mode_open_settings">성능 설정</string>
+    <string name="theme_sonara">Sonara</string>
+    <string name="theme_vice">Vice</string>
+    <string name="theme_doom">Doom</string>
+    <string name="theme_sonara_line">오리지널</string>
+    <string name="theme_vice_line">네온 노을</string>
+    <string name="theme_doom_line">차가운 강철</string>
+    <string name="theme_icon_pending">Sonara를 나가면 홈 화면 아이콘이 바뀝니다. 일부 런처는 잠시 걸릴 수 있습니다.</string>
+    <string name="theme_preview_greeting">좋은 저녁이에요</string>
+    <string name="theme_switch">테마 변경</string>
+    <string name="app_theme_title">테마</string>
+    <string name="theme_icon_title">앱 아이콘 맞추기</string>
+    <string name="theme_icon_subtitle">홈 화면에 테마 전용 아이콘 사용</string>
+    <string name="theme_mode_title">라이트 및 다크</string>
+    <string name="theme_mode_dark_only">Vice와 Doom은 다크 전용입니다. 이 설정은 Sonara에 적용됩니다.</string>
 </resources>

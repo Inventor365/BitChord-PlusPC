@@ -1600,4 +1600,18 @@
     <string name="mode_state_mobile">Data seluler</string>
     <string name="mode_state_paused">Dijeda</string>
     <string name="mode_open_settings">Setelan performa</string>
+    <string name="theme_sonara">Sonara</string>
+    <string name="theme_vice">Vice</string>
+    <string name="theme_doom">Doom</string>
+    <string name="theme_sonara_line">Yang asli</string>
+    <string name="theme_vice_line">Senja neon</string>
+    <string name="theme_doom_line">Baja dingin</string>
+    <string name="theme_icon_pending">Ikon layar utama berubah saat Anda keluar dari Sonara. Beberapa peluncur butuh waktu sebentar.</string>
+    <string name="theme_preview_greeting">Selamat malam</string>
+    <string name="theme_switch">Ganti tema</string>
+    <string name="app_theme_title">Tema</string>
+    <string name="theme_icon_title">Ikon aplikasi serasi</string>
+    <string name="theme_icon_subtitle">Gunakan ikon tema di layar utama</string>
+    <string name="theme_mode_title">Terang &amp; gelap</string>
+    <string name="theme_mode_dark_only">Vice dan Doom hanya gelap. Ini berlaku untuk Sonara.</string>
 </resources>

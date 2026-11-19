@@ -232,6 +232,7 @@ internal fun PlayerScrubber(
     // One clock for the bar and the "Mixing" label, so they breathe on the same beat.
     val mixPulse = rememberMixPulse({ mixBlend.value }, enabled = !reduceAnimation)
     Column(Modifier.fillMaxWidth()) {
+        val theme = com.music.bitchord.ui.theme.LocalThemeTokens.current
         ThinSlider(
             value = shown,
             onValueChange = onScrub,
@@ -240,6 +241,9 @@ internal fun PlayerScrubber(
             mixing = mixing,
             mixPulse = mixPulse,
             transitionWindow = transitionWindow,
+            fillColors = theme.progressColors,
+            fillGlow = theme.glow,
+            squareEnds = theme.angular,
         )
         Box(
             modifier = Modifier

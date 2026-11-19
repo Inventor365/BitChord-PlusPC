@@ -62,6 +62,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.draw.drawWithContent
@@ -124,6 +125,7 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 import com.music.bitchord.ui.components.pressScale
+import com.music.bitchord.ui.theme.themedShape
 
 /*
  * Home's "Top Picks for You": Apple Music's lead row of tall cards, each one
@@ -145,7 +147,8 @@ private const val TOP_PICK_FRACTION = 0.60f
 /** Held back on a tablet, so a card doesn't blow up into a poster. */
 private val TOP_PICK_MAX_WIDTH = 280.dp
 
-private val TopPickShape = RoundedCornerShape(12.dp)
+private val TopPickShape: androidx.compose.ui.graphics.Shape
+    @androidx.compose.runtime.Composable get() = themedShape(12.dp)
 
 private fun topPickWidth(available: Dp): Dp = minOf(available * TOP_PICK_FRACTION, TOP_PICK_MAX_WIDTH)
 
@@ -745,18 +748,38 @@ private class PersonalBrushes(val background: Brush, val layers: List<Brush>)
 private fun PersonalStationArt(modifier: Modifier) {
     val phase by loopPhase(STATION_PERIOD_MS)
     val path = remember { Path() }
-    val brushes = remember {
+    // Sonara's red-pink folds, or the same folds in Vice's pink-to-sunset or Doom's emerald.
+    val theme = com.music.bitchord.ui.theme.LocalThemeTokens.current
+    val brushes = remember(theme) {
+        val sonara = theme.id == com.music.bitchord.ui.theme.ThemeId.SONARA
+        val layerTones = if (sonara) {
+            PersonalLayers
+        } else {
+            PersonalLayers.mapIndexed { i, (rest, _, _) ->
+                val t = i / (PersonalLayers.size - 1f)
+                val deep = androidx.compose.ui.graphics.lerp(theme.accent, theme.accent2, t)
+                Triple(rest, deep, androidx.compose.ui.graphics.lerp(deep, Color.White, 0.12f))
+            }
+        }
         SizeCache { size ->
             PersonalBrushes(
-                background = Brush.horizontalGradient(
-                    0f to Color(0xFFF7334F),
-                    0.38f to Color(0xFFFA6094),
-                    0.75f to Color(0xFFF02A4A),
-                    1f to Color(0xFFEE213D),
-                ),
+                background = if (sonara) {
+                    Brush.horizontalGradient(
+                        0f to Color(0xFFF7334F),
+                        0.38f to Color(0xFFFA6094),
+                        0.75f to Color(0xFFF02A4A),
+                        1f to Color(0xFFEE213D),
+                    )
+                } else {
+                    Brush.horizontalGradient(
+                        0f to theme.accent,
+                        0.45f to theme.accentDeep,
+                        1f to theme.accent.copy(alpha = 0.85f).compositeOver(theme.ink),
+                    )
+                },
                 // Each fold's shading runs to where its tip rests; the tip's
                 // swing is small enough that the shading needn't chase it.
-                layers = PersonalLayers.map { (rest, deep, light) ->
+                layers = layerTones.map { (rest, deep, light) ->
                     Brush.horizontalGradient(listOf(deep, light), startX = 0f, endX = size.width * rest)
                 },
             )
@@ -1615,8 +1638,8 @@ private fun MoodTile(mood: TopPickMood, onClick: (TopPickMood, String) -> Unit, 
             Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .clip(RoundedCornerShape(12.dp))
-                .thumbnailBorder(RoundedCornerShape(12.dp)),
+                .clip(themedShape(12.dp))
+                .thumbnailBorder(themedShape(12.dp)),
         ) {
             // Still. A shelf of tiles each breathing on its own loop kept the
             // page under the glass bars redrawing — and the bars' blur with
