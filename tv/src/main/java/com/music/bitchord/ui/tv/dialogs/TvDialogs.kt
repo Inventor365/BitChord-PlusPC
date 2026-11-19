@@ -1132,6 +1132,9 @@ private fun TvGoogleSignIn(viewModel: MainViewModel, onBack: () -> Unit, onSigne
                 com.music.bitchord.auth.YtMusicLoginScreen(
                     mode = WebSessionMode.SIGN_IN,
                     configureWebView = ::configureTvSignInWebView,
+                    // The phone's account chooser is untested with a remote: the TV keeps the
+                    // web login it has always had.
+                    useDeviceAccounts = false,
                     captureRequest = capture,
                     onPageReady = { ready -> if (ready) capture++ },
                     onCaptured = { session ->

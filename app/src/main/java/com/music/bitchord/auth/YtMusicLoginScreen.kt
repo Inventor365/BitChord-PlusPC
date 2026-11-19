@@ -23,10 +23,7 @@ import kotlinx.serialization.json.jsonObject
 
 private const val MUSIC_ORIGIN = "https://music.youtube.com"
 
-private const val LOGIN_URL =
-    "https://accounts.google.com/ServiceLogin" +
-        "?ltmpl=music&service=youtube&prompt=select_account" +
-    "&continue=https%3A%2F%2Fmusic.youtube.com%2F"
+private const val LOGIN_URL = DeviceGoogleAccounts.LOGIN_URL
 
 private const val TAG = "BitChord"
 
@@ -72,8 +69,47 @@ fun YtMusicLoginScreen(
     onPageReady: (Boolean) -> Unit = {},
     /** For a host that needs the WebView set up differently — the TV app, for its remote. */
     configureWebView: (WebView) -> Unit = {},
+    /**
+     * Offer the Google accounts already on the device first (see [DeviceGoogleAccounts]); the web
+     * login stays one tap away, behind the chooser's back button and "Add account".
+     */
+    useDeviceAccounts: Boolean = true,
 ) {
     var webView by remember { mutableStateOf<WebView?>(null) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // Where the sign-in WebView starts. In SIGN_IN mode with device accounts it waits for the
+    // chooser: a one-time sign-in link for the chosen account, the web login with that address
+    // filled in, or — backed out — the plain web login.
+    val viaDevice = mode == WebSessionMode.SIGN_IN && useDeviceAccounts &&
+        remember { DeviceGoogleAccounts.available(context) }
+    var startUrl by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf(
+            when {
+                mode != WebSessionMode.SIGN_IN -> "$MUSIC_ORIGIN/"
+                viaDevice -> null
+                else -> LOGIN_URL
+            },
+        )
+    }
+    val chooser = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val email = DeviceGoogleAccounts.chosenAccount(result.data)
+        val activity = context.findActivity()
+        if (email == null || activity == null) {
+            startUrl = LOGIN_URL
+        } else {
+            DeviceGoogleAccounts.webSignInUrl(activity, email) { link ->
+                startUrl = link ?: DeviceGoogleAccounts.prefilledLoginUrl(email)
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        if (startUrl == null) {
+            runCatching { chooser.launch(DeviceGoogleAccounts.chooserIntent()) }
+                .onFailure { startUrl = LOGIN_URL }
+        }
+    }
     val currentOnCaptured by rememberUpdatedState(onCaptured)
     val currentOnUnavailable by rememberUpdatedState(onCaptureUnavailable)
     val currentOnPageReady by rememberUpdatedState(onPageReady)
@@ -113,10 +149,21 @@ fun YtMusicLoginScreen(
                 }
 
                 webView = this
-                loadUrl(if (mode == WebSessionMode.SIGN_IN) LOGIN_URL else "$MUSIC_ORIGIN/")
+                startUrl?.let(::loadUrl)
             }
         },
+        // The chooser answers after the WebView exists: load its answer once, when it lands.
+        update = { view ->
+            val url = startUrl
+            if (url != null && view.url == null) view.loadUrl(url)
+        },
     )
+}
+
+private tailrec fun android.content.Context.findActivity(): android.app.Activity? = when (this) {
+    is android.app.Activity -> this
+    is android.content.ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 /**
