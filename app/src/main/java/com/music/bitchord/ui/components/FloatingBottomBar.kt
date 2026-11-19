@@ -48,6 +48,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -127,10 +128,18 @@ internal val TAB_ICON_LABEL_GAP = 1.dp
  */
 internal val TAB_ICON_SIZE = 28.dp
 
+/** The glyph with a label under it: a size smaller, so the pair fits the bar the glyph alone did. */
+internal val TAB_ICON_SIZE_LABELLED = 25.dp
+
 /** A tab's label: Apple's 10pt, letter-spaced as SF Pro Text sets it. */
 @Composable
-internal fun tabLabelStyle(): TextStyle =
-    MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.5.sp)
+internal fun tabLabelStyle(selected: Boolean = false): TextStyle =
+    MaterialTheme.typography.labelSmall.copy(
+        fontSize = 10.5.sp,
+        letterSpacing = 0.2.sp,
+        // The chosen tab's word carries a little more weight, as its glyph carries the tint.
+        fontWeight = if (selected) FontWeight.W600 else FontWeight.W500,
+    )
 
 /**
  * The spring the selection indicator and the tab glyphs both travel on.
@@ -414,7 +423,7 @@ private fun BottomBarItem(
             contentDescription = tab.label,
             tint = tint,
             modifier = Modifier
-                .size(TAB_ICON_SIZE)
+                .size(if (showLabel) TAB_ICON_SIZE_LABELLED else TAB_ICON_SIZE)
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
@@ -424,7 +433,7 @@ private fun BottomBarItem(
             Spacer(Modifier.height(TAB_ICON_LABEL_GAP))
             Text(
                 text = tab.label,
-                style = tabLabelStyle(),
+                style = tabLabelStyle(selected),
                 color = tint,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

@@ -265,14 +265,14 @@ fun GlassNavBar(
                             imageVector = tab.icon,
                             contentDescription = tab.label,
                             tint = tint,
-                            modifier = Modifier.size(TAB_ICON_SIZE),
+                            modifier = Modifier.size(if (showLabels) TAB_ICON_SIZE_LABELLED else TAB_ICON_SIZE),
                         )
                     },
                     title = {
                         if (showLabels) {
                             Text(
                                 text = tab.label,
-                                style = tabLabelStyle(),
+                                style = tabLabelStyle(selected = index == selectedIndex),
                                 color = tint,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
