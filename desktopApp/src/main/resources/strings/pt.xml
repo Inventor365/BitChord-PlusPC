@@ -103,7 +103,7 @@
     <string name="update_available_body">O Sonara %1$s está disponível para baixar.</string>
     <string name="update_downloading_body">Baixando o Sonara %1$s…</string>
     <string name="update_ready_body">O Sonara %1$s está pronto para instalar.</string>
-    <string name="update_failed_body">Não foi possível baixar o bitchord %1$s.</string>
+    <string name="update_failed_body">Não foi possível baixar o Sonara %1$s.</string>
     <string name="download_now">Baixar agora</string>
     <string name="install_now">Instalar agora</string>
     <string name="later">Mais tarde</string>
@@ -154,7 +154,7 @@
     <string name="cancel_all">Cancelar tudo</string>
     <string name="language">Idioma</string>
     <string name="app_language">Idioma do aplicativo</string>
-    <string name="app_language_description">Escolha o idioma usado pelo BitChord.</string>
+    <string name="app_language_description">Escolha o idioma usado pelo Sonara.</string>
     <string name="english">Inglês</string>
     <string name="spanish">Espanhol</string>
     <string name="french">Francês</string>
@@ -283,7 +283,7 @@
     <string name="discord_button_variables">{song_name}, {artist_name} e {album_name} são substituídos pela faixa atual.</string>
     <string name="discord_buttons_footer">{song_name}, {artist_name} e {album_name} são substituídos pela faixa. O primeiro botão abre a música no YouTube Music e o segundo abre este projeto.</string>
     <string name="discord_presence_footer">O cartão é atualizado quando a faixa, a posição ou o estado de reprodução mudam. Ele é limpo quando a reprodução para.</string>
-    <string name="discord_sign_in_footer">O login abre a página de login do Discord. Nada é digitado no BitChord.</string>
+    <string name="discord_sign_in_footer">O login abre a página de login do Discord. Nada é digitado no Sonara.</string>
     <string name="discord_token">Token do Discord</string>
     <string name="discord_token_description">Cole o token da sua conta do Discord. Ele permanece criptografado neste dispositivo e é enviado apenas para o Discord.</string>
     <string name="discord_token_rejected">O Discord rejeitou esse token.</string>
@@ -336,7 +336,7 @@
     <string name="downloads_finished">Downloads · concluídos</string>
     <string name="downloading_progress">Baixando · %1$d%%</string>
     <string name="starting">Iniciando</string>
-    <string name="saved_to_bitchord_folder">Salvo em Música/BitChord</string>
+    <string name="saved_to_bitchord_folder">Salvo em Música/Sonara</string>
     <string name="nothing_downloading">Nenhum download em andamento</string>
     <string name="nothing_to_explore">Nada para explorar agora</string>
     <string name="no_youtube_music_results">Sem resultados do YouTube Music</string>

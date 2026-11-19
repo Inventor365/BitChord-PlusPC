@@ -96,10 +96,10 @@
     <string name="dolby_atmos_open_failed">Nie można było otworzyć ustawień Dolby Atmos</string>
     <string name="update_available">Dostępna aktualizacja: v%1$s</string>
     <string name="software_update">Aktualizacja oprogramowania</string>
-    <string name="update_available_body">bitchord %1$s jest dostępny do pobrania.</string>
-    <string name="update_downloading_body">Pobieranie bitchord %1$s…</string>
-    <string name="update_ready_body">bitchord %1$s jest gotowy do zainstalowania.</string>
-    <string name="update_failed_body">Nie udało się pobrać bitchord %1$s.</string>
+    <string name="update_available_body">Sonara %1$s jest dostępny do pobrania.</string>
+    <string name="update_downloading_body">Pobieranie Sonara %1$s…</string>
+    <string name="update_ready_body">Sonara %1$s jest gotowy do zainstalowania.</string>
+    <string name="update_failed_body">Nie udało się pobrać Sonara %1$s.</string>
     <string name="download_now">Pobierz teraz</string>
     <string name="install_now">Zainstaluj teraz</string>
     <string name="later">Później</string>
@@ -150,7 +150,7 @@
     <string name="cancel_all">Anuluj wszystkie</string>
     <string name="language">Język</string>
     <string name="app_language">Język aplikacji</string>
-    <string name="app_language_description">Wybierz język używany przez BitChord.</string>
+    <string name="app_language_description">Wybierz język używany przez Sonara.</string>
     <string name="english">Angielski</string>
     <string name="spanish">Hiszpański</string>
     <string name="french">Francuski</string>
@@ -274,7 +274,7 @@
     <string name="discord_button_variables">{song_name}, {artist_name} i {album_name} są zastępowane obecnym utworem.</string>
     <string name="discord_buttons_footer">{song_name}, {artist_name} i {album_name} są zastępowane utworem. Pierwszy przycisk otwiera utwór w YouTube Music, a drugi otwiera ten projekt.</string>
     <string name="discord_presence_footer">Karta aktualizuje się, gdy zmieni się utwór, pozycja lub stan odtwarzania. Znika, gdy odtwarzanie się zatrzyma.</string>
-    <string name="discord_sign_in_footer">Logowanie otwiera stronę logowania Discord. Nic nie jest wpisywane do BitChord.</string>
+    <string name="discord_sign_in_footer">Logowanie otwiera stronę logowania Discord. Nic nie jest wpisywane do Sonara.</string>
     <string name="discord_token">Token Discord</string>
     <string name="discord_token_description">Wklej token swojego konta Discord. Pozostaje on zaszyfrowany na tym urządzeniu i jest wysyłany tylko do Discorda.</string>
     <string name="discord_token_rejected">Discord odrzucił ten token.</string>

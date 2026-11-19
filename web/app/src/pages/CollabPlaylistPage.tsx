@@ -440,7 +440,7 @@ export default function CollabPlaylistPage() {
           title={contributorFilter ? 'No songs from this contributor' : 'No songs in this playlist yet'}
           detail={
             perms.canAddTracks
-              ? 'Search above or use any song’s ⋯ menu throughout BitChord to add tracks.'
+              ? 'Search above or use any song’s ⋯ menu throughout Sonara to add tracks.'
               : 'Waiting for collaborators to add songs.'
           }
         />

@@ -610,7 +610,7 @@ func (v *Verifier) VerifyIDToken(ctx context.Context, rawToken string) (Verified
 	}
 
 	if !v.isAllowedAudience(claims.Aud) {
-		return VerifiedIdentity{}, NewAuthError(http.StatusUnauthorized, "invalid_audience", "Token audience does not match an allowed BitChord Google client ID.")
+		return VerifiedIdentity{}, NewAuthError(http.StatusUnauthorized, "invalid_audience", "Token audience does not match an allowed Sonara Google client ID.")
 	}
 
 	nowSec := v.Now().Unix()
@@ -651,7 +651,7 @@ func deriveDisplayName(name, email string) string {
 		}
 	}
 	if trimmed == "" {
-		trimmed = "BitChord Listener"
+		trimmed = "Sonara Listener"
 	}
 	runes := []rune(trimmed)
 	if len(runes) > 80 {
@@ -693,7 +693,7 @@ func (v *Verifier) ExchangeCode(ctx context.Context, req CodeExchangeRequest) (V
 		return VerifiedIdentity{}, NewAuthError(http.StatusUnprocessableEntity, "validation_error", "code, clientId, and redirectUri are required for code exchange.")
 	}
 	if !v.isAllowedClientID(clientID) {
-		return VerifiedIdentity{}, NewAuthError(http.StatusUnauthorized, "invalid_audience", "clientId is not an allowed BitChord Google client ID.")
+		return VerifiedIdentity{}, NewAuthError(http.StatusUnauthorized, "invalid_audience", "clientId is not an allowed Sonara Google client ID.")
 	}
 
 	form := url.Values{}

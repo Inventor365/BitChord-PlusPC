@@ -178,7 +178,7 @@
     <string name="cancel_all">Tout annuler</string>
     <string name="language">Langue</string>
     <string name="app_language">Langue de l\'application</string>
-    <string name="app_language_description">Choisissez la langue utilisée par BitChord.</string>
+    <string name="app_language_description">Choisissez la langue utilisée par Sonara.</string>
     <string name="english">Anglais</string>
     <string name="spanish">Espagnol</string>
     <string name="french">Français</string>
@@ -324,7 +324,7 @@
     <string name="discord_presence_footer">La carte se met à jour lorsque la piste, la position ou l\'état de lecture change. Elle s\'efface à l\'arrêt de la lecture.</string>
     <string name="discord_show_audio_quality">Afficher la qualité audio</string>
     <string name="discord_show_audio_quality_subtitle">Caractéristiques Hi-Res, sans perte et Dolby sur la carte de statut</string>
-    <string name="discord_sign_in_footer">La connexion ouvre la page de connexion de Discord. Rien n\'est saisi dans BitChord.</string>
+    <string name="discord_sign_in_footer">La connexion ouvre la page de connexion de Discord. Rien n\'est saisi dans Sonara.</string>
     <string name="discord_token">Jeton Discord</string>
     <string name="discord_token_description">Collez le jeton de votre compte Discord. Il reste chiffré sur cet appareil et n\'est envoyé qu\'à Discord.</string>
     <string name="discord_token_rejected">Discord a rejeté ce jeton.</string>
@@ -359,7 +359,7 @@
     <string name="downloads_finished">Téléchargements · terminés</string>
     <string name="downloading_progress">Téléchargement · %1$d%%</string>
     <string name="starting">Démarrage</string>
-    <string name="saved_to_bitchord_folder">Enregistrée dans Musique/BitChord</string>
+    <string name="saved_to_bitchord_folder">Enregistrée dans Musique/Sonara</string>
     <string name="nothing_downloading">Aucun téléchargement en cours</string>
     <string name="nothing_to_explore">Rien à explorer pour le moment</string>
     <string name="no_youtube_music_results">Aucun résultat de YouTube Music</string>
@@ -782,7 +782,7 @@
     <string name="listen_together_custom_server_dialog_message">Cette session est hébergée sur un serveur externe :\n\n%1$s\n\nVoulez-vous changer de serveur de session et rejoindre la session %2$s ?</string>
     <string name="listen_together_custom_server_switch_and_join">Changer et rejoindre</string>
     <string name="listen_together_official_server_dialog_title">Passer au serveur officiel ?</string>
-    <string name="listen_together_official_server_dialog_message">Cette session est hébergée sur le serveur officiel de BitChord.\n\nVoulez-vous revenir au serveur officiel et rejoindre la session %1$s ?</string>
+    <string name="listen_together_official_server_dialog_message">Cette session est hébergée sur le serveur officiel de Sonara.\n\nVoulez-vous revenir au serveur officiel et rejoindre la session %1$s ?</string>
     <string name="listen_together_switch_failed_stayed_in_party">Impossible de rejoindre la session : %1$s. Vous restez dans la session %2$s.</string>
     <string name="listen_together_switch_failed">Impossible de rejoindre la session : %1$s.</string>
     <string name="listen_together_ping">%1$d ms</string>
@@ -1300,7 +1300,7 @@
 
 
     <string name="source_needs_lossless_output">Nécessite une sortie sans perte · utilisez un appareil compatible sans perte</string>
-    <string name="source_needs_update">Cet add-on n\'est plus à jour. Il fonctionne toujours, mais demandez à son développeur de le mettre à jour en suivant la dernière documentation des add-ons BitChord.</string>
+    <string name="source_needs_update">Cet add-on n\'est plus à jour. Il fonctionne toujours, mais demandez à son développeur de le mettre à jour en suivant la dernière documentation des add-ons Sonara.</string>
     <string name="source_outdated">Add-on obsolète</string>
     <string name="source_needs_lossless_bt_codec">Nécessite une sortie sans perte · le Bluetooth utilise %1$s ; utilisez un appareil compatible sans perte</string>
     <string name="source_needs_lossless_bt_unknown">Nécessite une sortie sans perte · impossible de savoir quel codec Bluetooth est utilisé</string>
@@ -1469,7 +1469,7 @@
     <string name="bit_perfect_output">Sortie bit-perfect</string>
     <string name="bit_perfect_bypassed_footer">La sortie bit-perfect est prête : les réglages grisés sont donc contournés et les versions Dolby Atmos ne sont pas demandées. Ils fonctionnent à nouveau quand le DAC est débranché ou que le mode est désactivé.</string>
     <string name="bit_perfect_sheet_warning">Envoie le morceau au DAC sans modification. L\'égaliseur, la normalisation du volume, le fondu enchaîné, Automix, la vitesse de lecture et le volume de Sonara sont contournés.</string>
-    <string name="bit_perfect_mode_off_subtitle">Le son passe par le mixeur d\'Android et les effets de BitChord.</string>
+    <string name="bit_perfect_mode_off_subtitle">Le son passe par le mixeur d\'Android et les effets de Sonara.</string>
     <string name="bit_perfect_mode_usb_android">DAC USB</string>
     <string name="bit_perfect_mode_usb_android_subtitle">Android 14 ouvre le DAC à la fréquence et à la profondeur de bits de chaque morceau, sans mixage ni rééchantillonnage.</string>
     <string name="bit_perfect_requires_android_14">Nécessite Android 14 ou version ultérieure</string>

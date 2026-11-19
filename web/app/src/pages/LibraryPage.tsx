@@ -169,7 +169,7 @@ function PlaylistsSection() {
           title={collabUser ? 'No playlists yet' : 'Collaborate on playlists or connect your library'}
           detail={
             missing
-              ? 'Collaborative playlists work right here with Google sign-in. Install the BitChord Extension anytime to also browse your YouTube Music and Spotify playlists.'
+              ? 'Collaborative playlists work right here with Google sign-in. Install the Sonara Extension anytime to also browse your YouTube Music and Spotify playlists.'
               : ytAuth.state === 'ready' && !ytSignedIn
                 ? 'Start a Collaborative Playlist above, or sign in on music.youtube.com to see your personal YouTube Music playlists.'
                 : 'Create a Collaborative Playlist above, join a friend’s invite link, or save playlists on YouTube Music.'
@@ -180,7 +180,7 @@ function PlaylistsSection() {
                 to="/extension"
                 className="inline-flex h-8 items-center rounded-pill bg-quinary px-4 type-callout-emphasized text-primary hover:bg-quaternary"
               >
-                BitChord Extension
+                Sonara Extension
               </PrefetchLink>
             ) : undefined
           }
@@ -218,7 +218,7 @@ export default function LibraryPage() {
         <PageHeader title={title} />
         <EmptyState
           title="Sign in to see your library"
-          detail="BitChord uses the YouTube Music account this browser is signed in to. Sign in on music.youtube.com, then come back."
+          detail="Sonara uses the YouTube Music account this browser is signed in to. Sign in on music.youtube.com, then come back."
         />
       </>
     );

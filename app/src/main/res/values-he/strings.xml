@@ -75,7 +75,7 @@
     <string name="recognition_hint">נגנו, שירו או המהו</string>
     <string name="recognition_microphone">מיקרופון</string>
     <string name="recognition_permission_title">הפעילו מיקרופון כדי לזהות מוזיקה</string>
-    <string name="recognition_permission_body">אפשרו גישה למיקרופון כדי ש-BitChord יוכל להאזין למוזיקה שמתנגנת סביבכם.</string>
+    <string name="recognition_permission_body">אפשרו גישה למיקרופון כדי ש-Sonara יוכל להאזין למוזיקה שמתנגנת סביבכם.</string>
     <string name="recognition_enable_microphone">הפעלת מיקרופון</string>
     <string name="recognition_open_settings">פתיחת הגדרות</string>
     <string name="recognition_searching">מחפש…</string>
@@ -117,10 +117,10 @@
     <string name="dolby_atmos_open_failed">לא ניתן לפתוח את הגדרות Dolby Atmos</string>
     <string name="update_available">עדכון זמין: גרסה %1$s</string>
     <string name="software_update">עדכון תוכנה</string>
-    <string name="update_available_body">bitchord %1$s זמין להורדה.</string>
-    <string name="update_downloading_body">מוריד את bitchord %1$s…</string>
-    <string name="update_ready_body">bitchord %1$s מוכן להתקנה.</string>
-    <string name="update_failed_body">לא ניתן היה להוריד את bitchord %1$s.</string>
+    <string name="update_available_body">Sonara %1$s זמין להורדה.</string>
+    <string name="update_downloading_body">מוריד את Sonara %1$s…</string>
+    <string name="update_ready_body">Sonara %1$s מוכן להתקנה.</string>
+    <string name="update_failed_body">לא ניתן היה להוריד את Sonara %1$s.</string>
     <string name="download_now">הורדה עכשיו</string>
     <string name="install_now">התקנה עכשיו</string>
     <string name="later">מאוחר יותר</string>
@@ -179,7 +179,7 @@
     <string name="cancel_all">ביטול הכול</string>
     <string name="language">שפה</string>
     <string name="app_language">שפת האפליקציה</string>
-    <string name="app_language_description">בחירת השפה שבה ישתמש BitChord.</string>
+    <string name="app_language_description">בחירת השפה שבה ישתמש Sonara.</string>
     <string name="english">אנגלית</string>
     <string name="spanish">ספרדית</string>
     <string name="french">צרפתית</string>
@@ -324,7 +324,7 @@
     <string name="discord_presence_footer">הכרטיס מתעדכן כאשר הרצועה, המיקום או מצב ההפעלה משתנים. הוא נמחק כאשר ההפעלה נפסקת.</string>
     <string name="discord_show_audio_quality">הצגת איכות השמע</string>
     <string name="discord_show_audio_quality_subtitle">מפרטי Hi-Res, Lossless ו-Dolby בכרטיס הנוכחות</string>
-    <string name="discord_sign_in_footer">הכניסה פותחת את עמוד ההתחברות של דיסקורד. שום דבר אינו מוקלד ב-BitChord.</string>
+    <string name="discord_sign_in_footer">הכניסה פותחת את עמוד ההתחברות של דיסקורד. שום דבר אינו מוקלד ב-Sonara.</string>
     <string name="discord_token">אסימון דיסקורד</string>
     <string name="discord_token_description">הדבק את אסימון החשבון שלך בדיסקורד. הוא נשאר מוצפן על המכשיר הזה ונשלח רק לדיסקורד.</string>
     <string name="discord_token_rejected">דיסקורד דחתה את האסימון הזה.</string>
@@ -526,7 +526,7 @@
     <string name="replay_artist_end"> המשיך לחזור.</string>
     <string name="replay_artist_focus">אמן אחד</string>
     <string name="replay_artist_start">כל החודש, </string>
-    <string name="replay_empty_description">האזן קצת יותר ו-BitChord יהפוך את ההיסטוריה שלך ל-Replay.</string>
+    <string name="replay_empty_description">האזן קצת יותר ו-Sonara יהפוך את ההיסטוריה שלך ל-Replay.</string>
     <string name="replay_genre_end"> עיצבו את הצליל שלך.</string>
     <string name="replay_genre_focus">הז\'אנרים שלך</string>
     <string name="replay_genre_start">ביחד, </string>
@@ -749,7 +749,7 @@
     <string name="listen_together_code">קוד המסיבה</string>
     <string name="listen_together_code_footer">הקריאו אותו או שלחו אותו. האותיות O ו-I אינן בשימוש, ולכן O היא תמיד אפס.</string>
     <string name="copy_code">העתקת הקוד</string>
-    <string name="listen_together_share_text">תאזינו איתי ב-BitChord — קוד מסיבה %1$s</string>
+    <string name="listen_together_share_text">תאזינו איתי ב-Sonara — קוד מסיבה %1$s</string>
     <string name="listen_together_now_playing">מתנגן כעת</string>
     <string name="listen_together_nothing_playing">עוד לא מתנגן כלום</string>
     <string name="listen_together_listening">מאזינים · %1$d מתוך %2$d</string>
@@ -786,7 +786,7 @@
     <string name="listen_together_custom_server_dialog_message">המסיבה הזו מתארחת בשרת חיצוני:\n\n%1$s\n\nלהחליף את שרת המסיבות ולהצטרף למסיבה %2$s?</string>
     <string name="listen_together_custom_server_switch_and_join">החלפה והצטרפות</string>
     <string name="listen_together_official_server_dialog_title">לעבור לשרת הרשמי?</string>
-    <string name="listen_together_official_server_dialog_message">המסיבה הזו מתארחת בשרת הרשמי של BitChord.\n\nלחזור לשרת הרשמי ולהצטרף למסיבה %1$s?</string>
+    <string name="listen_together_official_server_dialog_message">המסיבה הזו מתארחת בשרת הרשמי של Sonara.\n\nלחזור לשרת הרשמי ולהצטרף למסיבה %1$s?</string>
     <string name="listen_together_switch_failed_stayed_in_party">לא ניתן להצטרף למסיבה: %1$s. נשארתם במסיבה %2$s.</string>
     <string name="listen_together_switch_failed">לא ניתן להצטרף למסיבה: %1$s.</string>
     <string name="listen_together_ping">%1$d ms</string>
@@ -1304,7 +1304,7 @@
 
 
     <string name="source_needs_lossless_output">דורש פלט ללא אובדן · השתמשו במכשיר שתומך באודיו ללא אובדן</string>
-    <string name="source_needs_update">התוסף הזה אינו מעודכן. הוא עדיין עובד, אבל בקשו מהמפתח לעדכן אותו לפי מסמכי התוספים העדכניים של BitChord.</string>
+    <string name="source_needs_update">התוסף הזה אינו מעודכן. הוא עדיין עובד, אבל בקשו מהמפתח לעדכן אותו לפי מסמכי התוספים העדכניים של Sonara.</string>
     <string name="source_outdated">תוסף לא מעודכן</string>
     <string name="source_needs_lossless_bt_codec">דורש פלט ללא אובדן · ה‑Bluetooth משתמש ב‑%1$s; השתמשו במכשיר שתומך באודיו ללא אובדן</string>
     <string name="source_needs_lossless_bt_unknown">דורש פלט ללא אובדן · לא ניתן לדעת באיזה קודק Bluetooth נעשה שימוש</string>
@@ -1377,7 +1377,7 @@
     <string name="replay_period_monthly">חודשי</string>
     <string name="replay_period_yearly">שנתי</string>
     <string name="replay_period_lifetime">כל הזמן</string>
-    <string name="onboarding_title">מיליוני שירים, בסטרימינג ב-BitChord</string>
+    <string name="onboarding_title">מיליוני שירים, בסטרימינג ב-Sonara</string>
     <string name="onboarding_name_prompt">איך לקרוא לך?</string>
     <string name="onboarding_name_hint">השם שלך</string>
     <string name="onboarding_name_footer">חברים רואים את זה כשמאזינים יחד. אפשר לשנות זאת מאוחר יותר בהגדרות.</string>
@@ -1473,7 +1473,7 @@
     <string name="bit_perfect_output">פלט Bit-perfect</string>
     <string name="bit_perfect_bypassed_footer">פלט Bit-perfect מוכן, ולכן ההגדרות המעומעמות אינן פעילות ולא מתבקשות גרסאות Dolby Atmos. הן יפעלו שוב כשה-DAC ינותק או כשהמצב ייכבה.</string>
     <string name="bit_perfect_sheet_warning">שולח את הרצועה ל-DAC ללא שינוי. האקולייזר, נרמול העוצמה, ה-Crossfade, ה-Automix, מהירות ההשמעה ועוצמת הקול של Sonara אינם פעילים.</string>
-    <string name="bit_perfect_mode_off_subtitle">השמע עובר דרך המיקסר של Android והאפקטים של BitChord.</string>
+    <string name="bit_perfect_mode_off_subtitle">השמע עובר דרך המיקסר של Android והאפקטים של Sonara.</string>
     <string name="bit_perfect_mode_usb_android">USB DAC</string>
     <string name="bit_perfect_mode_usb_android_subtitle">Android 14 פותח את ה-DAC בקצב ובעומק הסיביות של כל רצועה, ללא מיקס וללא דגימה מחדש.</string>
     <string name="bit_perfect_requires_android_14">נדרש Android 14 ומעלה</string>

@@ -26,7 +26,7 @@
     <string name="d_everything_you_save_and_play">כל מה שאתה שומר ומשמיע</string>
     <string name="d_find_anything_in_youtube_music">מצא הכול ב-YouTube Music</string>
     <string name="d_found_on_your_listenbrainz_profile_under_settings">נמצא בפרופיל ListenBrainz שלך, תחת הגדרות.</string>
-    <string name="d_google_signs_in_inside_a_browser">Google מתחברת בתוך דפדפן ומחזירה חיבור. בחר דפדפן שכבר מחובר בו, ו-BitChord ישתמש בחיבור שלו.</string>
+    <string name="d_google_signs_in_inside_a_browser">Google מתחברת בתוך דפדפן ומחזירה חיבור. בחר דפדפן שכבר מחובר בו, ו-Sonara ישתמש בחיבור שלו.</string>
     <string name="d_keep_playing_when_closed">המשך להשמיע גם לאחר סגירה</string>
     <string name="d_keep_the_music_going_with_similar_songs">המשך את המוזיקה עם שירים דומים</string>
     <string name="d_keeps_the_spotlight_on_the_current_line">שומר את הדגש על השורה הנוכחית</string>
@@ -51,7 +51,7 @@
     <string name="d_paste_the_cookie_header_for_music_youtube_com">הדבק את כותרת ה-Cookie עבור music.youtube.com.</string>
     <string name="d_playback_speed">מהירות ההשמעה</string>
     <string name="d_playlists_on_this_computer">פלייליסטים במחשב הזה</string>
-    <string name="d_quit_bitchord">צא מ-BitChord</string>
+    <string name="d_quit_bitchord">צא מ-Sonara</string>
     <string name="d_recently_played_on_this_computer">הושמע לאחרונה במחשב הזה</string>
     <string name="d_recents">אחרונים</string>
     <string name="d_remove_from_playlist">הסר מהפלייליסט</string>

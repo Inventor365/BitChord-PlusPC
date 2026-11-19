@@ -103,10 +103,10 @@
     <string name="dolby_atmos_open_failed">Не удалось открыть настройки Dolby Atmos</string>
     <string name="update_available">Доступно обновление: v%1$s</string>
     <string name="software_update">Обновление ПО</string>
-    <string name="update_available_body">bitchord %1$s доступен для загрузки.</string>
-    <string name="update_downloading_body">Загрузка bitchord %1$s…</string>
-    <string name="update_ready_body">bitchord %1$s готов к установке.</string>
-    <string name="update_failed_body">Не удалось загрузить bitchord %1$s.</string>
+    <string name="update_available_body">Sonara %1$s доступен для загрузки.</string>
+    <string name="update_downloading_body">Загрузка Sonara %1$s…</string>
+    <string name="update_ready_body">Sonara %1$s готов к установке.</string>
+    <string name="update_failed_body">Не удалось загрузить Sonara %1$s.</string>
     <string name="download_now">Загрузить сейчас</string>
     <string name="install_now">Установить сейчас</string>
     <string name="later">Позже</string>
@@ -157,7 +157,7 @@
     <string name="cancel_all">Отменить всё</string>
     <string name="language">Язык</string>
     <string name="app_language">Язык приложения</string>
-    <string name="app_language_description">Выберите язык, используемый в BitChord.</string>
+    <string name="app_language_description">Выберите язык, используемый в Sonara.</string>
     <string name="english">Английский</string>
     <string name="spanish">Испанский</string>
     <string name="french">Французский</string>
@@ -339,7 +339,7 @@
     <string name="downloads_finished">Загрузки · завершено</string>
     <string name="downloading_progress">Загрузка · %1$d%%</string>
     <string name="starting">Начало</string>
-    <string name="saved_to_bitchord_folder">Сохранено в Музыка/BitChord</string>
+    <string name="saved_to_bitchord_folder">Сохранено в Музыка/Sonara</string>
     <string name="nothing_downloading">Ничего не загружается</string>
     <string name="nothing_to_explore">Сейчас нечего смотреть в обзоре</string>
     <string name="no_youtube_music_results">Нет результатов из YouTube Music</string>

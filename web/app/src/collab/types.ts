@@ -307,7 +307,7 @@ export function normalizePlaylistSummary(
 ): CollabPlaylistSummary {
   const rec = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const ownerUserId = String(rec.ownerUserId ?? rec.ownerId ?? '');
-  const ownerName = String(rec.ownerName ?? 'BitChord Listener');
+  const ownerName = String(rec.ownerName ?? 'Sonara Listener');
   const ownerAvatarUrl = typeof rec.ownerAvatarUrl === 'string' && rec.ownerAvatarUrl ? rec.ownerAvatarUrl : null;
 
   let inferredRole: CollabRole = asRole(rec.myRole ?? rec.role, ownerUserId && ownerUserId === currentUserId ? 'OWNER' : 'VIEWER');

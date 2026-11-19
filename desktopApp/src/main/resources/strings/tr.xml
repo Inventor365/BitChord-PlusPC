@@ -100,10 +100,10 @@
     <string name="dolby_atmos_open_failed">Dolby Atmos ayarları açılamadı</string>
     <string name="update_available">Güncelleme mevcut: v%1$s</string>
     <string name="software_update">Yazılım Güncellemesi</string>
-    <string name="update_available_body">bitchord %1$s indirilmeye hazır.</string>
-    <string name="update_downloading_body">bitchord %1$s indiriliyor…</string>
-    <string name="update_ready_body">bitchord %1$s yüklenmeye hazır.</string>
-    <string name="update_failed_body">bitchord %1$s indirilemedi.</string>
+    <string name="update_available_body">Sonara %1$s indirilmeye hazır.</string>
+    <string name="update_downloading_body">Sonara %1$s indiriliyor…</string>
+    <string name="update_ready_body">Sonara %1$s yüklenmeye hazır.</string>
+    <string name="update_failed_body">Sonara %1$s indirilemedi.</string>
     <string name="download_now">Şimdi İndir</string>
     <string name="install_now">Şimdi Yükle</string>
     <string name="later">Daha sonra</string>
@@ -358,7 +358,7 @@
     <string name="start_radio">Radyoyu başlat</string>
     <string name="playing_radio">%1$s Radyosu çalıyor</string>
     <string name="radio_started">%1$s radyosu başlatıldı</string>
-    <string name="saved_to_bitchord_folder">Müzik/BitChord klasörüne kaydedildi</string>
+    <string name="saved_to_bitchord_folder">Müzik/Sonara klasörüne kaydedildi</string>
     <string name="nothing_downloading">İndirilen bir şey yok</string>
     <string name="nothing_to_explore">Şu anda keşfedilecek bir şey yok</string>
     <string name="no_youtube_music_results">YouTube Music\'ten sonuç yok</string>

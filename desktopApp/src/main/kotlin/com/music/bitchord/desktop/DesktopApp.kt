@@ -6909,7 +6909,7 @@ private fun DesktopSettingsFooter(onLicenses: () -> Unit) {
                     easterEggTaps++
                 },
             ) {
-                append("bitchord $version")
+                append("Sonara $version")
             }
             append("  ")
             withLink(LinkAnnotation.Url("https://github.com/Inventor365/Sonara", linkStyles)) {

@@ -96,10 +96,10 @@
     <string name="dolby_atmos_open_failed">לא ניתן לפתוח את הגדרות Dolby Atmos</string>
     <string name="update_available">עדכון זמין: גרסה %1$s</string>
     <string name="software_update">עדכון תוכנה</string>
-    <string name="update_available_body">bitchord %1$s זמין להורדה.</string>
-    <string name="update_downloading_body">מוריד את bitchord %1$s…</string>
-    <string name="update_ready_body">bitchord %1$s מוכן להתקנה.</string>
-    <string name="update_failed_body">לא ניתן היה להוריד את bitchord %1$s.</string>
+    <string name="update_available_body">Sonara %1$s זמין להורדה.</string>
+    <string name="update_downloading_body">מוריד את Sonara %1$s…</string>
+    <string name="update_ready_body">Sonara %1$s מוכן להתקנה.</string>
+    <string name="update_failed_body">לא ניתן היה להוריד את Sonara %1$s.</string>
     <string name="download_now">הורדה עכשיו</string>
     <string name="install_now">התקנה עכשיו</string>
     <string name="later">מאוחר יותר</string>
@@ -150,7 +150,7 @@
     <string name="cancel_all">ביטול הכול</string>
     <string name="language">שפה</string>
     <string name="app_language">שפת האפליקציה</string>
-    <string name="app_language_description">בחירת השפה שבה ישתמש BitChord.</string>
+    <string name="app_language_description">בחירת השפה שבה ישתמש Sonara.</string>
     <string name="english">אנגלית</string>
     <string name="spanish">ספרדית</string>
     <string name="french">צרפתית</string>
@@ -278,7 +278,7 @@
     <string name="discord_button_variables">{song_name}, {artist_name} ו-{album_name} מוחלפים בשיר הנוכחי.</string>
     <string name="discord_buttons_footer">{song_name}, {artist_name} ו-{album_name} מוחלפים בשיר. הכפתור הראשון פותח את השיר ב-YouTube Music והשני פותח פרויקט זה.</string>
     <string name="discord_presence_footer">הכרטיס מתעדכן כאשר הרצועה, המיקום או מצב ההפעלה משתנים. הוא נמחק כאשר ההפעלה נפסקת.</string>
-    <string name="discord_sign_in_footer">הכניסה פותחת את עמוד ההתחברות של דיסקורד. שום דבר אינו מוקלד ב-BitChord.</string>
+    <string name="discord_sign_in_footer">הכניסה פותחת את עמוד ההתחברות של דיסקורד. שום דבר אינו מוקלד ב-Sonara.</string>
     <string name="discord_token">אסימון דיסקורד</string>
     <string name="discord_token_description">הדבק את אסימון החשבון שלך בדיסקורד. הוא נשאר מוצפן על המכשיר הזה ונשלח רק לדיסקורד.</string>
     <string name="discord_token_rejected">דיסקורד דחתה את האסימון הזה.</string>
@@ -482,7 +482,7 @@
     <string name="replay_artist_end"> המשיך לחזור.</string>
     <string name="replay_artist_focus">אמן אחד</string>
     <string name="replay_artist_start">כל החודש, </string>
-    <string name="replay_empty_description">האזן קצת יותר ו-BitChord יהפוך את ההיסטוריה שלך ל-Replay.</string>
+    <string name="replay_empty_description">האזן קצת יותר ו-Sonara יהפוך את ההיסטוריה שלך ל-Replay.</string>
     <string name="replay_genre_end"> עיצבו את הצליל שלך.</string>
     <string name="replay_genre_focus">הז\'אנרים שלך</string>
     <string name="replay_genre_start">ביחד, </string>
@@ -673,7 +673,7 @@
     <string name="listen_together_code">קוד המסיבה</string>
     <string name="listen_together_code_footer">הקריאו אותו או שלחו אותו. האותיות O ו-I אינן בשימוש, ולכן O היא תמיד אפס.</string>
     <string name="copy_code">העתקת הקוד</string>
-    <string name="listen_together_share_text">תאזינו איתי ב-BitChord — קוד מסיבה %1$s</string>
+    <string name="listen_together_share_text">תאזינו איתי ב-Sonara — קוד מסיבה %1$s</string>
     <string name="listen_together_now_playing">מתנגן כעת</string>
     <string name="listen_together_nothing_playing">עוד לא מתנגן כלום</string>
     <string name="listen_together_listening">מאזינים · %1$d מתוך %2$d</string>

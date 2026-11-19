@@ -91,10 +91,10 @@
     <string name="dolby_atmos_open_failed">Tidak dapat membuka pengaturan Dolby Atmos</string>
     <string name="update_available">Pembaruan tersedia: v%1$s</string>
     <string name="software_update">Pembaruan Perangkat Lunak</string>
-    <string name="update_available_body">bitchord %1$s tersedia untuk diunduh.</string>
-    <string name="update_downloading_body">Mengunduh bitchord %1$s…</string>
-    <string name="update_ready_body">bitchord %1$s siap dipasang.</string>
-    <string name="update_failed_body">Gagal mengunduh bitchord %1$s.</string>
+    <string name="update_available_body">Sonara %1$s tersedia untuk diunduh.</string>
+    <string name="update_downloading_body">Mengunduh Sonara %1$s…</string>
+    <string name="update_ready_body">Sonara %1$s siap dipasang.</string>
+    <string name="update_failed_body">Gagal mengunduh Sonara %1$s.</string>
     <string name="download_now">Unduh Sekarang</string>
     <string name="install_now">Pasang Sekarang</string>
     <string name="later">Nanti</string>
@@ -145,7 +145,7 @@
     <string name="cancel_all">Batalkan semua</string>
     <string name="language">Bahasa</string>
     <string name="app_language">Bahasa aplikasi</string>
-    <string name="app_language_description">Pilih bahasa yang digunakan BitChord.</string>
+    <string name="app_language_description">Pilih bahasa yang digunakan Sonara.</string>
     <string name="english">Inggris</string>
     <string name="spanish">Spanyol</string>
     <string name="french">Prancis</string>
@@ -274,7 +274,7 @@
     <string name="discord_button_variables">{song_name}, {artist_name}, dan {album_name} akan digantikan dengan trek yang sedang diputar.</string>
     <string name="discord_buttons_footer">{song_name}, {artist_name}, dan {album_name} akan digantikan dengan trek tersebut. Tombol pertama membuka lagu di YouTube Music dan tombol kedua membuka proyek ini.</string>
     <string name="discord_presence_footer">Kartu diperbarui saat trek, posisi, atau status pemutaran berubah. Kartu akan hilang saat pemutaran berhenti.</string>
-    <string name="discord_sign_in_footer">Masuk akan membuka halaman login Discord. Tidak ada yang diketik ke BitChord.</string>
+    <string name="discord_sign_in_footer">Masuk akan membuka halaman login Discord. Tidak ada yang diketik ke Sonara.</string>
     <string name="discord_token">Token Discord</string>
     <string name="discord_token_description">Tempel token akun Discord Anda. Token ini tetap terenkripsi di perangkat ini dan hanya dikirim ke Discord.</string>
     <string name="discord_token_rejected">Discord menolak token tersebut.</string>

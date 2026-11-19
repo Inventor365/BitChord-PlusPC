@@ -222,7 +222,7 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory, Configu
                     chain.request().newBuilder()
                         .header(
                             "User-Agent",
-                            "BitChord/${BuildConfig.VERSION_NAME} (Android; +https://github.com/Inventor365/Sonara)",
+                            "Sonara/${BuildConfig.VERSION_NAME} (Android; +https://github.com/Inventor365/Sonara)",
                         )
                         .build(),
                 )

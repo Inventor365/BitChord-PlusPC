@@ -17,7 +17,7 @@ val targetOs: String = (providers.gradleProperty("bitchord.target").orNull ?: wh
     hostIsWindows -> "windows"
     hostIsLinux -> "linux"
     hostIsMac -> "macos"
-    else -> error("BitChord desktop supports Linux, Windows, and macOS only")
+    else -> error("Sonara desktop supports Linux, Windows, and macOS only")
 }).lowercase()
 
 val hostArch = (providers.gradleProperty("bitchord.arch").orNull ?: System.getProperty("os.arch")).lowercase()
@@ -36,7 +36,7 @@ val nativeClassifier = when (targetOs) {
     "windows" -> "windows-x86_64"
     "linux" -> "linux-x86_64"
     "macos" -> if (isArm64) "macosx-arm64" else "macosx-x86_64"
-    else -> error("BitChord desktop supports Linux, Windows, and macOS only")
+    else -> error("Sonara desktop supports Linux, Windows, and macOS only")
 }
 private fun localProperty(name: String): String = rootProject.file("local.properties")
     .takeIf { it.isFile }
@@ -397,7 +397,7 @@ val windowsPortableAssemble by tasks.registering {
     group = "distribution"
     description = "Lays out a Windows-runnable folder: application jars, Windows natives, launcher."
     dependsOn(tasks.named("jar"))
-    val stage = windowsPortableDir.map { it.dir("BitChord") }
+    val stage = windowsPortableDir.map { it.dir("Sonara") }
     val appJar = tasks.named<Jar>("jar").flatMap { it.archiveFile }
     val runtime = configurations.named("runtimeClasspath")
     val version = appVersion
@@ -430,11 +430,11 @@ val windowsPortableAssemble by tasks.registering {
 
         // `lib\*` rather than a spelled-out classpath: the wildcard is what keeps this working when
         // a dependency is added, and the JVM is what expands it.
-        File(target, "BitChord.bat").writeText(
+        File(target, "Sonara.bat").writeText(
             buildString {
                 appendLine("@echo off")
                 appendLine("setlocal")
-                appendLine("rem BitChord, portable. Needs a Java 21+ runtime on PATH or in JAVA_HOME.")
+                appendLine("rem Sonara, portable. Needs a Java 21+ runtime on PATH or in JAVA_HOME.")
                 appendLine("set \"HERE=%~dp0\"")
                 appendLine("set \"RUNNER=java\"")
                 appendLine("if defined JAVA_HOME set \"RUNNER=%JAVA_HOME%\\bin\\java\"")
@@ -457,7 +457,7 @@ val windowsPortableAssemble by tasks.registering {
         }
         val problems = buildList {
             if (!holds("com/music/bitchord/desktop/MainKt.class")) {
-                add("the BitChord desktop entry point is missing")
+                add("the Sonara desktop entry point is missing")
             }
             if (!holds("androidx/compose/runtime/Composer.class")) {
                 add("the Compose runtime is missing")

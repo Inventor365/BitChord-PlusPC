@@ -183,11 +183,11 @@ android {
         create("dev") {
             dimension = "env"
             applicationId = "com.dev.bitchord.tv"
-            resValue("string", "app_name", "BitChord TV")
+            resValue("string", "app_name", "Sonara TV Dev")
         }
         create("prod") {
             dimension = "env"
-            resValue("string", "app_name", "BitChord TV")
+            resValue("string", "app_name", "Sonara TV")
         }
     }
 

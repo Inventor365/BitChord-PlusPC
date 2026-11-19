@@ -121,10 +121,10 @@
     <string name="dolby_atmos_open_failed">Couldn’t open Dolby Atmos settings</string>
     <string name="update_available">Update available: v%1$s</string>
     <string name="software_update">Software Update</string>
-    <string name="update_available_body">bitchord %1$s is available to download.</string>
-    <string name="update_downloading_body">Downloading bitchord %1$s…</string>
-    <string name="update_ready_body">bitchord %1$s is ready to install.</string>
-    <string name="update_failed_body">Couldn’t download bitchord %1$s.</string>
+    <string name="update_available_body">Sonara %1$s is available to download.</string>
+    <string name="update_downloading_body">Downloading Sonara %1$s…</string>
+    <string name="update_ready_body">Sonara %1$s is ready to install.</string>
+    <string name="update_failed_body">Couldn’t download Sonara %1$s.</string>
     <string name="download_now">Download Now</string>
     <string name="install_now">Install Now</string>
     <string name="later">Later</string>
@@ -189,7 +189,7 @@
     <string name="cancel_all">Cancel all</string>
     <string name="language">Language</string>
     <string name="app_language">App language</string>
-    <string name="app_language_description">Choose the language used by BitChord.</string>
+    <string name="app_language_description">Choose the language used by Sonara.</string>
     <string name="english">English</string>
     <string name="spanish">Spanish</string>
     <string name="french">French</string>
@@ -391,7 +391,7 @@
     <string name="discord_button_variables">{song_name}, {artist_name} and {album_name} are replaced with the current track.</string>
     <string name="discord_buttons_footer">{song_name}, {artist_name} and {album_name} are replaced with the track. The first button opens the song on YouTube Music and the second opens this project.</string>
     <string name="discord_presence_footer">The card updates when the track, position or playback state changes. It clears when playback stops.</string>
-    <string name="discord_sign_in_footer">Signing in opens Discord\'s login page. Nothing is typed into BitChord.</string>
+    <string name="discord_sign_in_footer">Signing in opens Discord\'s login page. Nothing is typed into Sonara.</string>
     <string name="discord_token">Discord token</string>
     <string name="discord_token_description">Paste your Discord account token. It stays encrypted on this device and is sent only to Discord.</string>
     <string name="discord_token_rejected">Discord rejected that token.</string>

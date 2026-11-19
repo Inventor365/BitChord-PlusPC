@@ -117,10 +117,10 @@
     <string name="dolby_atmos_open_failed">Impossibile aprire le impostazioni Dolby Atmos</string>
     <string name="update_available">Aggiornamento disponibile: v%1$s</string>
     <string name="software_update">Aggiornamento software</string>
-    <string name="update_available_body">bitchord %1$s è disponibile per il download.</string>
-    <string name="update_downloading_body">Download di bitchord %1$s in corso…</string>
-    <string name="update_ready_body">bitchord %1$s è pronto da installare.</string>
-    <string name="update_failed_body">Impossibile scaricare bitchord %1$s.</string>
+    <string name="update_available_body">Sonara %1$s è disponibile per il download.</string>
+    <string name="update_downloading_body">Download di Sonara %1$s in corso…</string>
+    <string name="update_ready_body">Sonara %1$s è pronto da installare.</string>
+    <string name="update_failed_body">Impossibile scaricare Sonara %1$s.</string>
     <string name="download_now">Scarica ora</string>
     <string name="install_now">Installa ora</string>
     <string name="later">Più tardi</string>
@@ -178,7 +178,7 @@
     <string name="cancel_all">Annulla tutto</string>
     <string name="language">Lingua</string>
     <string name="app_language">Lingua dell\'app</string>
-    <string name="app_language_description">Scegli la lingua usata da BitChord.</string>
+    <string name="app_language_description">Scegli la lingua usata da Sonara.</string>
     <string name="english">Inglese</string>
     <string name="spanish">Spagnolo</string>
     <string name="french">Francese</string>
@@ -319,7 +319,7 @@
     <string name="discord_button_variables">{song_name}, {artist_name} e {album_name} vengono sostituiti con il brano attuale.</string>
     <string name="discord_buttons_footer">{song_name}, {artist_name} e {album_name} vengono sostituiti con il brano. Il primo pulsante apre il brano su YouTube Music e il secondo apre questo progetto.</string>
     <string name="discord_presence_footer">La scheda si aggiorna quando cambiano il brano, la posizione o lo stato di riproduzione. Si azzera quando la riproduzione si interrompe.</string>
-    <string name="discord_sign_in_footer">L\'accesso apre la pagina di login di Discord. Nulla viene digitato in BitChord.</string>
+    <string name="discord_sign_in_footer">L\'accesso apre la pagina di login di Discord. Nulla viene digitato in Sonara.</string>
     <string name="discord_token">Token Discord</string>
     <string name="discord_token_description">Incolla il token del tuo account Discord. Resta cifrato su questo dispositivo e viene inviato solo a Discord.</string>
     <string name="discord_token_rejected">Discord ha rifiutato quel token.</string>
@@ -375,7 +375,7 @@
     <string name="start_radio">Avvia radio</string>
     <string name="playing_radio">Riproduzione radio %1$s</string>
     <string name="radio_started">Radio %1$s avviata</string>
-    <string name="saved_to_bitchord_folder">Salvato in Musica/BitChord</string>
+    <string name="saved_to_bitchord_folder">Salvato in Musica/Sonara</string>
     <string name="nothing_downloading">Nessun download in corso</string>
     <string name="nothing_to_explore">Niente da esplorare al momento</string>
     <string name="no_youtube_music_results">Nessun risultato da YouTube Music</string>

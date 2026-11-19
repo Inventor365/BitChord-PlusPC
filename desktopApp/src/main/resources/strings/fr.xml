@@ -95,10 +95,10 @@
     <string name="dolby_atmos_open_failed">Impossible d\'ouvrir les paramètres Dolby Atmos</string>
     <string name="update_available">Mise à jour disponible : v%1$s</string>
     <string name="software_update">Mise à jour logicielle</string>
-    <string name="update_available_body">bitchord %1$s est disponible au téléchargement.</string>
-    <string name="update_downloading_body">Téléchargement de bitchord %1$s…</string>
-    <string name="update_ready_body">bitchord %1$s est prêt à être installé.</string>
-    <string name="update_failed_body">Impossible de télécharger bitchord %1$s.</string>
+    <string name="update_available_body">Sonara %1$s est disponible au téléchargement.</string>
+    <string name="update_downloading_body">Téléchargement de Sonara %1$s…</string>
+    <string name="update_ready_body">Sonara %1$s est prêt à être installé.</string>
+    <string name="update_failed_body">Impossible de télécharger Sonara %1$s.</string>
     <string name="download_now">Télécharger maintenant</string>
     <string name="install_now">Installer maintenant</string>
     <string name="later">Plus tard</string>
@@ -149,7 +149,7 @@
     <string name="cancel_all">Tout annuler</string>
     <string name="language">Langue</string>
     <string name="app_language">Langue de l\'application</string>
-    <string name="app_language_description">Choisissez la langue utilisée par BitChord.</string>
+    <string name="app_language_description">Choisissez la langue utilisée par Sonara.</string>
     <string name="english">Anglais</string>
     <string name="spanish">Espagnol</string>
     <string name="french">Français</string>
@@ -278,7 +278,7 @@
     <string name="discord_button_variables">{song_name}, {artist_name} et {album_name} sont remplacés par la piste en cours.</string>
     <string name="discord_buttons_footer">{song_name}, {artist_name} et {album_name} sont remplacés par la piste. Le premier bouton ouvre la chanson sur YouTube Music et le second ouvre ce projet.</string>
     <string name="discord_presence_footer">La carte se met à jour lorsque la piste, la position ou l\'état de lecture change. Elle s\'efface à l\'arrêt de la lecture.</string>
-    <string name="discord_sign_in_footer">La connexion ouvre la page de connexion de Discord. Rien n\'est saisi dans BitChord.</string>
+    <string name="discord_sign_in_footer">La connexion ouvre la page de connexion de Discord. Rien n\'est saisi dans Sonara.</string>
     <string name="discord_token">Jeton Discord</string>
     <string name="discord_token_description">Collez le jeton de votre compte Discord. Il reste chiffré sur cet appareil et n\'est envoyé qu\'à Discord.</string>
     <string name="discord_token_rejected">Discord a rejeté ce jeton.</string>
@@ -331,7 +331,7 @@
     <string name="downloads_finished">Téléchargements · terminés</string>
     <string name="downloading_progress">Téléchargement · %1$d%%</string>
     <string name="starting">Démarrage</string>
-    <string name="saved_to_bitchord_folder">Enregistrée dans Musique/BitChord</string>
+    <string name="saved_to_bitchord_folder">Enregistrée dans Musique/Sonara</string>
     <string name="nothing_downloading">Aucun téléchargement en cours</string>
     <string name="nothing_to_explore">Rien à explorer pour le moment</string>
     <string name="no_youtube_music_results">Aucun résultat de YouTube Music</string>

@@ -367,7 +367,7 @@ func TestVerifyIDTokenAndClaimsValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected unknown kid-2 to refresh JWKS and succeed, got: %v", err)
 	}
-	if identRot.Sub != "google-sub-rotated" || identRot.DisplayName != "BitChord Listener" {
+	if identRot.Sub != "google-sub-rotated" || identRot.DisplayName != "Sonara Listener" {
 		t.Fatalf("unexpected rotated identity: %+v", identRot)
 	}
 	if jwksFetches.Load() != 2 {

@@ -110,10 +110,10 @@
     <string name="dolby_atmos_open_failed">Tidak dapat membuka pengaturan Dolby Atmos</string>
     <string name="update_available">Pembaruan tersedia: v%1$s</string>
     <string name="software_update">Pembaruan Perangkat Lunak</string>
-    <string name="update_available_body">bitchord %1$s tersedia untuk diunduh.</string>
-    <string name="update_downloading_body">Mengunduh bitchord %1$s…</string>
-    <string name="update_ready_body">bitchord %1$s siap dipasang.</string>
-    <string name="update_failed_body">Gagal mengunduh bitchord %1$s.</string>
+    <string name="update_available_body">Sonara %1$s tersedia untuk diunduh.</string>
+    <string name="update_downloading_body">Mengunduh Sonara %1$s…</string>
+    <string name="update_ready_body">Sonara %1$s siap dipasang.</string>
+    <string name="update_failed_body">Gagal mengunduh Sonara %1$s.</string>
     <string name="download_now">Unduh Sekarang</string>
     <string name="install_now">Pasang Sekarang</string>
     <string name="later">Nanti</string>
@@ -172,7 +172,7 @@
     <string name="cancel_all">Batalkan semua</string>
     <string name="language">Bahasa</string>
     <string name="app_language">Bahasa aplikasi</string>
-    <string name="app_language_description">Pilih bahasa yang digunakan BitChord.</string>
+    <string name="app_language_description">Pilih bahasa yang digunakan Sonara.</string>
     <string name="english">Inggris</string>
     <string name="spanish">Spanyol</string>
     <string name="french">Prancis</string>
@@ -318,7 +318,7 @@
     <string name="discord_presence_footer">Kartu diperbarui saat trek, posisi, atau status pemutaran berubah. Kartu akan hilang saat pemutaran berhenti.</string>
     <string name="discord_show_audio_quality">Tampilkan kualitas audio</string>
     <string name="discord_show_audio_quality_subtitle">Spesifikasi Hi-Res, lossless, dan Dolby di kartu status</string>
-    <string name="discord_sign_in_footer">Masuk akan membuka halaman login Discord. Tidak ada yang diketik ke BitChord.</string>
+    <string name="discord_sign_in_footer">Masuk akan membuka halaman login Discord. Tidak ada yang diketik ke Sonara.</string>
     <string name="discord_token">Token Discord</string>
     <string name="discord_token_description">Tempel token akun Discord Anda. Token ini tetap terenkripsi di perangkat ini dan hanya dikirim ke Discord.</string>
     <string name="discord_token_rejected">Discord menolak token tersebut.</string>
@@ -761,7 +761,7 @@
     <string name="listen_together_custom_server_dialog_message">Pesta ini di-host di server eksternal:\n\n%1$s\n\nMau mengganti server pesta dan ikut pesta %2$s?</string>
     <string name="listen_together_custom_server_switch_and_join">Ganti &amp; Ikut</string>
     <string name="listen_together_official_server_dialog_title">Beralih ke server resmi?</string>
-    <string name="listen_together_official_server_dialog_message">Pesta ini di-host di server resmi BitChord.\n\nMau kembali ke server resmi dan ikut pesta %1$s?</string>
+    <string name="listen_together_official_server_dialog_message">Pesta ini di-host di server resmi Sonara.\n\nMau kembali ke server resmi dan ikut pesta %1$s?</string>
     <string name="listen_together_switch_failed_stayed_in_party">Gagal ikut pesta: %1$s. Tetap di pesta %2$s.</string>
     <string name="listen_together_switch_failed">Gagal ikut pesta: %1$s.</string>
     <string name="listen_together_ping">%1$d ms</string>
@@ -1445,7 +1445,7 @@
     <string name="bit_perfect_output">Output bit-perfect</string>
     <string name="bit_perfect_bypassed_footer">Output bit-perfect sudah siap, jadi pengaturan yang redup dilewati dan versi Dolby Atmos tidak diminta. Semuanya berfungsi lagi saat DAC dilepas atau mode dimatikan.</string>
     <string name="bit_perfect_sheet_warning">Mengirim trek ke DAC tanpa perubahan. Equalizer, normalisasi kenyaringan, crossfade, Automix, kecepatan putar, dan volume Sonara dilewati.</string>
-    <string name="bit_perfect_mode_off_subtitle">Audio melewati mixer Android dan efek BitChord.</string>
+    <string name="bit_perfect_mode_off_subtitle">Audio melewati mixer Android dan efek Sonara.</string>
     <string name="bit_perfect_mode_usb_android">DAC USB</string>
     <string name="bit_perfect_mode_usb_android_subtitle">Android 14 membuka DAC pada rate dan kedalaman bit masing-masing trek, tanpa mixing atau resampling.</string>
     <string name="bit_perfect_requires_android_14">Memerlukan Android 14 atau lebih baru</string>

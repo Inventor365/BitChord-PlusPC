@@ -359,7 +359,7 @@ fun BudsOutputPanel() {
                 modifier = Modifier.padding(start = 4.dp, top = 4.dp),
             )
             Text(
-                text = "La selección solo refleja cambios enviados desde BitChord.",
+                text = "La selección solo refleja cambios enviados desde Sonara.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 4.dp),

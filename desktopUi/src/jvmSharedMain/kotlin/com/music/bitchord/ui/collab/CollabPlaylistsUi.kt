@@ -2387,7 +2387,7 @@ fun CollabGoogleAuthDialog(
                         value = serverUrl,
                         onValueChange = { serverUrl = it },
                         label = { Text("Collaboration Server URL (blank = built-in YouTube Music)") },
-                        placeholder = { Text("https://your-bitchord-backend.example.com") },
+                        placeholder = { Text("https://your-sonara-backend.example.com") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )

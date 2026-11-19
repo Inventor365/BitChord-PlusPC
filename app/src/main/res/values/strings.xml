@@ -194,10 +194,10 @@
     <string name="dolby_atmos_open_failed">Couldn’t open Dolby Atmos settings</string>
     <string name="update_available">Update available: v%1$s</string>
     <string name="software_update">Software Update</string>
-    <string name="update_available_body">bitchord %1$s is available to download.</string>
-    <string name="update_downloading_body">Downloading bitchord %1$s…</string>
-    <string name="update_ready_body">bitchord %1$s is ready to install.</string>
-    <string name="update_failed_body">Couldn’t download bitchord %1$s.</string>
+    <string name="update_available_body">Sonara %1$s is available to download.</string>
+    <string name="update_downloading_body">Downloading Sonara %1$s…</string>
+    <string name="update_ready_body">Sonara %1$s is ready to install.</string>
+    <string name="update_failed_body">Couldn’t download Sonara %1$s.</string>
     <string name="download_now">Download Now</string>
     <string name="install_now">Install Now</string>
     <string name="later">Later</string>
@@ -282,7 +282,7 @@
     <string name="cancel_all">Cancel all</string>
     <string name="language">Language</string>
     <string name="app_language">App language</string>
-    <string name="app_language_description">Choose the language used by BitChord.</string>
+    <string name="app_language_description">Choose the language used by Sonara.</string>
     <!-- Hidden tester-code field: tap the App language title 10 times. Not translated: testers only. -->
     <string name="tester_code_title" translatable="false">Tester code</string>
     <string name="tester_code_message" translatable="false">For Sonara testers. Lets addon verification work on this phone with an unlocked bootloader.</string>
@@ -582,7 +582,7 @@
     <string name="discord_presence_footer">The card updates when the track, position or playback state changes. It clears when playback stops.</string>
     <string name="discord_show_audio_quality">Show audio quality</string>
     <string name="discord_show_audio_quality_subtitle">Hi-Res, lossless and Dolby specs on the presence card</string>
-    <string name="discord_sign_in_footer">Signing in opens Discord\'s login page. Nothing is typed into BitChord.</string>
+    <string name="discord_sign_in_footer">Signing in opens Discord\'s login page. Nothing is typed into Sonara.</string>
     <string name="discord_token">Discord token</string>
     <string name="discord_token_description">Paste your Discord account token. It stays encrypted on this device and is sent only to Discord.</string>
     <string name="discord_token_rejected">Discord rejected that token.</string>

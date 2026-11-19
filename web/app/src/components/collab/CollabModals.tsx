@@ -265,7 +265,7 @@ export function JoinCollabInviteModal({ onClose }: { onClose: () => void }) {
           onChange={(e) => setInput(e.currentTarget.value)}
         />
         {input.trim().length > 0 && !parsed && (
-          <p className="type-callout text-red">Enter a valid BitChord collaborative invite link or bci_ token.</p>
+          <p className="type-callout text-red">Enter a valid Sonara collaborative invite link or bci_ token.</p>
         )}
         <div className="mt-1 flex items-center justify-end gap-2.5">
           <button
@@ -399,7 +399,7 @@ export function MakeCollaborativeModal({
           <p className="type-body-emphasized text-primary">What sharing does</p>
           <ul className="mt-1.5 list-disc space-y-1 ps-4">
             <li>Your original {sourceLabel.toLowerCase()} stays untouched and private.</li>
-            <li>BitChord creates a live shared copy where invited friends can add songs with Google-verified attribution.</li>
+            <li>Sonara creates a live shared copy where invited friends can add songs with Google-verified attribution.</li>
             <li>You stay the owner and can stop sharing or revoke invite links anytime.</li>
           </ul>
         </div>

@@ -21,7 +21,7 @@ export function PageError() {
   if (reloading) {
     return (
       <div className={stateStyles.state}>
-        <p className={stateStyles.title}>Updating BitChord…</p>
+        <p className={stateStyles.title}>Updating Sonara…</p>
         <p className={stateStyles.detail}>A newer version is out. Loading it now.</p>
       </div>
     );
@@ -29,7 +29,7 @@ export function PageError() {
   const message = isRouteErrorResponse(error) ? `${error.status} ${error.statusText}` : error instanceof Error ? error.message : String(error);
   return (
     <div className={stateStyles.state} role="alert">
-      <p className={stateStyles.title}>{stale ? 'BitChord was updated' : 'Something went wrong on this page'}</p>
+      <p className={stateStyles.title}>{stale ? 'Sonara was updated' : 'Something went wrong on this page'}</p>
       <p className={stateStyles.detail}>{stale ? 'Reload to get the new version.' : message}</p>
       <div className="flex gap-2">
         <button className={stateStyles.button} onClick={() => location.reload()}>

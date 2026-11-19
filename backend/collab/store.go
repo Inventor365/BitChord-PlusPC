@@ -452,7 +452,7 @@ func latestActivityCloneLocked(rec *playlistRecord) *CollabActivity {
 }
 
 func (s *Store) buildSummaryLocked(rec *playlistRecord, callerID string) PlaylistSummary {
-	ownerName := "BitChord Listener"
+	ownerName := "Sonara Listener"
 	var ownerAvatar *string
 	if owner, ok := s.users[rec.Playlist.OwnerUserID]; ok {
 		ownerName = owner.DisplayName

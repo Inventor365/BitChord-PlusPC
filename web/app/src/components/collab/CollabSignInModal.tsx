@@ -128,7 +128,7 @@ function CollabSignInDialog({ reason, onClose }: { reason: string; onClose: () =
           <p className="mt-1 type-body-tall text-secondary">{reason}</p>
 
           <div className="mt-3.5 rounded-[10px] bg-quinary px-3.5 py-3 type-callout text-secondary">
-            BitChord verifies your Google account so every song added to a shared playlist shows its real contributor.
+            Sonara verifies your Google account so every song added to a shared playlist shows its real contributor.
             Browsing, playback, and Listen Together never need an account.
           </div>
 
@@ -152,7 +152,7 @@ function CollabSignInDialog({ reason, onClose }: { reason: string; onClose: () =
                   <span>Sign in on YouTube Music</span>
                 </a>
                 <p className="text-center type-callout text-secondary">
-                  Once signed into Google on music.youtube.com with the BitChord companion extension enabled, Collaborative Playlists work automatically with zero setup.
+                  Once signed into Google on music.youtube.com with the Sonara companion extension enabled, Collaborative Playlists work automatically with zero setup.
                 </p>
               </>
             ) : (

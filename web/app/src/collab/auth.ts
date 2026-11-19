@@ -181,7 +181,7 @@ async function authFetchJson<T>(
       },
     });
   } catch {
-    throw new CollabAuthError('network_error', 'Could not reach the BitChord collaboration server.', 503);
+    throw new CollabAuthError('network_error', 'Could not reach the Sonara collaboration server.', 503);
   }
   let payload: Record<string, unknown> = {};
   try {
