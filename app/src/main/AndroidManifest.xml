@@ -387,6 +387,35 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- The Vice and Doom themes' icons; see ThemeIcons. -->
+        <activity-alias
+            android:name=".LauncherVice"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_theme_vice"
+            android:roundIcon="@mipmap/ic_theme_vice"
+            android:label="@string/app_name"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".LauncherDoom"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_theme_doom"
+            android:roundIcon="@mipmap/ic_theme_doom"
+            android:label="@string/app_name"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
         <activity-alias
             android:name=".LauncherMonochrome"
             android:enabled="false"

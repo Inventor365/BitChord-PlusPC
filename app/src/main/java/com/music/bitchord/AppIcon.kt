@@ -37,7 +37,11 @@ enum class AppIcon(val alias: String, val iconRes: Int, val labelRes: Int, val p
     SamsungNeonViolet("LauncherSamsungNeonViolet", R.mipmap.ic_samsung_neon_violet, R.string.app_icon_samsung_neon_violet, R.mipmap.ic_samsung_neon_violet_foreground),
     PixelNeonSilver("LauncherPixelNeonSilver", R.mipmap.ic_pixel_neon_silver, R.string.app_icon_pixel_neon_silver, R.mipmap.ic_pixel_neon_silver_foreground),
     PixelNeonCyan("LauncherPixelNeonCyan", R.mipmap.ic_pixel_neon_cyan, R.string.app_icon_pixel_neon_cyan, R.mipmap.ic_pixel_neon_cyan_foreground),
-    PixelNeonViolet("LauncherPixelNeonViolet", R.mipmap.ic_pixel_neon_violet, R.string.app_icon_pixel_neon_violet, R.mipmap.ic_pixel_neon_violet_foreground);
+    PixelNeonViolet("LauncherPixelNeonViolet", R.mipmap.ic_pixel_neon_violet, R.string.app_icon_pixel_neon_violet, R.mipmap.ic_pixel_neon_violet_foreground),
+
+    // The themes' own icons, set with their theme (see ThemeIcons) and pickable on their own too.
+    ThemeVice("LauncherVice", R.mipmap.ic_theme_vice, R.string.theme_vice, R.drawable.ic_theme_vice_preview),
+    ThemeDoom("LauncherDoom", R.mipmap.ic_theme_doom, R.string.theme_doom, R.drawable.ic_theme_doom_preview);
 
     private fun component(context: Context) =
         ComponentName(context.packageName, "com.music.bitchord.$alias")

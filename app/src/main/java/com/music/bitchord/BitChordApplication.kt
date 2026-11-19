@@ -171,6 +171,8 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory, Configu
         // Data Saver, Low Power and High Performance: read the device and apply the policy before
         // anything starts streaming or scheduling. After AppSettings, whose flows it layers over.
         com.music.bitchord.data.modes.ModeController.init(this)
+        // Applies a queued theme icon when the app leaves the screen; see ThemeIcons.
+        ThemeIcons.init(this)
         PlaylistSync.init(this)
         // The device's own listening record. Opened here rather than in
         // PlaybackService because the Replay page reads it from the UI side and
