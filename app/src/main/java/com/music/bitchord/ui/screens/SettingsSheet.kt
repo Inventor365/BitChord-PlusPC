@@ -156,6 +156,8 @@ import com.music.bitchord.ui.components.MessageState
 import com.music.bitchord.ui.components.SearchField
 import com.music.bitchord.ui.components.thumbnailBorder
 import com.music.bitchord.ui.performance.resolvePerformanceRefreshRate
+import com.music.bitchord.ui.performance.RefreshRatePolicy
+import com.music.bitchord.ui.performance.RefreshRatePreference
 import com.music.bitchord.ui.performance.supportedPerformanceRefreshRates
 import com.music.bitchord.data.model.Account
 import com.music.bitchord.data.LocalMediaRepository
@@ -326,6 +328,7 @@ fun SettingsScreen(
     val filterNonMusicAudio by AppSettings.filterNonMusicAudio.collectAsStateWithLifecycle()
     val localMusicFolderUri by AppSettings.localMusicFolderUri.collectAsStateWithLifecycle()
     val highPerformanceMode by AppSettings.highPerformanceMode.collectAsStateWithLifecycle()
+    val refreshRatePreference by AppSettings.refreshRatePreference.collectAsStateWithLifecycle()
     val performanceRefreshRate by AppSettings.performanceRefreshRate.collectAsStateWithLifecycle()
     val currentDisplay = LocalView.current.display
     val supportedRefreshRates = remember(currentDisplay) {
@@ -1509,7 +1512,7 @@ fun SettingsScreen(
                     icon = SfIcons.Performance,
                     title = highPerformanceModeTitle,
                     subtitle = if (highPerformanceMode) {
-                        stringResource(R.string.high_performance_active, selectedPerformanceRefreshRate)
+                        stringResource(R.string.high_performance_active, supportedRefreshRates.max())
                     } else {
                         stringResource(R.string.high_performance_subtitle)
                     },
@@ -1534,26 +1537,30 @@ fun SettingsScreen(
                     },
                 )
             }
-            if (highPerformanceMode) {
-                val refreshRateTitle = stringResource(R.string.refresh_rate)
-                row(refreshRateTitle, "hz", "frame rate") {
-                    SettingsRow(
-                        icon = SfIcons.FrameRate,
-                        title = refreshRateTitle,
-                    )
-                    SegmentedControl(
-                        options = supportedRefreshRates.map { "$it Hz" },
-                        selectedIndex = supportedRefreshRates.indexOf(selectedPerformanceRefreshRate),
-                        onSelect = { index ->
-                            AppSettings.setPerformanceRefreshRate(supportedRefreshRates[index])
-                        },
-                        modifier = Modifier.padding(
-                            start = TEXT_INSET,
-                            end = ROW_INSET,
-                            bottom = 14.dp,
-                        ),
-                    )
-                }
+            // Adaptive plus only the rates this display really has: a 90 Hz choice on a
+            // 60/120 Hz panel would be a promise the screen cannot keep.
+            val refreshRateTitle = stringResource(R.string.refresh_rate)
+            row(refreshRateTitle, "hz", "frame rate", "adaptive", "smooth", "120", "90", "60") {
+                val options = remember(supportedRefreshRates) { RefreshRatePolicy.options(supportedRefreshRates) }
+                val adaptiveLabel = stringResource(R.string.refresh_rate_adaptive)
+                SettingsRow(
+                    icon = SfIcons.FrameRate,
+                    title = refreshRateTitle,
+                    subtitle = when {
+                        highPerformanceMode -> stringResource(R.string.refresh_rate_held_by_high_performance, supportedRefreshRates.max())
+                        refreshRatePreference == RefreshRatePreference.ADAPTIVE -> stringResource(R.string.refresh_rate_adaptive_subtitle)
+                        else -> null
+                    },
+                    enabled = !highPerformanceMode,
+                )
+                SegmentedControl(
+                    options = options.map { it.hz?.let { hz -> "$hz Hz" } ?: adaptiveLabel },
+                    selectedIndex = options.indexOf(refreshRatePreference).coerceAtLeast(0),
+                    onSelect = { index -> AppSettings.setRefreshRatePreference(options[index]) },
+                    modifier = Modifier
+                        .alpha(if (highPerformanceMode) 0.45f else 1f)
+                        .padding(start = TEXT_INSET, end = ROW_INSET, bottom = 14.dp),
+                )
             }
         }
 

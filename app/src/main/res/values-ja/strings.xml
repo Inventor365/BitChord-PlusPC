@@ -1558,4 +1558,7 @@
     <string name="onboarding_hello">こんにちは、%1$sさん。</string>
     <string name="apple_music_import_title">Apple Music のプレイリストを読み込む</string>
     <string name="apple_music_import_invalid">Spotify または Apple Music のプレイリストのリンクではありません。</string>
+    <string name="refresh_rate_adaptive">自動調整</string>
+    <string name="refresh_rate_adaptive_subtitle">何も動いていないときは低く保ち、スクロールやスワイプ、ページを開くときに速くなります。</string>
+    <string name="refresh_rate_held_by_high_performance">高パフォーマンスモードにより %1$d Hz に固定されています。</string>
 </resources>

@@ -1585,4 +1585,7 @@
     <string name="onboarding_hello">שלום, %1$s.</string>
     <string name="apple_music_import_title">ייבוא פלייליסט מ־Apple Music</string>
     <string name="apple_music_import_invalid">זה לא קישור לפלייליסט של Spotify או Apple Music.</string>
+    <string name="refresh_rate_adaptive">מסתגל</string>
+    <string name="refresh_rate_adaptive_subtitle">נשאר נמוך כשדבר לא זז, ומאיץ בזמן גלילה, החלקה או פתיחת עמוד.</string>
+    <string name="refresh_rate_held_by_high_performance">נשמר על %1$d הרץ על ידי מצב ביצועים גבוהים.</string>
 </resources>

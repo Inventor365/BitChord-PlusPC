@@ -30,9 +30,16 @@ fun Modifier.optimizedHazeEffect(
     style: HazeStyle = HazeStyle.Unspecified,
     block: (HazeEffectScope.() -> Unit)? = null,
 ): Modifier = hazeEffect(state, style) {
-    inputScale = HazeInputScale.Fixed(0.33f)
+    // While a page scrolls under it, the blur is re-sampled every frame: it samples an
+    // eighth instead of a third then, about seven times fewer pixels, and returns to a third
+    // the moment the page settles. Read here, inside Haze's observed block, so the switch
+    // happens without recomposing the caller.
+    inputScale = HazeInputScale.Fixed(if (ScrollMotion.scrolling) SCROLLING_INPUT_SCALE else RESTING_INPUT_SCALE)
     block?.invoke(this)
 }
+
+private const val RESTING_INPUT_SCALE = 0.33f
+private const val SCROLLING_INPUT_SCALE = 0.125f
 
 /**
  * The frost of the iOS menu panel: what is behind blurred well past legibility,

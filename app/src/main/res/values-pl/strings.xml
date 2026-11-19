@@ -1620,4 +1620,7 @@
     <string name="onboarding_hello">Cześć, %1$s.</string>
     <string name="apple_music_import_title">Importuj playlistę z Apple Music</string>
     <string name="apple_music_import_invalid">To nie jest link do playlisty Spotify ani Apple Music.</string>
+    <string name="refresh_rate_adaptive">Adaptacyjne</string>
+    <string name="refresh_rate_adaptive_subtitle">Pozostaje niskie, gdy nic się nie rusza, i przyspiesza podczas przewijania, przesuwania lub otwierania strony.</string>
+    <string name="refresh_rate_held_by_high_performance">Utrzymywane na %1$d Hz przez tryb wysokiej wydajności.</string>
 </resources>

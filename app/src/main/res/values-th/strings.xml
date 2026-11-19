@@ -1564,4 +1564,7 @@
     <string name="onboarding_hello">สวัสดี %1$s</string>
     <string name="apple_music_import_title">นำเข้าเพลย์ลิสต์ Apple Music</string>
     <string name="apple_music_import_invalid">นี่ไม่ใช่ลิงก์เพลย์ลิสต์ของ Spotify หรือ Apple Music</string>
+    <string name="refresh_rate_adaptive">ปรับอัตโนมัติ</string>
+    <string name="refresh_rate_adaptive_subtitle">อยู่ที่อัตราต่ำเมื่อไม่มีอะไรเคลื่อนไหว และเร็วขึ้นขณะเลื่อน ปัด หรือเปิดหน้า</string>
+    <string name="refresh_rate_held_by_high_performance">ถูกตั้งไว้ที่ %1$d Hz โดยโหมดประสิทธิภาพสูง</string>
 </resources>

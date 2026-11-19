@@ -483,6 +483,13 @@ object AppSettings {
     /** Requests a sustained high-refresh UI. Off keeps Android's automatic policy. */
     val highPerformanceMode = MutableStateFlow(false)
 
+    /**
+     * The display refresh rate: Adaptive (rest low, rise while things move) or a fixed rate.
+     * Modes lay a cap or a hold over it without changing it — see
+     * [com.music.bitchord.ui.performance.RefreshRateRuntime].
+     */
+    val refreshRatePreference = MutableStateFlow(com.music.bitchord.ui.performance.RefreshRatePreference.ADAPTIVE)
+
     /** Preferred UI refresh rate while [highPerformanceMode] is enabled. */
     val performanceRefreshRate = MutableStateFlow(DEFAULT_PERFORMANCE_REFRESH_RATE)
 
@@ -1102,6 +1109,8 @@ object AppSettings {
         onboardingComplete.value = prefs.getBoolean(KEY_ONBOARDING_COMPLETE, false)
         diwaliGreetingShown.value = prefs.getBoolean(KEY_DIWALI_GREETING_SHOWN, false)
         highPerformanceMode.value = prefs.getBoolean(KEY_HIGH_PERFORMANCE_MODE, false)
+        refreshRatePreference.value = com.music.bitchord.ui.performance.RefreshRatePreference
+            .fromKey(prefs.getString(KEY_REFRESH_RATE_PREFERENCE, null))
         performanceRefreshRate.value = normalizePerformanceRefreshRate(
             prefs.getInt(KEY_PERFORMANCE_REFRESH_RATE, DEFAULT_PERFORMANCE_REFRESH_RATE),
         )
@@ -1669,6 +1678,11 @@ object AppSettings {
     fun setProgressiveBlur(value: Boolean) {
         progressiveBlur.value = value
         prefs.edit().putBoolean(KEY_PROGRESSIVE_BLUR, value).apply()
+    }
+
+    fun setRefreshRatePreference(value: com.music.bitchord.ui.performance.RefreshRatePreference) {
+        refreshRatePreference.value = value
+        prefs.edit().putString(KEY_REFRESH_RATE_PREFERENCE, value.name).apply()
     }
 
     fun setHighPerformanceMode(value: Boolean) {
@@ -2473,6 +2487,7 @@ object AppSettings {
     private const val KEY_ONBOARDING_COMPLETE = "onboarding_complete"
     private const val KEY_DIWALI_GREETING_SHOWN = "diwali_greeting_2026_shown"
     private const val KEY_HIGH_PERFORMANCE_MODE = "high_performance_mode"
+    private const val KEY_REFRESH_RATE_PREFERENCE = "refresh_rate_preference"
     private const val KEY_PERFORMANCE_REFRESH_RATE = "performance_refresh_rate"
     private const val KEY_STOP_ON_TASK_REMOVED = "stop_on_task_removed"
     private const val KEY_HIDE_VOLUME_BAR = "hide_volume_bar"

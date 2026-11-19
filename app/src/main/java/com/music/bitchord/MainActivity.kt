@@ -10,6 +10,11 @@ import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
+import android.view.MotionEvent
+import com.music.bitchord.ui.performance.DisplayRefreshController
+import com.music.bitchord.ui.navigation.PageTransitions
+import com.music.bitchord.ui.performance.RefreshRatePolicy
+import com.music.bitchord.ui.performance.RefreshRateRuntime
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -99,6 +104,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -448,6 +454,9 @@ internal fun <T> loadedWhole(songs: List<T>, continuation: String?): List<T> =
 
 
 class MainActivity : AppCompatActivity() {
+    /** Applies the refresh-rate policy to this window; see [DisplayRefreshController]. */
+    private val refreshController by lazy { DisplayRefreshController(this) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -468,10 +477,15 @@ class MainActivity : AppCompatActivity() {
             val highPerformance by AppSettings.highPerformanceMode.collectAsStateWithLifecycle()
             val liquidGlassEnabled by AppSettings.liquidGlass.collectAsStateWithLifecycle()
             val iosOverscrollFactory = rememberIosOverscrollFactory()
-            val performanceRefreshRate by AppSettings.performanceRefreshRate.collectAsStateWithLifecycle()
+            val refreshPreference by AppSettings.refreshRatePreference.collectAsStateWithLifecycle()
+            val refreshOverride by RefreshRateRuntime.override.collectAsStateWithLifecycle()
             val composeView = LocalView.current
-            LaunchedEffect(highPerformance, performanceRefreshRate, composeView) {
-                applyPerformanceMode(highPerformance, performanceRefreshRate, composeView)
+            LaunchedEffect(highPerformance, refreshPreference, refreshOverride, composeView) {
+                RefreshRateRuntime.controller = refreshController
+                // High Performance holds the top rate unless a mode's cap says otherwise.
+                val override = refreshOverride.copy(forceMax = refreshOverride.forceMax || highPerformance)
+                val decision = RefreshRatePolicy.resolve(refreshPreference, refreshController.supportedRates(), override)
+                refreshController.apply(decision, composeView)
             }
             val darkTheme = when (theme) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
@@ -536,24 +550,16 @@ class MainActivity : AppCompatActivity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean =
         handleDacVolumeKey(event) || super.dispatchKeyEvent(event)
 
-    /**
-     * Requests a window refresh rate without forcing a display mode or
-     * resolution. Android may still lower it for temperature, battery state or
-     * hardware limits, which is why Settings describes this as a preference.
-     */
-    private fun applyPerformanceMode(enabled: Boolean, refreshRate: Int, composeView: View) {
-        val supportedRefreshRate = composeView.display.resolvePerformanceRefreshRate(refreshRate)
-        window.attributes = window.attributes.apply {
-            preferredRefreshRate = if (enabled) supportedRefreshRate.toFloat() else 0f
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            window.setFrameRatePowerSavingsBalanced(!enabled)
-            composeView.requestedFrameRate = if (enabled) {
-                supportedRefreshRate.toFloat()
-            } else {
-                View.REQUESTED_FRAME_RATE_CATEGORY_DEFAULT
-            }
-        }
+    /** Every touch feeds the adaptive refresh rate: see [DisplayRefreshController.onTouch]. */
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        refreshController.onTouch(event)
+        return super.dispatchTouchEvent(event)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // The system can drop a window's frame-rate wishes while it is in the background.
+        refreshController.reapply()
     }
 
     /**
@@ -3156,6 +3162,12 @@ private fun BitChordApp(
                 .snapshotBackdropSource(pageBackdrop, floor = MaterialTheme.colorScheme.background),
         ) {
             Box(Modifier.weight(1f).fillMaxHeight()) {
+                // How deep the stack is, to tell a push from a pop when the page changes.
+                val navDepth = navigator.entries.size + viewModel.detailStack.value.size
+                var shownNavDepth by remember { mutableIntStateOf(navDepth) }
+                val pushing = navDepth >= shownNavDepth
+                SideEffect { shownNavDepth = navDepth }
+                val reducedMotion by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
                 AnimatedContent(
                     // Whatever is on top of the back stack — see [AppNavigator].
                     targetState = when {
@@ -3166,38 +3178,24 @@ private fun BitChordApp(
                     // A route's entry is copied when the release pages under it
                     // change, which is not a different page.
                     contentKey = { it.key },
-                    // Tabs swap outright; everything else crossfades.
-                    //
-                    // A tab is not a place you travel to — the bar is the whole
-                    // navigation and it carries its own movement — so a fade
-                    // between two of them only ever reads as a stutter. And it
-                    // cannot read as anything else: neither page paints a
-                    // background, so a crossfade dissolves both through to the
-                    // window and the switch dips through a dimmer frame in the
-                    // middle. Pushing a page or raising Settings is a real
-                    // change of context and keeps the fade.
-                    //
-                    // "Show all" swapping with the Library tab underneath it is
-                    // the same case as a tab swap, not a pushed page: it's still
-                    // that tab, just laid out as a grid instead of a row, sharing
-                    // its background rather than painting its own — so this one
-                    // pair gets the tab's no-fade swap too, in both directions, or
-                    // the dip through a dim frame shows up on every hold of a
-                    // card there. A card opened *from* the grid is a real page
-                    // and keeps the fade, same as one opened from the row.
+                    // Tabs fade through in the direction the tab bar moved; pages pushed over
+                    // them slide in from the right and back out to it. "Show all" swapping with
+                    // the Library tab underneath it is that same tab laid out as a grid, so the
+                    // pair swaps without movement. Every spec is built from the shared motion
+                    // tokens — see [PageTransitions] and [com.music.bitchord.ui.components.Motion].
                     transitionSpec = {
                         val initial = initialState
                         val target = targetState
-                        val tabSwap = initial is AppDestination.Tab && target is AppDestination.Tab
                         val libraryTab = AppDestination.Tab(TAB_LIBRARY)
                         fun AppDestination.isShowAll() =
                             (this as? AppDestination.Route)?.entry?.route is AppRoute.LibraryShowAll
                         val libraryShowAllSwap = (initial.isShowAll() && target == libraryTab) ||
                             (target.isShowAll() && initial == libraryTab)
-                        if (tabSwap || libraryShowAllSwap) {
-                            EnterTransition.None togetherWith ExitTransition.None
-                        } else {
-                            fadeIn(tween(180)) togetherWith fadeOut(tween(180))
+                        when {
+                            libraryShowAllSwap -> PageTransitions.None
+                            initial is AppDestination.Tab && target is AppDestination.Tab ->
+                                PageTransitions.tab(forward = target.index > initial.index, reduced = reducedMotion)
+                            else -> PageTransitions.page(push = pushing, reduced = reducedMotion)
                         }
                     },
                     modifier = Modifier
@@ -3220,6 +3218,8 @@ private fun BitChordApp(
                                     // the glass bar collapses on all of them
                                     // without each one having to know about it.
                                     .nestedScroll(navBarScroll)
+                                    // Tells costly effects (live blur) that a page is moving.
+                                    .nestedScroll(com.music.bitchord.ui.components.ScrollMotion.connection)
                             } else {
                                 Modifier
                             },
@@ -3843,49 +3843,60 @@ private fun BitChordApp(
                                     }
                                 },
                             )
-                            TAB_EXPLORE -> selectedMoodGenre?.let { category ->
-                                MoodGenrePlaylistsScreen(
-                                    title = category.title,
-                                    state = moodGenreShelves,
-                                    listState = moodGenreListState,
-                                    onItemClick = { item ->
-                                        item.videoId?.let { videoId ->
-                                            playRadio(
-                                                Song(
-                                                    videoId = videoId,
+                            // A category opens over Explore like a pushed page, with the same
+                            // motion, though it lives inside the tab rather than on the stack.
+                            TAB_EXPLORE -> AnimatedContent(
+                                targetState = selectedMoodGenre,
+                                contentKey = { it?.let { g -> "${g.browseId}|${g.params}" } ?: "explore" },
+                                transitionSpec = {
+                                    PageTransitions.page(push = targetState != null, reduced = reducedMotion)
+                                },
+                                label = "exploreCategory",
+                            ) { selectedMoodGenre ->
+                            selectedMoodGenre?.let { category ->
+                                    MoodGenrePlaylistsScreen(
+                                        title = category.title,
+                                        state = moodGenreShelves,
+                                        listState = moodGenreListState,
+                                        onItemClick = { item ->
+                                            item.videoId?.let { videoId ->
+                                                playRadio(
+                                                    Song(
+                                                        videoId = videoId,
+                                                        title = item.title,
+                                                        artist = InnertubeParser.artistOf(item),
+                                                        thumbnailUrl = item.thumbnailUrl,
+                                                        isVideo = item.isVideo,
+                                                    ),
+                                                    QueueSource(
+                                                        category.title,
+                                                        PlaybackSourceType.EXPLORE,
+                                                        category.browseId,
+                                                    ),
+                                                )
+                                            } ?: item.browseId?.let { browseId ->
+                                                viewModel.openDetail(
+                                                    browseId = browseId,
                                                     title = item.title,
-                                                    artist = InnertubeParser.artistOf(item),
+                                                    subtitle = item.subtitle,
                                                     thumbnailUrl = item.thumbnailUrl,
-                                                    isVideo = item.isVideo,
-                                                ),
-                                                QueueSource(
-                                                    category.title,
-                                                    PlaybackSourceType.EXPLORE,
-                                                    category.browseId,
-                                                ),
-                                            )
-                                        } ?: item.browseId?.let { browseId ->
-                                            viewModel.openDetail(
-                                                browseId = browseId,
-                                                title = item.title,
-                                                subtitle = item.subtitle,
-                                                thumbnailUrl = item.thumbnailUrl,
-                                            )
-                                        }
-                                    },
-                                    onRetry = { viewModel.openMoodGenre(category) },
+                                                )
+                                            }
+                                        },
+                                        onRetry = { viewModel.openMoodGenre(category) },
+                                        contentPadding = listPadding,
+                                    )
+                                } ?: ExploreScreen(
+                                    state = exploreState,
+                                    listState = exploreListState,
+                                    onCategoryClick = viewModel::openMoodGenre,
+                                    onRetry = viewModel::loadExplore,
+                                    refreshing = MainViewModel.Feed.EXPLORE in refreshing,
+                                    onRefresh = { viewModel.refresh(MainViewModel.Feed.EXPLORE) },
+                                    pullState = explorePull,
                                     contentPadding = listPadding,
                                 )
-                            } ?: ExploreScreen(
-                                state = exploreState,
-                                listState = exploreListState,
-                                onCategoryClick = viewModel::openMoodGenre,
-                                onRetry = viewModel::loadExplore,
-                                refreshing = MainViewModel.Feed.EXPLORE in refreshing,
-                                onRefresh = { viewModel.refresh(MainViewModel.Feed.EXPLORE) },
-                                pullState = explorePull,
-                                contentPadding = listPadding,
-                            )
+                            }
                             TAB_SEARCH -> SearchScreen(
                                 query = query,
                                 onQueryChange = viewModel::onQueryChange,

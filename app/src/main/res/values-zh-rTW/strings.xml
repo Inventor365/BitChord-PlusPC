@@ -1574,4 +1574,7 @@
     <string name="onboarding_hello">你好，%1$s。</string>
     <string name="apple_music_import_title">匯入 Apple Music 播放清單</string>
     <string name="apple_music_import_invalid">這不是 Spotify 或 Apple Music 播放清單連結。</string>
+    <string name="refresh_rate_adaptive">自動調整</string>
+    <string name="refresh_rate_adaptive_subtitle">畫面靜止時維持低更新率，捲動、滑動或開啟頁面時提高。</string>
+    <string name="refresh_rate_held_by_high_performance">高效能模式將其固定在 %1$d Hz。</string>
 </resources>

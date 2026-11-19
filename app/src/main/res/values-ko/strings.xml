@@ -1431,4 +1431,7 @@
     <string name="onboarding_hello">안녕하세요, %1$s님.</string>
     <string name="apple_music_import_title">Apple Music 플레이리스트 가져오기</string>
     <string name="apple_music_import_invalid">Spotify 또는 Apple Music 플레이리스트 링크가 아닙니다.</string>
+    <string name="refresh_rate_adaptive">적응형</string>
+    <string name="refresh_rate_adaptive_subtitle">움직임이 없을 때는 낮게 유지하고, 스크롤·스와이프하거나 페이지를 열 때 빨라집니다.</string>
+    <string name="refresh_rate_held_by_high_performance">고성능 모드로 %1$d Hz에 고정되어 있습니다.</string>
 </resources>

@@ -1580,4 +1580,7 @@
     <string name="onboarding_hello">नमस्ते, %1$s.</string>
     <string name="apple_music_import_title">Apple Music प्लेलिस्ट इम्पोर्ट करें</string>
     <string name="apple_music_import_invalid">यह Spotify या Apple Music प्लेलिस्ट का लिंक नहीं है।</string>
+    <string name="refresh_rate_adaptive">अनुकूली</string>
+    <string name="refresh_rate_adaptive_subtitle">कुछ न हिलने पर कम दर पर रहता है और स्क्रॉल, स्वाइप या पेज खोलते समय तेज़ हो जाता है।</string>
+    <string name="refresh_rate_held_by_high_performance">हाई परफ़ॉर्मेंस मोड द्वारा %1$d Hz पर रखा गया।</string>
 </resources>

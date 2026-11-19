@@ -39,6 +39,35 @@ object Motion {
 
     /** Past this many, items arriving together stop queueing up behind one another. */
     const val STAGGER_CAP = 8
+
+    // ---- Navigation: one set of numbers for every page and tab change ----
+
+    /** Arrivals: out of the gate fast, then a long settle. */
+    val EmphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
+
+    /** Departures: gather, then go — so what leaves is gone before it competes with what arrives. */
+    val EmphasizedAccelerate = CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f)
+
+    /** A tab change: short, because the tab bar has already said where you are going. */
+    const val TAB_ENTER_MS = 260
+
+    /** A page pushed or popped: a little longer, it is a change of place. */
+    const val PAGE_ENTER_MS = 320
+
+    /** How long what is leaving takes to fade: well under the arrival, so the two never mush. */
+    const val EXIT_MS = 90
+
+    /** The arrival waits this long, so the departure has mostly cleared. */
+    const val ENTER_DELAY_MS = 60
+
+    /** How far a tab's page travels, as a share of the width: says which way, sweeps nothing. */
+    const val TAB_SHIFT = 0.08f
+
+    /** How far a pushed page travels in. */
+    const val PAGE_SHIFT = 0.12f
+
+    /** With Reduce motion on: a plain, quick crossfade and no travel. */
+    const val REDUCED_MS = 120
 }
 
 /**

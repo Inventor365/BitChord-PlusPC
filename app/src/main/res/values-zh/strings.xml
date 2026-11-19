@@ -1557,4 +1557,7 @@
     <string name="onboarding_hello">你好，%1$s。</string>
     <string name="apple_music_import_title">导入 Apple Music 播放列表</string>
     <string name="apple_music_import_invalid">这不是 Spotify 或 Apple Music 播放列表链接。</string>
+    <string name="refresh_rate_adaptive">自适应</string>
+    <string name="refresh_rate_adaptive_subtitle">画面静止时保持低刷新率，滚动、滑动或打开页面时提高。</string>
+    <string name="refresh_rate_held_by_high_performance">高性能模式将其固定在 %1$d Hz。</string>
 </resources>

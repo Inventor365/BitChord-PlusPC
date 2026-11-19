@@ -1557,4 +1557,7 @@
     <string name="onboarding_hello">Halo, %1$s.</string>
     <string name="apple_music_import_title">Impor playlist Apple Music</string>
     <string name="apple_music_import_invalid">Itu bukan tautan playlist Spotify atau Apple Music.</string>
+    <string name="refresh_rate_adaptive">Adaptif</string>
+    <string name="refresh_rate_adaptive_subtitle">Tetap rendah saat tidak ada yang bergerak dan meningkat saat Anda menggulir, menggeser, atau membuka halaman.</string>
+    <string name="refresh_rate_held_by_high_performance">Ditahan di %1$d Hz oleh mode performa tinggi.</string>
 </resources>

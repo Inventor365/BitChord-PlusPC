@@ -1499,4 +1499,7 @@
     <string name="onboarding_hello">Xin chào, %1$s.</string>
     <string name="apple_music_import_title">Nhập danh sách phát Apple Music</string>
     <string name="apple_music_import_invalid">Đây không phải liên kết danh sách phát Spotify hoặc Apple Music.</string>
+    <string name="refresh_rate_adaptive">Thích ứng</string>
+    <string name="refresh_rate_adaptive_subtitle">Giữ ở mức thấp khi không có gì chuyển động và tăng tốc khi bạn cuộn, vuốt hoặc mở trang.</string>
+    <string name="refresh_rate_held_by_high_performance">Được giữ ở %1$d Hz bởi chế độ hiệu năng cao.</string>
 </resources>

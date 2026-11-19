@@ -1612,4 +1612,7 @@
     <string name="onboarding_hello">Привет, %1$s.</string>
     <string name="apple_music_import_title">Импорт плейлиста Apple Music</string>
     <string name="apple_music_import_invalid">Это не ссылка на плейлист Spotify или Apple Music.</string>
+    <string name="refresh_rate_adaptive">Адаптивная</string>
+    <string name="refresh_rate_adaptive_subtitle">Держит низкую частоту, когда ничего не движется, и повышает её при прокрутке, свайпах и открытии страниц.</string>
+    <string name="refresh_rate_held_by_high_performance">Режим высокой производительности держит %1$d Гц.</string>
 </resources>

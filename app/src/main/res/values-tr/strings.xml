@@ -1563,4 +1563,7 @@
     <string name="onboarding_hello">Merhaba, %1$s.</string>
     <string name="apple_music_import_title">Apple Music çalma listesini içe aktar</string>
     <string name="apple_music_import_invalid">Bu bir Spotify veya Apple Music çalma listesi bağlantısı değil.</string>
+    <string name="refresh_rate_adaptive">Uyarlanabilir</string>
+    <string name="refresh_rate_adaptive_subtitle">Hiçbir şey hareket etmezken düşük kalır, kaydırırken veya bir sayfa açarken hızlanır.</string>
+    <string name="refresh_rate_held_by_high_performance">Yüksek performans modu tarafından %1$d Hz\'de tutuluyor.</string>
 </resources>
