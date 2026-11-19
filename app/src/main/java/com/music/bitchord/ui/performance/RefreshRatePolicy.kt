@@ -26,7 +26,11 @@ enum class RefreshRatePreference(val hz: Int?) {
 data class RefreshOverride(
     /** The highest rate allowed, or null for no cap. Wins over [forceMax]. */
     val capHz: Int? = null,
-    /** Hold the highest allowed rate the whole time. */
+    /**
+     * High Performance: the highest allowed rate for every touch and animation, held longer after
+     * it — but not while nothing moves. A pinned top rate looked worse, not better: frames that
+     * fit a 60 Hz budget miss a 120 Hz one, so a still or gently animating page judders.
+     */
     val forceMax: Boolean = false,
 ) {
     companion object {
@@ -39,8 +43,16 @@ sealed interface RefreshDecision {
     /** Hold [hz] the whole time. */
     data class Pinned(val hz: Int) : RefreshDecision
 
-    /** Rest where the system likes, rise to [boostHz] while something moves, never above [ceilingHz]. */
-    data class Adaptive(val boostHz: Int, val ceilingHz: Int, val capped: Boolean) : RefreshDecision
+    /**
+     * Rest where the system likes, rise to [boostHz] while something moves, never above
+     * [ceilingHz]. [longTail] keeps the boost on longer after a touch ends (High Performance).
+     */
+    data class Adaptive(
+        val boostHz: Int,
+        val ceilingHz: Int,
+        val capped: Boolean,
+        val longTail: Boolean = false,
+    ) : RefreshDecision
 }
 
 /**
@@ -69,7 +81,9 @@ object RefreshRatePolicy {
         // The cap lands on a rate the display has: the highest at or under it, else its lowest.
         val ceiling = override.capHz?.let { cap -> rates.lastOrNull { it <= cap + SAME_RATE_HZ } ?: rates.first() } ?: max
         val capped = ceiling < max
-        if (override.forceMax) return RefreshDecision.Pinned(ceiling)
+        if (override.forceMax) {
+            return RefreshDecision.Adaptive(boostHz = ceiling, ceilingHz = ceiling, capped = capped, longTail = true)
+        }
         val wanted = preference.hz ?: return RefreshDecision.Adaptive(boostHz = ceiling, ceilingHz = ceiling, capped = capped)
         // A saved rate this display lacks (restored on another phone, or 90 on a 60/120 panel)
         // becomes the nearest one it has, never above the ceiling.

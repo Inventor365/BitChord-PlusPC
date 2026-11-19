@@ -95,6 +95,10 @@ fun UpdateAvailableDialog(
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val state by AppUpdateChecker.download.collectAsStateWithLifecycle()
     val shape = RoundedCornerShape(ALERT_CORNER)
+    // Data Saver holds the download for Wi-Fi; the listener can still take it now, knowingly.
+    val modePolicy by com.music.bitchord.data.modes.ModeController.policy.collectAsStateWithLifecycle()
+    val metered by AppSettings.meteredConnection.collectAsStateWithLifecycle()
+    val waitForWifi = modePolicy.updatesWifiOnly && metered == true
 
     Box(
         modifier = modifier
@@ -156,8 +160,12 @@ fun UpdateAvailableDialog(
                             stringResource(R.string.update_ready_body, version)
                         is AppUpdateChecker.DownloadState.Failed ->
                             stringResource(R.string.update_failed_body, version)
-                        else ->
+                        else -> if (waitForWifi) {
+                            stringResource(R.string.update_available_body, version) + "\n" +
+                                stringResource(R.string.update_waits_for_wifi)
+                        } else {
                             stringResource(R.string.update_available_body, version)
+                        }
                     },
                     modifier = Modifier.padding(top = 4.dp),
                     style = MaterialTheme.typography.bodyMedium.copy(
@@ -268,7 +276,11 @@ fun UpdateAvailableDialog(
                     AlertAction(label = stringResource(R.string.open_releases_page), emphasised = false, onClick = onOpenReleasePage)
                 }
                 else -> {
-                    AlertAction(label = stringResource(R.string.download_now), emphasised = true, onClick = onDownload)
+                    AlertAction(
+                        label = stringResource(if (waitForWifi) R.string.download_anyway else R.string.download_now),
+                        emphasised = true,
+                        onClick = onDownload,
+                    )
                     AlertRule()
                     AlertAction(label = stringResource(R.string.remind_me_later), emphasised = false, onClick = onDismiss)
                 }

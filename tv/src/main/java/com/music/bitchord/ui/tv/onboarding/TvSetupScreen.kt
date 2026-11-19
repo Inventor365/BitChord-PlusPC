@@ -241,7 +241,7 @@ private fun TvSignInStep(viewModel: MainViewModel, onContinue: () -> Unit) {
 @Composable
 private fun TvPreferencesStep(onContinue: () -> Unit) {
     val lyrics by AppSettings.syncedLyrics.collectAsState()
-    val canvas by AppSettings.animatedCanvas.collectAsState()
+    val canvas by AppSettings.animatedCanvasPref.collectAsState()
     val automix by AppSettings.smartFadeEnabled.collectAsState()
     val spatial by TvSettings.spatialAudioEnabled.collectAsState()
 

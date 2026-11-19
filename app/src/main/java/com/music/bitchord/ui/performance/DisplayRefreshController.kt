@@ -104,7 +104,8 @@ class DisplayRefreshController(private val activity: Activity) {
                 // A fling keeps the list moving after the finger lifts; the boost outlasts it.
                 touchTail = true
                 handler.removeCallbacks(endTouchBoost)
-                handler.postDelayed(endTouchBoost, TOUCH_TAIL_MS)
+                val tail = if ((decision as? RefreshDecision.Adaptive)?.longTail == true) LONG_TOUCH_TAIL_MS else TOUCH_TAIL_MS
+                handler.postDelayed(endTouchBoost, tail)
                 updateBoost()
             }
         }
@@ -207,5 +208,8 @@ class DisplayRefreshController(private val activity: Activity) {
     private companion object {
         /** How long the boost outlasts a lifted finger: long enough for a fling to settle. */
         const val TOUCH_TAIL_MS = 1_600L
+
+        /** High Performance: long enough to cover a hard fling's coast and the page it lands on. */
+        const val LONG_TOUCH_TAIL_MS = 3_000L
     }
 }

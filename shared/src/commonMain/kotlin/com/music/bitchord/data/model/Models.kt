@@ -311,9 +311,19 @@ fun String?.durationMillis(): Long {
     return (seconds * 1_000).coerceAtLeast(0L)
 }
 
+/**
+ * A ceiling on the artwork size asked for, app-wide — set by Data Saver to load smaller covers.
+ * Null asks for whatever size the caller wants.
+ */
+object ArtworkSizing {
+    @kotlin.concurrent.Volatile
+    var maxPx: Int? = null
+}
+
 /** As [Song.artworkAt], for artwork that isn't a track's. */
-fun String?.artworkAt(px: Int): String? {
+fun String?.artworkAt(requestedPx: Int): String? {
     if (this == null) return null
+    val px = ArtworkSizing.maxPx?.let { minOf(it, requestedPx) } ?: requestedPx
     val sized = this.replace(SIZE_HINT, "w$px-h$px")
     return when {
         isGoogleImageHost(this) -> sized.replace(PARAM_SIZE_HINT, "=s$px")

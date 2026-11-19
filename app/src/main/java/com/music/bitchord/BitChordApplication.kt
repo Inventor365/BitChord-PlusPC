@@ -168,6 +168,9 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory, Configu
         // without a media-store query per row.
         Downloads.init(this)
         // After both of the things a check reads: the setting and the record.
+        // Data Saver, Low Power and High Performance: read the device and apply the policy before
+        // anything starts streaming or scheduling. After AppSettings, whose flows it layers over.
+        com.music.bitchord.data.modes.ModeController.init(this)
         PlaylistSync.init(this)
         // The device's own listening record. Opened here rather than in
         // PlaybackService because the Replay page reads it from the UI side and

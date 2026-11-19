@@ -190,6 +190,14 @@ import com.music.bitchord.ui.sonara.MonoStyle
 import com.music.bitchord.ui.components.pressScale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.sp
+import com.music.bitchord.data.modes.ModeController
+import com.music.bitchord.data.modes.DataSaverSetting
+import com.music.bitchord.data.modes.LowPowerSetting
+import com.music.bitchord.data.modes.ModeVideo
+import com.music.bitchord.data.modes.ModeTrigger
+import androidx.compose.material.icons.rounded.DataSaverOn
+import androidx.compose.material.icons.rounded.BatterySaver
+import androidx.compose.material.icons.rounded.BatteryAlert
 
 /**
  * Grouped settings, in the shape phones have taught people to expect: inset
@@ -260,16 +268,16 @@ fun SettingsScreen(
     val nerdStats by AppSettings.showNerdStats.collectAsStateWithLifecycle()
     val listenTogetherButton by AppSettings.showListenTogetherButton.collectAsStateWithLifecycle()
     val externalLinks by AppSettings.externalLinks.collectAsStateWithLifecycle()
-    val reduceAnimation by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
+    val reduceAnimation by AppSettings.reduceAnimationPref.collectAsStateWithLifecycle()
     val navLabels by AppSettings.showNavLabels.collectAsStateWithLifecycle()
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
+    val reduceDynamicBlur by AppSettings.reduceDynamicBlurPref.collectAsStateWithLifecycle()
     val disableBlendEffects by AppSettings.disableBlendEffects.collectAsStateWithLifecycle()
     val liquidGlass by AppSettings.liquidGlass.collectAsStateWithLifecycle()
     val glassPerformance by AppSettings.glassPerformance.collectAsStateWithLifecycle()
     val progressiveBlur by AppSettings.progressiveBlur.collectAsStateWithLifecycle()
     val liquidGlassSupported = isGlassSupported()
     val lyricsBlur by AppSettings.lyricsBlur.collectAsStateWithLifecycle()
-    val animatedCanvas by AppSettings.animatedCanvas.collectAsStateWithLifecycle()
+    val animatedCanvas by AppSettings.animatedCanvasPref.collectAsStateWithLifecycle()
     val disableArtistVideo by AppSettings.disableArtistVideo.collectAsStateWithLifecycle()
     val canvasOverCellular by AppSettings.canvasOverCellular.collectAsStateWithLifecycle()
     val signatureApiEnabled by AppSettings.signatureApiEnabled.collectAsStateWithLifecycle()
@@ -329,6 +337,8 @@ fun SettingsScreen(
     val localMusicFolderUri by AppSettings.localMusicFolderUri.collectAsStateWithLifecycle()
     val highPerformanceMode by AppSettings.highPerformanceMode.collectAsStateWithLifecycle()
     val refreshRatePreference by AppSettings.refreshRatePreference.collectAsStateWithLifecycle()
+    val modePrefs by ModeController.preferences.collectAsStateWithLifecycle()
+    val modesActive by ModeController.active.collectAsStateWithLifecycle()
     val performanceRefreshRate by AppSettings.performanceRefreshRate.collectAsStateWithLifecycle()
     val currentDisplay = LocalView.current.display
     val supportedRefreshRates = remember(currentDisplay) {
@@ -381,7 +391,9 @@ fun SettingsScreen(
     val batterySettingsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) {
-        showPerformanceConfirmation = true
+        // Back from the battery page: set to Unrestricted there, that was the only thing in
+        // the way, so the mode simply goes on; otherwise ask, as before.
+        if (batteryUnrestricted(context)) AppSettings.setHighPerformanceMode(true) else showPerformanceConfirmation = true
     }
     val localMusicFolderPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree(),
@@ -1511,7 +1523,9 @@ fun SettingsScreen(
                 SettingsRow(
                     icon = SfIcons.Performance,
                     title = highPerformanceModeTitle,
-                    subtitle = if (highPerformanceMode) {
+                    subtitle = if (modesActive.highPerformanceSuspended) {
+                        stringResource(R.string.high_performance_suspended)
+                    } else if (highPerformanceMode) {
                         stringResource(R.string.high_performance_active, supportedRefreshRates.max())
                     } else {
                         stringResource(R.string.high_performance_subtitle)
@@ -1520,19 +1534,20 @@ fun SettingsScreen(
                         IosSwitch(
                             checked = highPerformanceMode,
                             onCheckedChange = { enabled ->
-                                if (enabled) {
-                                    showPerformanceWarning = true
-                                } else {
-                                    AppSettings.setHighPerformanceMode(false)
+                                when {
+                                    !enabled -> AppSettings.setHighPerformanceMode(false)
+                                    // Already Unrestricted: nothing to warn about a second time.
+                                    batteryUnrestricted(context) -> AppSettings.setHighPerformanceMode(true)
+                                    else -> showPerformanceWarning = true
                                 }
                             },
                         )
                     },
                     onClick = {
-                        if (highPerformanceMode) {
-                            AppSettings.setHighPerformanceMode(false)
-                        } else {
-                            showPerformanceWarning = true
+                        when {
+                            highPerformanceMode -> AppSettings.setHighPerformanceMode(false)
+                            batteryUnrestricted(context) -> AppSettings.setHighPerformanceMode(true)
+                            else -> showPerformanceWarning = true
                         }
                     },
                 )
@@ -1561,6 +1576,135 @@ fun SettingsScreen(
                         .alpha(if (highPerformanceMode) 0.45f else 1f)
                         .padding(start = TEXT_INSET, end = ROW_INSET, bottom = 14.dp),
                 )
+            }
+        }
+
+        // Data Saver: what it limits, each limit adjustable. The listener's own quality and
+        // video settings stay as they are underneath; see [ModeController].
+        if (shows(SettingsCategory.PERFORMANCE)) SearchableSettingsGroup(
+            search,
+            header = stringResource(R.string.data_saver),
+            footer = stringResource(R.string.data_saver_footer),
+            keepHeaderInPage = true,
+        ) {
+            val dataSaverTitle = stringResource(R.string.data_saver)
+            row(dataSaverTitle, "data", "cellular", "mobile data", "metered") {
+                SettingsRow(
+                    icon = Icons.Rounded.DataSaverOn,
+                    title = dataSaverTitle,
+                    subtitle = modeStatus(modesActive.dataSaver),
+                )
+                SegmentedControl(
+                    options = listOf(
+                        stringResource(R.string.off),
+                        stringResource(R.string.mode_on),
+                        stringResource(R.string.data_saver_mobile_only),
+                    ),
+                    selectedIndex = modePrefs.dataSaver.ordinal,
+                    onSelect = { i -> ModeController.update { it.copy(dataSaver = DataSaverSetting.entries[i]) } },
+                    modifier = Modifier.padding(start = TEXT_INSET, end = ROW_INSET, bottom = 14.dp),
+                )
+            }
+            if (modePrefs.dataSaver != DataSaverSetting.OFF) {
+                val capTitle = stringResource(R.string.data_saver_audio_cap)
+                row(capTitle, "audio", "quality", "bitrate") {
+                    SettingsRow(icon = SfIcons.SignalCellularAlt, title = capTitle)
+                    val caps = listOf(AudioQuality.LOW, AudioQuality.MEDIUM)
+                    SegmentedControl(
+                        options = caps.map { it.localizedLabel() },
+                        selectedIndex = caps.indexOf(modePrefs.dataSaverAudioCap).coerceAtLeast(0),
+                        onSelect = { i -> ModeController.update { it.copy(dataSaverAudioCap = caps[i]) } },
+                        modifier = Modifier.padding(start = TEXT_INSET, end = ROW_INSET, bottom = 14.dp),
+                    )
+                }
+                val videoTitle = stringResource(R.string.mode_music_video)
+                row(videoTitle, "video", "banner") {
+                    SettingsRow(icon = SfIcons.Video, title = videoTitle)
+                    SegmentedControl(
+                        options = listOf(stringResource(R.string.mode_video_banner), "360p"),
+                        selectedIndex = modePrefs.dataSaverVideo.ordinal,
+                        onSelect = { i -> ModeController.update { it.copy(dataSaverVideo = ModeVideo.entries[i]) } },
+                        modifier = Modifier.padding(start = TEXT_INSET, end = ROW_INSET, bottom = 14.dp),
+                    )
+                }
+            }
+        }
+
+        // Low Power Mode: manual, or automatic at a battery level / with the system's saver.
+        if (shows(SettingsCategory.PERFORMANCE)) SearchableSettingsGroup(
+            search,
+            header = stringResource(R.string.low_power_mode),
+            footer = stringResource(R.string.low_power_footer),
+            keepHeaderInPage = true,
+        ) {
+            val lowPowerTitle = stringResource(R.string.low_power_mode)
+            row(lowPowerTitle, "battery", "power", "saver") {
+                SettingsRow(
+                    icon = Icons.Rounded.BatterySaver,
+                    title = lowPowerTitle,
+                    subtitle = modeStatus(modesActive.lowPower),
+                )
+                SegmentedControl(
+                    options = listOf(
+                        stringResource(R.string.off),
+                        stringResource(R.string.mode_on),
+                        stringResource(R.string.mode_auto),
+                    ),
+                    selectedIndex = modePrefs.lowPower.ordinal,
+                    onSelect = { i -> ModeController.update { it.copy(lowPower = LowPowerSetting.entries[i]) } },
+                    modifier = Modifier.padding(start = TEXT_INSET, end = ROW_INSET, bottom = 14.dp),
+                )
+            }
+            if (modePrefs.lowPower == LowPowerSetting.AUTO) {
+                val followTitle = stringResource(R.string.low_power_follow_system)
+                row(followTitle, "battery saver", "system") {
+                    SettingsRow(
+                        icon = Icons.Rounded.BatterySaver,
+                        title = followTitle,
+                        trailing = {
+                            IosSwitch(
+                                checked = modePrefs.lowPowerFollowsSystem,
+                                onCheckedChange = { on -> ModeController.update { it.copy(lowPowerFollowsSystem = on) } },
+                            )
+                        },
+                        onClick = { ModeController.update { it.copy(lowPowerFollowsSystem = !it.lowPowerFollowsSystem) } },
+                    )
+                }
+                val thresholdTitle = stringResource(R.string.low_power_threshold)
+                row(thresholdTitle, "battery", "percent") {
+                    SettingsRow(icon = Icons.Rounded.BatteryAlert, title = thresholdTitle)
+                    val levels = listOf(0, 15, 20, 30)
+                    SegmentedControl(
+                        options = levels.map { if (it == 0) stringResource(R.string.mode_never) else "$it%" },
+                        selectedIndex = levels.indexOf(modePrefs.lowPowerBatteryThreshold).coerceAtLeast(0),
+                        onSelect = { i -> ModeController.update { it.copy(lowPowerBatteryThreshold = levels[i]) } },
+                        modifier = Modifier.padding(start = TEXT_INSET, end = ROW_INSET, bottom = 14.dp),
+                    )
+                }
+            }
+            if (modePrefs.lowPower != LowPowerSetting.OFF) {
+                val videoTitle = stringResource(R.string.mode_music_video)
+                row(videoTitle, "video", "banner") {
+                    SettingsRow(icon = SfIcons.Video, title = videoTitle)
+                    SegmentedControl(
+                        options = listOf(stringResource(R.string.mode_video_banner), "360p"),
+                        selectedIndex = modePrefs.lowPowerVideo.ordinal,
+                        onSelect = { i -> ModeController.update { it.copy(lowPowerVideo = ModeVideo.entries[i]) } },
+                        modifier = Modifier.padding(start = TEXT_INSET, end = ROW_INSET, bottom = 14.dp),
+                    )
+                }
+                // A suggestion, never applied by the mode: the theme is the listener's.
+                if (theme != ThemeMode.DARK) {
+                    val oledTitle = stringResource(R.string.low_power_use_dark)
+                    row(oledTitle, "oled", "dark", "theme") {
+                        SettingsRow(
+                            icon = SfIcons.Appearance,
+                            title = oledTitle,
+                            subtitle = stringResource(R.string.low_power_oled_tip),
+                            onClick = { AppSettings.setThemeMode(ThemeMode.DARK) },
+                        )
+                    }
+                }
             }
         }
 
@@ -2772,6 +2916,8 @@ private inline fun SearchableSettingsGroup(
     header: String? = null,
     footer: String? = null,
     topSpacing: Dp = 26.dp,
+    /** A second or later group on a category's page: it keeps its header and its gap there. */
+    keepHeaderInPage: Boolean = false,
     content: @Composable SettingsGroupScope.() -> Unit,
 ) {
     val scope = SettingsGroupScope(search, header)
@@ -2780,7 +2926,7 @@ private inline fun SearchableSettingsGroup(
     // A category's page is titled by its large heading; the header over its
     // first card would only say the same word again. The card takes the
     // header's place, straight under the heading, as on Account's page.
-    val inPageHeader = header != null && search.inPage
+    val inPageHeader = header != null && search.inPage && !keepHeaderInPage
     SettingsGroup(
         header = header.takeUnless { inPageHeader },
         footer = footer,
@@ -3567,3 +3713,19 @@ internal fun <T> ChoiceGroup(
 
 /** The Sonara mark's red. */
 private val SONARA_RED = Color(0xFFFF2D55)
+
+/** "On — on mobile data", "Off": a mode row's status line from what turned it on. */
+@Composable
+private fun modeStatus(trigger: ModeTrigger?): String = when (trigger) {
+    null -> stringResource(R.string.mode_status_off)
+    ModeTrigger.MANUAL -> stringResource(R.string.mode_status_on)
+    ModeTrigger.METERED -> stringResource(R.string.mode_status_metered)
+    ModeTrigger.SYSTEM_DATA_SAVER -> stringResource(R.string.mode_status_system_data_saver)
+    ModeTrigger.BATTERY_LOW -> stringResource(R.string.mode_status_battery_low)
+    ModeTrigger.SYSTEM_POWER_SAVE -> stringResource(R.string.mode_status_system_power_save)
+}
+
+/** Whether Sonara's battery use is Unrestricted, which High performance mode asks for first. */
+internal fun batteryUnrestricted(context: android.content.Context): Boolean =
+    context.getSystemService(android.os.PowerManager::class.java)
+        ?.isIgnoringBatteryOptimizations(context.packageName) == true

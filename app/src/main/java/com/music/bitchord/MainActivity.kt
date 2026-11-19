@@ -483,9 +483,8 @@ class MainActivity : AppCompatActivity() {
             val composeView = LocalView.current
             LaunchedEffect(highPerformance, refreshPreference, refreshOverride, composeView) {
                 RefreshRateRuntime.controller = refreshController
-                // High Performance holds the top rate unless a mode's cap says otherwise.
-                val override = refreshOverride.copy(forceMax = refreshOverride.forceMax || highPerformance)
-                val decision = RefreshRatePolicy.resolve(refreshPreference, refreshController.supportedRates(), override)
+                // The modes layer folds High Performance and Low Power into the override.
+                val decision = RefreshRatePolicy.resolve(refreshPreference, refreshController.supportedRates(), refreshOverride)
                 refreshController.apply(decision, composeView)
             }
             val darkTheme = when (theme) {
@@ -640,7 +639,11 @@ private fun BitChordApp(
     // The Top Picks and mood artwork loop forever; nobody sees it with the
     // app in the background or Now Playing pulled up over the page.
     val appForeground = com.music.bitchord.ui.rememberIsForeground()
-    val artworkMotion = appForeground && !showNowPlaying
+    // Low Power Mode holds them still too: an idle Home otherwise redraws ~40 times a second
+    // for covers nobody has to watch move.
+    val modeEffects = com.music.bitchord.data.modes.ModeController.policy.collectAsStateWithLifecycle().value.effects
+    val artworkMotion = appForeground && !showNowPlaying &&
+        modeEffects != com.music.bitchord.data.modes.EffectsLevel.REDUCED
     // Top Picks turns over each hour; coming back to the app after a
     // turn-over is an open too.
     LaunchedEffect(appForeground) {
@@ -1028,7 +1031,10 @@ private fun BitChordApp(
         wifi = AppSettings.audioQualityWifi.collectAsStateWithLifecycle().value,
         cellular = AppSettings.audioQualityCellular.collectAsStateWithLifecycle().value,
         metered = AppSettings.meteredConnection.collectAsStateWithLifecycle().value,
-        override = AppSettings.streamCeilingOverride.collectAsStateWithLifecycle().value,
+        override = AppSettings.strictestCap(
+            AppSettings.streamCeilingOverride.collectAsStateWithLifecycle().value,
+            AppSettings.modeAudioCeiling.collectAsStateWithLifecycle().value,
+        ),
     )
     val signedIn by viewModel.signedIn.collectAsStateWithLifecycle()
     val incomingJamInvite by JamInviteLink.pending.collectAsStateWithLifecycle()
@@ -4622,6 +4628,21 @@ private fun BitChordApp(
                             // [TopBarDownloadButton], which decides that for
                             // itself rather than being told. Not on the page it
                             // opens, where it would only lead back to itself.
+                            // Data Saver, Low Power, High Performance: one button that shows which
+                            // are on and opens all three. Not on Settings, where the page already
+                            // holds them (and on the Performance page, would only lead to itself).
+                            if (route != AppRoute.Settings && route !is AppRoute.SettingsSection) {
+                                com.music.bitchord.ui.components.ModeIndicator(
+                                    // Straight to the Performance page, where every mode's tuning lives;
+                                    // Settings sits under it, so back lands on the main settings list.
+                                    onOpenSettings = {
+                                        navigator.pushAll(
+                                            AppRoute.Settings,
+                                            AppRoute.SettingsSection(com.music.bitchord.ui.screens.SettingsCategory.PERFORMANCE),
+                                        )
+                                    },
+                                )
+                            }
                             if (route != AppRoute.Downloads) {
                                 TopBarDownloadButton(onClick = { navigator.push(AppRoute.Downloads) })
                             }

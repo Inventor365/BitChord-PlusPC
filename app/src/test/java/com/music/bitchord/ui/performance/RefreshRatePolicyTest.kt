@@ -46,10 +46,14 @@ class RefreshRatePolicyTest {
     }
 
     @Test
-    fun forceMaxHoldsTheTopAllowedRate_andTheCapWins() {
-        assertEquals(RefreshDecision.Pinned(120), RefreshRatePolicy.resolve(RefreshRatePreference.HZ_60, panel60x120, RefreshOverride(forceMax = true)))
+    fun forceMaxBoostsToTheTopAllowedRate_withALongTail_andTheCapWins() {
+        // Over any fixed choice: the top rate whenever anything moves, never pinned while still.
         assertEquals(
-            RefreshDecision.Pinned(60),
+            RefreshDecision.Adaptive(boostHz = 120, ceilingHz = 120, capped = false, longTail = true),
+            RefreshRatePolicy.resolve(RefreshRatePreference.HZ_60, panel60x120, RefreshOverride(forceMax = true)),
+        )
+        assertEquals(
+            RefreshDecision.Adaptive(boostHz = 60, ceilingHz = 60, capped = true, longTail = true),
             RefreshRatePolicy.resolve(RefreshRatePreference.ADAPTIVE, panel60x120, RefreshOverride(capHz = 60, forceMax = true)),
         )
     }

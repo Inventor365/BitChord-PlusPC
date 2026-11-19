@@ -1492,7 +1492,8 @@ class PlaybackService : MediaLibraryService() {
                 AppSettings.audioQualityCellular,
                 AppSettings.meteredConnection,
                 AppSettings.streamCeilingOverride,
-            ) { _, _, _, _ -> AppSettings.effectiveAudioQuality }
+                AppSettings.modeAudioCeiling,
+            ) { _, _, _, _, _ -> AppSettings.effectiveAudioQuality }
                 .distinctUntilChanged()
                 .collect { ceiling ->
                     val lost = SourceKind.entries.filter { previous.permits(it) && !ceiling.permits(it) }
@@ -2026,7 +2027,9 @@ class PlaybackService : MediaLibraryService() {
             onHandoff = ::adoptPlayer,
             analysisFor = { item -> trackAnalyzer.analysisFor(item.mediaId) },
             requestAnalysis = { item, durationMs ->
-                item.localConfiguration?.uri?.let { uri ->
+                // Low Power skips the beat analysis (a download and a CPU-heavy pass per
+                // track): Automix falls back to timed crossfades until it ends.
+                if (com.music.bitchord.data.modes.ModeController.policy.value.automixLookahead) item.localConfiguration?.uri?.let { uri ->
                     trackAnalyzer.request(item.mediaId, uri, durationMs / 1000.0)
                 }
             },
@@ -6557,7 +6560,10 @@ class PlaybackService : MediaLibraryService() {
         }
         val nextIndex = player.nextMediaItemIndex
         val upcomingSongs = if (nextIndex != C.INDEX_UNSET) {
-            val end = (nextIndex + AudioCache.QUEUE_DEPTH - 1).coerceAtMost(player.mediaItemCount - 1)
+            // Data Saver and Low Power fetch only the next track ahead: still gapless, but no
+            // spending on songs that may never play.
+            val depth = if (com.music.bitchord.data.modes.ModeController.policy.value.prefetch == com.music.bitchord.data.modes.PrefetchPolicy.NEXT_ONLY) 1 else AudioCache.QUEUE_DEPTH
+            val end = (nextIndex + depth - 1).coerceAtMost(player.mediaItemCount - 1)
             // A video about to be converted plays under another id, so every
             // byte warmed for it now would be wasted.
             (nextIndex..end).map(player::getMediaItemAt)

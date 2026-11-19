@@ -17,6 +17,7 @@ import com.music.bitchord.playback.EqLayout
 import com.music.bitchord.playback.EqualizerPreset
 import com.music.bitchord.R
 import kotlinx.coroutines.flow.MutableStateFlow
+import com.music.bitchord.data.modes.over
 
 
 /**
@@ -467,6 +468,13 @@ object AppSettings {
     /** Freezes the main player's mesh gradient instead of letting it drift/crossfade. */
     val reduceAnimation = MutableStateFlow(false)
 
+    /**
+     * The listener's own "reduce animation" choice. [reduceAnimation] is what the app reads: this
+     * choice, or what a mode lays over it (Low Power reduces, High Performance restores) — see
+     * [setModeEffects]. A mode never writes this.
+     */
+    val reduceAnimationPref = MutableStateFlow(false)
+
     /** Label each tab of the bottom navigation bar under its icon. Off leaves icons only. */
     val showNavLabels = MutableStateFlow(false)
 
@@ -550,6 +558,9 @@ object AppSettings {
     /** Drops haze blur (status bar, mini player, bottom fade, lyrics focus) for a solid-fill look. */
     val reduceDynamicBlur = MutableStateFlow(false)
 
+    /** The listener's own "reduce dynamic blur" choice; [reduceDynamicBlur] is the effective value. */
+    val reduceDynamicBlurPref = MutableStateFlow(false)
+
     /**
      * Draws the player's glyphs and text, and the dark menus' rows, in plain white
      * over what is behind them instead of blending the artwork's colour into them.
@@ -601,6 +612,19 @@ object AppSettings {
      * all. See [CanvasRepository][com.music.bitchord.data.canvas.CanvasRepository].
      */
     val animatedCanvas = MutableStateFlow(true)
+
+    /** The listener's own animated-cover choice; [animatedCanvas] is the effective value. */
+    val animatedCanvasPref = MutableStateFlow(true)
+
+    /** What the active modes lay over the effect settings; see [setModeEffects]. */
+    private var modeEffects: com.music.bitchord.data.modes.EffectsLevel = com.music.bitchord.data.modes.EffectsLevel.USER
+    private var modeAnimatedCovers = true
+
+    /**
+     * A mode's cap on streaming audio quality (Data Saver), alongside [streamCeilingOverride]:
+     * the stricter of the two applies. Never persisted.
+     */
+    val modeAudioCeiling = MutableStateFlow<AudioQuality?>(null)
     val disableArtistVideo = MutableStateFlow(false)
 
     /**
@@ -970,8 +994,15 @@ object AppSettings {
             wifi = audioQualityWifi.value,
             cellular = audioQualityCellular.value,
             metered = meteredConnection.value,
-            override = streamCeilingOverride.value,
+            override = strictestCap(streamCeilingOverride.value, modeAudioCeiling.value),
         )
+
+    /** The lower of two optional caps on audio quality. */
+    fun strictestCap(a: AudioQuality?, b: AudioQuality?): AudioQuality? = when {
+        a == null -> b
+        b == null -> a
+        else -> if (a.ordinal <= b.ordinal) a else b
+    }
 
     /**
      * [effectiveAudioQuality] from values a caller already holds — a screen
@@ -1104,7 +1135,7 @@ object AppSettings {
         showNerdStats.value = prefs.getBoolean(KEY_NERD_STATS, false)
         showListenTogetherButton.value = prefs.getBoolean(KEY_LISTEN_TOGETHER_BUTTON, false)
         externalLinks.value = prefs.getBoolean(KEY_EXTERNAL_LINKS, true)
-        reduceAnimation.value = prefs.getBoolean(KEY_REDUCE_ANIMATION, false)
+        reduceAnimationPref.value = prefs.getBoolean(KEY_REDUCE_ANIMATION, false)
         showNavLabels.value = prefs.getBoolean(KEY_NAV_LABELS, false)
         onboardingComplete.value = prefs.getBoolean(KEY_ONBOARDING_COMPLETE, false)
         diwaliGreetingShown.value = prefs.getBoolean(KEY_DIWALI_GREETING_SHOWN, false)
@@ -1132,7 +1163,7 @@ object AppSettings {
         squareVideoThumbnails.value = prefs.getBoolean(KEY_SQUARE_VIDEO_THUMBNAILS, false)
         VideoThumbnails.square = squareVideoThumbnails.value
         smartVersionAlignment.value = prefs.getBoolean(KEY_SMART_VERSION_ALIGNMENT, true)
-        reduceDynamicBlur.value = prefs.getBoolean(KEY_REDUCE_BLUR, false)
+        reduceDynamicBlurPref.value = prefs.getBoolean(KEY_REDUCE_BLUR, false)
         disableBlendEffects.value = prefs.getBoolean(KEY_DISABLE_BLEND_EFFECTS, false)
         liquidGlass.value = prefs.getBoolean(KEY_LIQUID_GLASS, false)
         glassPerformance.value = prefs.getBoolean(KEY_GLASS_PERFORMANCE, false)
@@ -1141,11 +1172,8 @@ object AppSettings {
         lyricsOffsetMs.value = prefs.getInt(KEY_LYRICS_OFFSET_MS, 0)
             .coerceIn(MIN_LYRICS_OFFSET_MS, MAX_LYRICS_OFFSET_MS)
         translationLanguage.value = prefs.getString(KEY_TRANSLATION_LANGUAGE, "").orEmpty()
-        if (highPerformanceMode.value) {
-            reduceAnimation.value = false
-            reduceDynamicBlur.value = false
-        }
-        animatedCanvas.value = prefs.getBoolean(KEY_ANIMATED_CANVAS, true)
+        animatedCanvasPref.value = prefs.getBoolean(KEY_ANIMATED_CANVAS, true)
+        recomputeEffects()
         disableArtistVideo.value = prefs.getBoolean(KEY_DISABLE_ARTIST_VIDEO, false)
         canvasOverCellular.value = prefs.getBoolean(KEY_CANVAS_OVER_CELLULAR, false)
         disableSpotifyCanvas.value = prefs.getBoolean(KEY_DISABLE_SPOTIFY_CANVAS, false)
@@ -1548,11 +1576,32 @@ object AppSettings {
     }
 
     fun setReduceAnimation(value: Boolean) {
-        reduceAnimation.value = value
-        if (value) highPerformanceMode.value = false
-        val editor = prefs.edit().putBoolean(KEY_REDUCE_ANIMATION, value)
-        if (value) editor.putBoolean(KEY_HIGH_PERFORMANCE_MODE, false)
-        editor.apply()
+        reduceAnimationPref.value = value
+        prefs.edit().putBoolean(KEY_REDUCE_ANIMATION, value).apply()
+        recomputeEffects()
+    }
+
+    /**
+     * Lays a mode's effects level over the listener's choices (Low Power: reduced; High
+     * Performance: all on; otherwise their own), and whether animated covers may stream. Their
+     * stored choices are not touched, so they come back as soon as the mode ends.
+     */
+    fun setModeEffects(level: com.music.bitchord.data.modes.EffectsLevel, animatedCovers: Boolean) {
+        modeEffects = level
+        modeAnimatedCovers = animatedCovers
+        recomputeEffects()
+    }
+
+    private fun recomputeEffects() {
+        val own = com.music.bitchord.data.modes.EffectSettings(
+            reduceAnimation = reduceAnimationPref.value,
+            reduceBlur = reduceDynamicBlurPref.value,
+            animatedCovers = animatedCanvasPref.value,
+        )
+        val effective = modeEffects.over(own, coversAllowed = modeAnimatedCovers)
+        reduceAnimation.value = effective.reduceAnimation
+        reduceDynamicBlur.value = effective.reduceBlur
+        animatedCanvas.value = effective.animatedCovers
     }
 
     fun setOnboardingComplete() {
@@ -1658,11 +1707,9 @@ object AppSettings {
     }
 
     fun setReduceDynamicBlur(value: Boolean) {
-        reduceDynamicBlur.value = value
-        if (value) highPerformanceMode.value = false
-        val editor = prefs.edit().putBoolean(KEY_REDUCE_BLUR, value)
-        if (value) editor.putBoolean(KEY_HIGH_PERFORMANCE_MODE, false)
-        editor.apply()
+        reduceDynamicBlurPref.value = value
+        prefs.edit().putBoolean(KEY_REDUCE_BLUR, value).apply()
+        recomputeEffects()
     }
 
     fun setLiquidGlass(value: Boolean) {
@@ -1685,18 +1732,14 @@ object AppSettings {
         prefs.edit().putString(KEY_REFRESH_RATE_PREFERENCE, value.name).apply()
     }
 
+    /**
+     * High Performance is a mode now: while it is on (and Low Power is not) the modes layer holds
+     * the top refresh rate and full effects over the listener's own settings, which it no longer
+     * clears — they apply again when it is turned off.
+     */
     fun setHighPerformanceMode(value: Boolean) {
         highPerformanceMode.value = value
-        if (value) {
-            reduceAnimation.value = false
-            reduceDynamicBlur.value = false
-        }
-        val editor = prefs.edit().putBoolean(KEY_HIGH_PERFORMANCE_MODE, value)
-        if (value) {
-            editor.putBoolean(KEY_REDUCE_ANIMATION, false)
-            editor.putBoolean(KEY_REDUCE_BLUR, false)
-        }
-        editor.apply()
+        prefs.edit().putBoolean(KEY_HIGH_PERFORMANCE_MODE, value).apply()
     }
 
     fun setPerformanceRefreshRate(value: Int) {
@@ -1827,8 +1870,9 @@ object AppSettings {
     }
 
     fun setAnimatedCanvas(value: Boolean) {
-        animatedCanvas.value = value
+        animatedCanvasPref.value = value
         prefs.edit().putBoolean(KEY_ANIMATED_CANVAS, value).apply()
+        recomputeEffects()
     }
 
     fun setDisableArtistVideo(value: Boolean) {

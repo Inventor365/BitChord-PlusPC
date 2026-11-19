@@ -89,6 +89,10 @@ object PlaylistSync {
             var wasOn: Boolean? = null
             AppSettings.syncDownloadedPlaylists
                 .combine(AppSettings.wifiOnlyDownloads) { on, wifiOnly -> on to wifiOnly }
+                // Data Saver and Low Power hold background sync until Wi-Fi, over the setting.
+                .combine(com.music.bitchord.data.modes.ModeController.policy) { (on, wifiOnly), policy ->
+                    on to (wifiOnly || policy.backgroundSyncWifiOnly)
+                }
                 .distinctUntilChanged()
                 .collect { (on, wifiOnly) ->
                     val firstLook = wasOn == null
@@ -116,7 +120,12 @@ object PlaylistSync {
      */
     fun checkNow(context: Context, approved: Boolean = false) {
         val request = OneTimeWorkRequestBuilder<PlaylistSyncWorker>()
-            .setConstraints(constraints(AppSettings.wifiOnlyDownloads.value))
+            .setConstraints(
+                constraints(
+                    AppSettings.wifiOnlyDownloads.value ||
+                        com.music.bitchord.data.modes.ModeController.policy.value.backgroundSyncWifiOnly,
+                ),
+            )
             .setInputData(workDataOf(KEY_APPROVED to approved))
             .build()
         val policy = if (approved) ExistingWorkPolicy.REPLACE else ExistingWorkPolicy.KEEP
