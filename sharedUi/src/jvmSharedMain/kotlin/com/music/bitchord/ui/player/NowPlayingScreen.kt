@@ -3603,23 +3603,39 @@ fun NowPlayingScreen(
                                             translationX = swipeSettle.value * (1f - p())
                                         },
                                 ) {
-                                    // Black with a spinner under the picture until
-                                    // its first frame lands.
-                                    if (!videoRendered) {
-                                        VideoLoadingBackdrop(
-                                            Modifier
+                                    // The picture, or — off by choice, by a mode, or
+                                    // because it would not load — the static banner in
+                                    // its place, with nothing decoded or streamed for it.
+                                    val videoQuality by PlayerPlatform.host.musicVideoQuality
+                                        .collectAsStateWithLifecycle()
+                                    val bannerShown = videoQuality.videoOff || song.videoId in videoQuality.noPicture
+                                    if (bannerShown) {
+                                        VideoBanner(
+                                            song = song,
+                                            artRequest = null,
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .clip(RoundedCornerShape(10.dp)),
+                                        )
+                                    } else {
+                                        // Black with a spinner under the picture until
+                                        // its first frame lands.
+                                        if (!videoRendered) {
+                                            VideoLoadingBackdrop(
+                                                Modifier
+                                                    .fillMaxSize()
+                                                    .clip(RoundedCornerShape(10.dp)),
+                                            )
+                                        }
+                                        MusicVideoSurface(
+                                            videoId = song.videoId,
+                                            fit = !squareVideo,
+                                            onRenderedChanged = { videoRendered = it },
+                                            modifier = Modifier
                                                 .fillMaxSize()
                                                 .clip(RoundedCornerShape(10.dp)),
                                         )
                                     }
-                                    MusicVideoSurface(
-                                        videoId = song.videoId,
-                                        fit = !squareVideo,
-                                        onRenderedChanged = { videoRendered = it },
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(RoundedCornerShape(10.dp)),
-                                    )
                                     VideoCornerControls(
                                         fullscreen = false,
                                         onToggleFullscreen = {
@@ -3627,6 +3643,7 @@ fun NowPlayingScreen(
                                             screenOrientation.landscape()
                                         },
                                         onOpenQuality = { showVideoQuality = true },
+                                        showFullscreen = !bannerShown,
                                         modifier = Modifier
                                             .align(Alignment.TopEnd)
                                             .padding(8.dp),

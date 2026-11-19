@@ -36,6 +36,11 @@ import androidx.compose.material3.MaterialTheme
 import com.music.bitchord.sharedui.resources.Res
 import com.music.bitchord.sharedui.resources.video_quality
 import com.music.bitchord.sharedui.resources.video_quality_auto
+import com.music.bitchord.sharedui.resources.video_quality_off
+import com.music.bitchord.sharedui.resources.video_quality_off_detail
+import com.music.bitchord.sharedui.resources.video_off_short
+import com.music.bitchord.sharedui.resources.video_forced_off
+import com.music.bitchord.sharedui.resources.video_forced_cap
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
 import dev.chrisbanes.haze.HazeState
@@ -63,6 +68,9 @@ import coil3.request.ImageRequest
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.ui.theme.HideSystemBars
 import kotlinx.coroutines.delay
+import androidx.compose.material.icons.rounded.VideocamOff
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 
 /** How long the controls stay over a playing video untouched. */
 private const val VIDEO_CONTROLS_IDLE_MS = 3_500L
@@ -107,14 +115,19 @@ internal fun FullscreenVideoPlayer(
                 indication = null,
             ) { controlsShown = !controlsShown },
     ) {
-        // Black with a spinner until the picture's first frame lands.
-        if (!rendered) VideoLoadingBackdrop(Modifier.fillMaxSize())
-        MusicVideoSurface(
-            videoId = song.videoId,
-            fit = true,
-            onRenderedChanged = onRenderedChanged,
-            modifier = Modifier.fillMaxSize(),
-        )
+        val quality by PlayerPlatform.host.musicVideoQuality.collectAsStateWithLifecycle()
+        if (quality.videoOff || song.videoId in quality.noPicture) {
+            VideoBanner(song = song, artRequest = artRequest, fit = true, modifier = Modifier.fillMaxSize())
+        } else {
+            // Black with a spinner until the picture's first frame lands.
+            if (!rendered) VideoLoadingBackdrop(Modifier.fillMaxSize())
+            MusicVideoSurface(
+                videoId = song.videoId,
+                fit = true,
+                onRenderedChanged = onRenderedChanged,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
 
         AnimatedVisibility(
             visible = controlsShown,
@@ -191,6 +204,58 @@ internal fun FullscreenVideoPlayer(
 }
 
 /**
+ * The static banner shown in a music video's place when the picture is off (by choice or by a
+ * mode) or could not be loaded: the track's artwork cropped to the video's box, darkened a
+ * little at the foot, with a small "Video off" tag. Nothing is decoded or streamed for it.
+ * [fit] letterboxes the artwork instead of cropping it — the full-screen player.
+ */
+@Composable
+internal fun VideoBanner(
+    song: Song,
+    artRequest: ImageRequest?,
+    modifier: Modifier = Modifier,
+    fit: Boolean = false,
+) {
+    val artwork = PlayerPlatform.host.rememberRemoteArtworkUrl(song)
+    Box(modifier.background(Color.Black)) {
+        AsyncImage(
+            model = artRequest ?: artwork,
+            contentDescription = null,
+            contentScale = if (fit) ContentScale.Fit else ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Brush.verticalGradient(0.55f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.55f))),
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(10.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.Black.copy(alpha = 0.38f))
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.VideocamOff,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.85f),
+                modifier = Modifier.size(14.dp),
+            )
+            Spacer(Modifier.width(5.dp))
+            Text(
+                text = stringResource(Res.string.video_quality_off),
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
+}
+
+/**
  * What stands in for a music video until its first frame lands: black, with a
  * spinner, rather than the still artwork. Shared by the portrait card and the
  * fullscreen landscape player.
@@ -217,6 +282,8 @@ internal fun VideoCornerControls(
     onToggleFullscreen: () -> Unit,
     onOpenQuality: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Off while the banner stands in: there is no picture to make full screen. */
+    showFullscreen: Boolean = true,
 ) {
     Row(
         modifier = modifier,
@@ -224,7 +291,7 @@ internal fun VideoCornerControls(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         VideoQualityBox(onClick = onOpenQuality)
-        Box(
+        if (showFullscreen) Box(
             modifier = Modifier
                 .size(30.dp)
                 .clip(RoundedCornerShape(8.dp))
@@ -254,8 +321,10 @@ private fun MusicVideoQualityUi.selected(): Int? =
 @Composable
 private fun VideoQualityBox(onClick: () -> Unit) {
     val quality by PlayerPlatform.host.musicVideoQuality.collectAsStateWithLifecycle()
-    if (quality.heights.size < 2) return
-    val label = quality.selected()?.let(::videoQualityLabel) ?: "Auto"
+    // While the banner stands in there are no heights to read, but the box is the way back
+    // to the picture, so it stays, saying "Off".
+    if (quality.heights.size < 2 && !quality.videoOff) return
+    val label = if (quality.videoOff) stringResource(Res.string.video_off_short) else quality.selected()?.let(::videoQualityLabel) ?: "Auto"
     Box(
         modifier = Modifier
             .height(30.dp)
@@ -301,11 +370,34 @@ internal fun VideoQualitySheet(hazeState: HazeState, onDismiss: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            // A mode holding the picture off or down says so; the listener's choices below stay
+            // live and are what comes back when the mode ends.
+            quality.forcedBy?.let { mode ->
+                Text(
+                    text = if (quality.forcedOff) {
+                        stringResource(Res.string.video_forced_off, mode)
+                    } else {
+                        stringResource(Res.string.video_forced_cap, mode, videoQualityLabel(quality.capHeight ?: 0))
+                    },
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                )
+            }
+            QualityRow(
+                name = stringResource(Res.string.video_quality_off),
+                detail = stringResource(Res.string.video_quality_off_detail),
+                active = quality.off,
+            ) {
+                PlayerPlatform.host.setMusicVideoOff(true)
+                onDismiss()
+            }
             QualityRow(
                 name = stringResource(Res.string.video_quality_auto),
-                detail = if (quality.held == null) selected?.let(::videoQualityLabel) else null,
-                active = quality.held == null,
+                detail = if (quality.held == null && !quality.off) selected?.let(::videoQualityLabel) else null,
+                active = quality.held == null && !quality.off,
             ) {
+                PlayerPlatform.host.setMusicVideoOff(false)
                 PlayerPlatform.host.setMusicVideoQuality(null)
                 onDismiss()
             }
@@ -313,8 +405,9 @@ internal fun VideoQualitySheet(hazeState: HazeState, onDismiss: () -> Unit) {
                 QualityRow(
                     name = videoQualityLabel(height),
                     detail = "${height}p",
-                    active = quality.held != null && selected == height,
+                    active = !quality.off && quality.held != null && selected == height,
                 ) {
+                    PlayerPlatform.host.setMusicVideoOff(false)
                     PlayerPlatform.host.setMusicVideoQuality(height)
                     onDismiss()
                 }

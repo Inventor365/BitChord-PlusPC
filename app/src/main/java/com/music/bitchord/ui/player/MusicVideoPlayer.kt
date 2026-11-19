@@ -140,6 +140,7 @@ object MusicVideoEngine {
         scope.launch {
             InnerTubeXResolver.sessionGeneration.drop(1).collect {
                 noPicture.clear()
+                _quality.value = _quality.value.copy(noPicture = emptySet())
                 streams.clear()
                 refused.clear()
                 refresh()
@@ -166,6 +167,84 @@ object MusicVideoEngine {
     val quality: StateFlow<MusicVideoQualityUi> = _quality.asStateFlow()
 
     private var prefs: android.content.SharedPreferences? = null
+
+    /** The listener's own choice to show a static banner instead of the picture. Remembered. */
+    private var userOff = false
+
+    /** What a mode (Data Saver, Low Power) lays over that choice, without changing it. */
+    private var override = VideoOverride.None
+
+    /** Whether the picture is off right now, by choice or by a mode. */
+    private val off: Boolean get() = userOff || override.forceOff
+
+    /** Reads the remembered choices. Safe to call more than once; the first call wins. */
+    fun init(context: Context) {
+        if (prefs != null) return
+        prefs = context.applicationContext.getSharedPreferences("music_video", Context.MODE_PRIVATE).also { stored ->
+            userOff = stored.getBoolean(KEY_VIDEO_OFF, false)
+            val held = stored.getInt(KEY_QUALITY, 0).takeIf { it > 0 }
+            _quality.value = _quality.value.copy(held = held)
+        }
+        publishPolicy()
+    }
+
+    /**
+     * Turns the picture off (a static banner in its place) or back on. Off, the video player is
+     * stopped and released: nothing decodes, buffers or downloads. The audio is a different
+     * player and never notices. Back on, the picture reloads at the moment the audio is at.
+     */
+    fun setOff(value: Boolean) {
+        if (userOff == value) return
+        userOff = value
+        prefs?.edit()?.putBoolean(KEY_VIDEO_OFF, value)?.apply()
+        applyPolicy()
+    }
+
+    /** A mode's limits: forced off, or a height cap. [VideoOverride.None] restores the listener's own choice. */
+    fun setOverride(value: VideoOverride) {
+        if (override == value) return
+        val capChanged = override.maxHeight != value.maxHeight
+        override = value
+        applyPolicy()
+        // A new cap applies to the playing video at once, not just the next one.
+        val id = loadedId
+        if (!off && capChanged && id != null) {
+            streams.remove(id)
+            load(id)
+        }
+    }
+
+    private fun publishPolicy() {
+        _quality.value = _quality.value.copy(
+            off = userOff,
+            forcedOff = override.forceOff,
+            forcedBy = override.reason,
+            capHeight = override.maxHeight,
+        )
+    }
+
+    private fun applyPolicy() {
+        publishPolicy()
+        if (off) {
+            unload()
+            releasePlayer()
+        } else {
+            refresh()
+        }
+    }
+
+    /** Frees the decoder and its buffers; the next surface to claim the picture builds a new one. */
+    private fun releasePlayer() {
+        val exo = player ?: return
+        player = null
+        exo.removeListener(playerListener)
+        exo.clearVideoSurface()
+        exo.release()
+        _frameOn.value = null
+    }
+
+    /** The video whose renditions [MusicVideoQualityUi.heights] lists. */
+    private var heightsFor: String? = null
 
     /** What the loaded stream was asked for, so a failed high one can step down once. */
     private var loadedCap = 0
@@ -245,7 +324,7 @@ object MusicVideoEngine {
                 load(id)
                 return
             }
-            noPicture += id
+            markNoPicture(id)
             unload()
         }
     }
@@ -270,14 +349,11 @@ object MusicVideoEngine {
         surfaces.removeAll { it.view === view }
         surfaces += Surface(view, priority)
         val app = view.context.applicationContext
-        if (prefs == null) {
-            prefs = app.getSharedPreferences("music_video", Context.MODE_PRIVATE).also { stored ->
-                val held = stored.getInt(KEY_QUALITY, 0).takeIf { it > 0 }
-                _quality.value = _quality.value.copy(held = held)
-            }
-        }
-        val exo = ensurePlayer(app)
-        if (top() === view) {
+        init(app)
+        // With the picture off nothing is built at all: the surface waits, empty, until it is
+        // turned back on (which reloads it) or goes away.
+        val exo = if (off) null else ensurePlayer(app)
+        if (exo != null && top() === view) {
             _frameOn.value = null
             exo.setVideoTextureView(view)
             repaint()
@@ -289,11 +365,14 @@ object MusicVideoEngine {
             if (!wasTop) return@release
             if (_frameOn.value === view) _frameOn.value = null
             val next = top()
+            // The player in use now, which may not be the one this surface was handed:
+            // turning the picture off releases it, and turning it on builds another.
+            val current = player
             if (next != null) {
-                exo.setVideoTextureView(next)
+                current?.setVideoTextureView(next)
                 repaint()
             } else {
-                exo.clearVideoTextureView(view)
+                current?.clearVideoTextureView(view)
                 releaseJob = scope.launch {
                     delay(RELEASE_GRACE_MS)
                     if (surfaces.isEmpty()) unload()
@@ -323,6 +402,7 @@ object MusicVideoEngine {
 
     /** The track the picture should be of: the controller's, when it is a music video. */
     private fun wanted(): Song? {
+        if (off) return null
         val song = controller?.currentMediaItem?.toSong() ?: return null
         return song.takeIf {
             it.isVideo && it.videoId !in noPicture && MusicOnlyPlayback.showsPicture(it.videoId)
@@ -364,8 +444,9 @@ object MusicVideoEngine {
     private fun capFor(videoId: String): Int {
         val metered = AppSettings.meteredConnection.value == true
         val auto = if (metered) METERED_HEIGHT else AUTO_HEIGHT
-        val held = _quality.value.held ?: return auto
-        return if (videoId in stepDown) minOf(held, AUTO_HEIGHT) else held
+        val chosen = _quality.value.held?.let { held -> if (videoId in stepDown) minOf(held, AUTO_HEIGHT) else held } ?: auto
+        // A mode's cap lowers whatever was chosen, without replacing the choice.
+        return override.maxHeight?.let { minOf(chosen, it) } ?: chosen
     }
 
     /** A refusal from googlevideo itself, as opposed to a decoder or network failure. */
@@ -415,7 +496,7 @@ object MusicVideoEngine {
                 // Settled until something changes it: the age gate by a sign-in
                 // (which clears [noPicture]), the rest not at all. A network
                 // failure is asked again on the next surface or track change.
-                if (e.reason != StreamResolveException.Reason.NETWORK) noPicture += videoId
+                if (e.reason != StreamResolveException.Reason.NETWORK) markNoPicture(videoId)
                 return@launch
             } catch (e: Exception) {
                 // Not remembered as pictureless: the next surface or track
@@ -427,17 +508,20 @@ object MusicVideoEngine {
             if (loadedId != videoId) return@launch
             // A catalogue track's "video" is its cover held still; nothing to show.
             if (stream == null || stream.aspect < MIN_VIDEO_ASPECT) {
-                noPicture += videoId
+                markNoPicture(videoId)
                 loadedId = null
                 return@launch
             }
-            val exo = player ?: return@launch
+            val exo = player ?: top()?.let { surface ->
+                ensurePlayer(surface.context.applicationContext).also { it.setVideoTextureView(surface) }
+            } ?: return@launch
             val upstream = OkHttpDataSource.Factory(Http.client)
                 .setDefaultRequestProperties(stream.headers)
             val source = ProgressiveMediaSource.Factory(ChunkedDataSource.Factory(upstream, CHUNK_BYTES))
                 .createMediaSource(MediaItem.fromUri(stream.url))
             if (stream.aspect > 0f) _aspect.value = stream.aspect
             _quality.value = _quality.value.copy(heights = stream.heights, activeHeight = stream.height)
+            heightsFor = videoId
             loadedProfile = stream.profileId
             val start = controller?.currentPosition?.coerceAtLeast(0L) ?: 0L
             exo.setMediaSource(source, start + seekLeadMs)
@@ -458,6 +542,12 @@ object MusicVideoEngine {
         return stream
     }
 
+    /** A video that cannot be shown: remembered, and told to the player, which shows its banner. */
+    private fun markNoPicture(videoId: String) {
+        noPicture += videoId
+        _quality.value = _quality.value.copy(noPicture = noPicture.toSet())
+    }
+
     private fun unload() {
         loadJob?.cancel()
         loadJob = null
@@ -467,7 +557,11 @@ object MusicVideoEngine {
         loadedProfile = null
         _shownVideoId.value = null
         _frameOn.value = null
-        _quality.value = _quality.value.copy(heights = emptyList(), activeHeight = null)
+        // While the picture is off, the heights its video offers stay listed (so the drawer can go
+        // straight back to one), until the track changes to another video.
+        val keep = off && heightsFor != null && controller?.currentMediaItem?.toSong()?.videoId == heightsFor
+        _quality.value = _quality.value.copy(heights = if (keep) _quality.value.heights else emptyList(), activeHeight = null)
+        if (!keep) heightsFor = null
         player?.let {
             it.stop()
             it.clearMediaItems()
@@ -531,6 +625,7 @@ object MusicVideoEngine {
     private const val AUTO_HEIGHT = 1080
     private const val METERED_HEIGHT = 480
     private const val KEY_QUALITY = "quality"
+    private const val KEY_VIDEO_OFF = "video_off"
 
     /** The same as the audio's: googlevideo's ways of refusing a URL. */
     private val REFUSAL_CODES = setOf(403, 404, 410)
@@ -633,5 +728,21 @@ internal fun AndroidMusicVideo(
                 }
             },
         )
+    }
+}
+
+/**
+ * What a mode lays over the listener's video choice: [forceOff] shows the static banner whatever
+ * they picked; [maxHeight] caps the picture's height. [reason] names the mode for the quality
+ * drawer ("Data Saver"). The listener's own choice is kept underneath and comes back as soon as
+ * the override is [None] again.
+ */
+data class VideoOverride(
+    val forceOff: Boolean = false,
+    val maxHeight: Int? = null,
+    val reason: String? = null,
+) {
+    companion object {
+        val None = VideoOverride()
     }
 }

@@ -297,4 +297,9 @@
     <string name="import_apple_music">Import Apple Music</string>
     <string name="import_amazon_music">Import Amazon Music</string>
     <string name="import_amazon_music_subtitle">From a pasted song list</string>
+    <string name="video_off_short">Off</string>
+    <string name="video_quality_off">Video off</string>
+    <string name="video_quality_off_detail">Static banner · saves data and battery</string>
+    <string name="video_forced_off">%1$s is showing the banner. Your choice comes back when it turns off.</string>
+    <string name="video_forced_cap">%1$s is keeping video at %2$s or below.</string>
 </resources>

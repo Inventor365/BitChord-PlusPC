@@ -1,5 +1,6 @@
 package com.music.bitchord.ui.components
 
+import com.music.bitchord.ui.player.MusicVideoEngine
 import com.music.bitchord.R
 
 import androidx.compose.foundation.background
@@ -418,7 +419,10 @@ fun MiniPlayer(
         ) {
             // A music video plays here at its own 16:9, as the web player's
             // mini player does, rather than cropped into the square cover.
-            val showsPicture = song.isVideo && MusicOnlyPlayback.showsPicture(song.videoId)
+            // With video off (by choice or a mode) the cover stands in, as for any song.
+            val videoQuality by MusicVideoEngine.quality.collectAsStateWithLifecycle()
+            val showsPicture = song.isVideo && MusicOnlyPlayback.showsPicture(song.videoId) &&
+                !videoQuality.videoOff && song.videoId !in videoQuality.noPicture
             val artWidth by animateDpAsState(
                 targetValue = if (showsPicture && !VideoThumbnails.square) VIDEO_ART_WIDTH else 40.dp,
                 label = "miniArtWidth",

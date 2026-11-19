@@ -1301,6 +1301,8 @@ private fun BitChordApp(
     }
     // A music video's picture follows this controller's clock — see [MusicVideoEngine].
     DisposableEffect(controller) {
+        // The remembered "video off" choice is read before anything asks for a picture.
+        MusicVideoEngine.init(context)
         MusicVideoEngine.attach(controller)
         onDispose { MusicVideoEngine.attach(null) }
     }

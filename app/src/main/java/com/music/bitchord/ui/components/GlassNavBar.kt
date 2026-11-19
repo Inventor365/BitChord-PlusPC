@@ -9,6 +9,7 @@
 
 package com.music.bitchord.ui.components
 
+import com.music.bitchord.ui.player.MusicVideoEngine
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -397,7 +398,10 @@ private fun GlassNowPlaying(
         ) {
             // A music video plays in the cover's place at its own 16:9, as in
             // the floating mini player; the full player takes it over when up.
-            val showsPicture = song.isVideo && MusicOnlyPlayback.showsPicture(song.videoId)
+            // With video off (by choice or a mode) the cover stands in, as for any song.
+            val videoQuality by MusicVideoEngine.quality.collectAsStateWithLifecycle()
+            val showsPicture = song.isVideo && MusicOnlyPlayback.showsPicture(song.videoId) &&
+                !videoQuality.videoOff && song.videoId !in videoQuality.noPicture
             val artWidth by animateDpAsState(
                 targetValue = if (showsPicture && !VideoThumbnails.square) ACCESSORY_ART_SIZE * (16f / 9f) else ACCESSORY_ART_SIZE,
                 label = "glassMiniArtWidth",

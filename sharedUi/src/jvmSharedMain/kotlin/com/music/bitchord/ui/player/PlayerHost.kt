@@ -70,6 +70,9 @@ interface PlayerHost {
     /** Holds the picture at [height] from now on, or lets it choose with null. Remembered. */
     fun setMusicVideoQuality(height: Int?) = Unit
 
+    /** Shows a static banner instead of the picture (releasing the video), or the picture again. Remembered. */
+    fun setMusicVideoOff(off: Boolean) = Unit
+
     /**
      * Artwork for [song], resolving covers that live inside a remote file
      * (WebDAV, SMB) where the platform can. Returns [Song.thumbnailUrl] otherwise.
@@ -181,7 +184,20 @@ data class MusicVideoQualityUi(
     val held: Int? = null,
     /** The height actually on screen. */
     val activeHeight: Int? = null,
-)
+    /** The listener's own choice: a static banner instead of the picture. */
+    val off: Boolean = false,
+    /** A mode (Data Saver, Low Power) is showing the banner whatever the choice is. */
+    val forcedOff: Boolean = false,
+    /** Which mode is limiting the picture, for the drawer. */
+    val forcedBy: String? = null,
+    /** A mode's cap on the picture's height. */
+    val capHeight: Int? = null,
+    /** Videos whose picture could not be loaded: these show the banner too. */
+    val noPicture: Set<String> = emptySet(),
+) {
+    /** Whether the picture is off right now, by choice or by a mode. */
+    val videoOff: Boolean get() = off || forcedOff
+}
 
 /** How a height is named on screen: the marketing name where there is one, the height otherwise. */
 internal fun videoQualityLabel(height: Int): String = when {

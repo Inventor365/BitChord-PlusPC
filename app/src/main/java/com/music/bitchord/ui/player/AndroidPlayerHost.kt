@@ -138,6 +138,8 @@ class AndroidPlayerHost(context: Context) : PlayerHost {
 
     override fun setMusicVideoQuality(height: Int?) = MusicVideoEngine.setQuality(height)
 
+    override fun setMusicVideoOff(off: Boolean) = MusicVideoEngine.setOff(off)
+
     @Composable
     override fun rememberRemoteArtworkUrl(song: Song?): String? =
         com.music.bitchord.ui.components.rememberRemoteArtworkUrl(song)
