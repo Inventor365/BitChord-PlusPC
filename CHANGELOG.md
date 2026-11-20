@@ -7,6 +7,7 @@ All notable changes to **Sonara** (`https://github.com/Inventor365/Sonara`), for
 ## [Unreleased]
 
 ### Added
+- **Listen Together in Library**, on the phone and the desktop, as well as in Settings.
 - **Winter theme**, an arctic scene behind the top of every page, made to look like a film still rather than a drawing. Headings use Quicksand (OFL). Each mode has its own launcher icon in the Sonara mark's shape, and "Match app icon" follows light and dark.
   - *Polar night* (dark mode): a long-exposure sky (Milky Way, thousands of faint stars), glacier peaks backlit by the aurora, mist on the ice field and two emperor penguins far out on it. A live aurora (an AGSL shader on Android 13+, crossfading frames below) shows green-to-violet curtains with drifting rays. Bright stars twinkle, and a shooting star crosses every 8–20 s. Fine soft snow falls in front.
   - *Arctic day* (light mode): a bright sky with cirrus, sunlit glaciers with blue shadows, a faint daytime aurora, and a small sun that crosses from left (sunrise) to right (sunset) with the time of day, warming the horizon morning and evening.
@@ -26,6 +27,15 @@ All notable changes to **Sonara** (`https://github.com/Inventor365/Sonara`), for
 - The Home greeting and quote get a soft halo in the page's colour, so they stay readable over a theme's artwork.
 
 ### Fixed
+- **Listen Together devices drifted about a second apart.** A device told to start a track it had not buffered yet played on time but stayed silent while the stream loaded, then came in that far behind. Its own corrective seeks re-buffered the same way, and nothing under 1.2 s was ever corrected. Now:
+  - gaps up to about 0.45 s are closed by playing up to 3.5% faster or slower, pitch kept;
+  - larger gaps are seeked, aimed ahead by each device's own measured re-buffer time;
+  - strikes, a cooldown and a per-minute cap stop a slow device from looping on seeks;
+  - the clock sync takes 8 opening pings instead of 4.
+  
+  This applies to the phone app, the desktop app and the web app.
+- **Desktop lyrics showed the wrong song or ran out of time.** Lyrics are now matched to the song actually playing. The lookup waits briefly for the real track length instead of matching another recording on the catalogue's. Each seek and track change now reaches the lyric clock with the right stamp, so the lyrics jump with the audio, and the clock follows the engine's play state.
+- **Signing in with an account on the phone opened a broken screen.** Google refuses its one-time sign-in link to apps outside Google: it showed an "UnsupportedTokenLabel" consent screen, then an empty login. The chosen account now opens Google's sign-in already filled in, where Google can confirm it with a prompt on this phone instead of a password.
 - **Android Auto showed lyrics instead of the song**: the car's now-playing card (and every Bluetooth head unit, speaker and pair of earbuds) now always gets the real title and artist. A lyric only replaces the title on this phone's own notification, only if you turn it on, and never while a car is connected or sound is going to Bluetooth, a car or a dock.
 - **Imports sat on "Reading playlist…"**: Spotify's Web API answers the anonymous token with a 429 and a Retry-After of about 7 hours, which was waited out page by page. The web player's own query is now tried first, a Retry-After over 10 s fails over at once, every request has a 20 s deadline, and reading the playlist has a 4-minute one. Reading shows live counts ("Reading playlist (300 / 882)…"), and a failure shows a Retry button.
 - **Apple Music imports stopped at 300 songs**: the page's `trackCount` counts the songs on the page, not in the playlist. Paging now follows the page's own next link, and the web player's token is found whichever way its header is written.
