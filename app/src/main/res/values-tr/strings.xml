@@ -1630,6 +1630,11 @@
     <string name="winter_effect_frost">Kırağı kenarlar</string>
     <string name="winter_effects_low_tier">Akıcı kalması için bu telefonda başta kapalı</string>
     <string name="winter_effects_footer">Her biri Düşük Güç Modu, Veri Tasarrufu ya da pil tasarrufunda, animasyonlar kapalıyken ve Sonara görünmezken kendiliğinden durur. Kapalıyken sabit bir sürüm görünür.</string>
+    <string name="lyrics_in_now_playing">Kilit ekranında şarkı sözleri</string>
+    <string name="lyrics_in_now_playing_subtitle">Bildirimde başlık yerine söylenen satır. Arabana veya Bluetooth cihazlarına asla gönderilmez.</string>
+    <string name="lyrics_tab">Sözler</string>
+    <string name="auto_unreachable_title">Yüklenemedi</string>
+    <string name="auto_unreachable_subtitle">Çevrimdışı olabilirsin. İndirilenler yine çalar.</string>
     <string name="winter_night_after_sunset">Gün batımından sonra gece gökyüzü</string>
     <string name="winter_night_after_sunset_subtitle">Açık modda 18.00\'den sonra kutup gecesi, 06.00\'da yeniden gündüz</string>
 </resources>

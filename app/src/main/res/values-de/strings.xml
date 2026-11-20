@@ -1647,6 +1647,11 @@
     <string name="winter_effect_frost">Frostränder</string>
     <string name="winter_effects_low_tier">Auf diesem Handy anfangs aus, damit alles flüssig bleibt</string>
     <string name="winter_effects_footer">Jeder Effekt pausiert von selbst im Stromsparmodus, im Datensparmodus oder beim Energiesparen, wenn Animationen aus sind und wenn Sonara nicht sichtbar ist. Aus zeigt eine ruhige Version.</string>
+    <string name="lyrics_in_now_playing">Songtext auf dem Sperrbildschirm</string>
+    <string name="lyrics_in_now_playing_subtitle">Die gesungene Zeile statt des Titels in der Benachrichtigung. Wird nie an dein Auto oder Bluetooth-Geräte gesendet.</string>
+    <string name="lyrics_tab">Songtext</string>
+    <string name="auto_unreachable_title">Konnte nicht geladen werden</string>
+    <string name="auto_unreachable_subtitle">Vielleicht bist du offline. Downloads laufen weiter.</string>
     <string name="winter_night_after_sunset">Nachthimmel nach Sonnenuntergang</string>
     <string name="winter_night_after_sunset_subtitle">Im hellen Modus ab 18 Uhr Polarnacht, ab 6 Uhr wieder Tag</string>
 </resources>

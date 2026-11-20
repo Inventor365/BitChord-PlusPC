@@ -1687,6 +1687,11 @@
     <string name="winter_effect_frost">Oszronione krawędzie</string>
     <string name="winter_effects_low_tier">Na tym telefonie domyślnie wyłączone, by działał płynnie</string>
     <string name="winter_effects_footer">Każdy efekt sam się wstrzymuje w trybie niskiego zużycia energii, oszczędzania danych lub baterii, gdy animacje są wyłączone i gdy Sonara jest niewidoczna. Wyłączony pokazuje wersję statyczną.</string>
+    <string name="lyrics_in_now_playing">Tekst na ekranie blokady</string>
+    <string name="lyrics_in_now_playing_subtitle">Śpiewany wers zamiast tytułu w powiadomieniu. Nigdy nie trafia do auta ani urządzeń Bluetooth.</string>
+    <string name="lyrics_tab">Tekst</string>
+    <string name="auto_unreachable_title">Nie udało się wczytać</string>
+    <string name="auto_unreachable_subtitle">Możesz być offline. Pobrane utwory nadal grają.</string>
     <string name="winter_night_after_sunset">Nocne niebo po zachodzie słońca</string>
     <string name="winter_night_after_sunset_subtitle">W trybie jasnym noc polarna po 18:00 i powrót po 6:00</string>
 </resources>

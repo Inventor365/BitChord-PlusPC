@@ -1624,6 +1624,11 @@
     <string name="winter_effect_frost">Tepi beku</string>
     <string name="winter_effects_low_tier">Mati di awal pada ponsel ini agar tetap mulus</string>
     <string name="winter_effects_footer">Masing-masing berhenti sendiri di Mode Daya Rendah, Penghemat Data, atau penghemat baterai, saat animasi mati, dan saat Sonara tidak terlihat. Saat mati, versi diam yang tampil.</string>
+    <string name="lyrics_in_now_playing">Lirik di layar kunci</string>
+    <string name="lyrics_in_now_playing_subtitle">Baris yang sedang dinyanyikan menggantikan judul di notifikasi. Tidak pernah dikirim ke mobil atau perangkat Bluetooth.</string>
+    <string name="lyrics_tab">Lirik</string>
+    <string name="auto_unreachable_title">Tidak dapat dimuat</string>
+    <string name="auto_unreachable_subtitle">Mungkin kamu sedang offline. Unduhan tetap bisa diputar.</string>
     <string name="winter_night_after_sunset">Langit malam setelah matahari terbenam</string>
     <string name="winter_night_after_sunset_subtitle">Dalam mode terang, malam kutub setelah pukul 18.00 dan kembali setelah 06.00</string>
 </resources>

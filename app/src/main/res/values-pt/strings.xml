@@ -1652,6 +1652,11 @@
     <string name="winter_effect_frost">Bordas congeladas</string>
     <string name="winter_effects_low_tier">Começa desligado neste telefone para manter a fluidez</string>
     <string name="winter_effects_footer">Cada um pausa sozinho no modo de pouca energia, na economia de dados ou de bateria, com as animações desligadas e quando o Sonara não está à vista. Desligado, aparece uma versão estática.</string>
+    <string name="lyrics_in_now_playing">Letra na tela de bloqueio</string>
+    <string name="lyrics_in_now_playing_subtitle">A linha sendo cantada no lugar do título na notificação. Nunca é enviada ao carro nem a dispositivos Bluetooth.</string>
+    <string name="lyrics_tab">Letra</string>
+    <string name="auto_unreachable_title">Não foi possível carregar</string>
+    <string name="auto_unreachable_subtitle">Você pode estar offline. Os downloads ainda tocam.</string>
     <string name="winter_night_after_sunset">Céu noturno após o pôr do sol</string>
     <string name="winter_night_after_sunset_subtitle">No modo claro, noite polar após as 18h e volta após as 6h</string>
 </resources>

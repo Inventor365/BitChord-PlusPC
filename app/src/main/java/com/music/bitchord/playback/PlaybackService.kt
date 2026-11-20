@@ -11,6 +11,7 @@ import android.media.MediaMetadataRetriever
 import android.media.audiofx.AudioEffect
 import android.net.Uri
 import android.widget.Toast
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.SystemClock
@@ -1994,7 +1995,8 @@ class PlaybackService : MediaLibraryService() {
         lockedTransport = { playing -> partySync?.onLockedTransport(playing) == true },
         cast = speakers,
         onShuffleRequest = ::toggleShuffleFromSession,
-    ) { lastPublishedLyric }
+        // Belt and braces: whatever was last published, never while a car is connected.
+    ) { lastPublishedLyric.takeIf { carControllers.isEmpty() } }
 
     /**
      * The stream a Cast receiver can open for [item], or null when there is none
@@ -8195,6 +8197,26 @@ class PlaybackService : MediaLibraryService() {
         return text.substring(0, at).trim() to text.substring(at).trim()
     }
 
+    /**
+     * Whether the sound is going somewhere that reads the session over AVRCP or a car link:
+     * Bluetooth (classic or LE), a car's bus, a dock.
+     */
+    private fun externalAudioRoute(): Boolean {
+        val audio = getSystemService(AudioManager::class.java) ?: return false
+        val external = buildSet {
+            add(AudioDeviceInfo.TYPE_BLUETOOTH_A2DP)
+            add(AudioDeviceInfo.TYPE_BLUETOOTH_SCO)
+            add(AudioDeviceInfo.TYPE_BUS)
+            add(AudioDeviceInfo.TYPE_DOCK)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                add(AudioDeviceInfo.TYPE_BLE_HEADSET)
+                add(AudioDeviceInfo.TYPE_BLE_SPEAKER)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(AudioDeviceInfo.TYPE_BLE_BROADCAST)
+        }
+        return audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS).any { it.type in external }
+    }
+
     private fun startLyricsTicker() {
         if (lyricsTickerJob?.isActive == true) return
         lyricsTickerJob = scope.launch(Dispatchers.Main) {
@@ -8227,9 +8249,19 @@ class PlaybackService : MediaLibraryService() {
             lyricsTabStart = cur.coerceAtLeast(0)
             mediaSession?.notifyChildrenChanged(MEDIA_LYRICS_ID, Int.MAX_VALUE, null)
         }
-        // While the song plays, the title is the line being sung and the subtitle is the next line.
-        // When the song is paused or stopped, or before the first line, the song's title and artist show.
-        val now = sung.getOrNull(cur)?.takeIf { exoPlayer.isPlaying && AppSettings.syncedLyrics.value }
+        // Only where the listener asked for it and nothing that reads AVRCP or Android Auto
+        // can see it: then the title is the line being sung and the subtitle the next line.
+        // Otherwise — and when paused, or before the first line — the song's title and artist.
+        val optedIn = AppSettings.lyricsInNowPlaying.value
+        val allowed = NowPlayingLyricPolicy.allowed(
+            optedIn = optedIn,
+            syncedLyrics = AppSettings.syncedLyrics.value,
+            playing = exoPlayer.isPlaying,
+            carConnected = carControllers.isNotEmpty(),
+            // Only asked when it could matter, so the ticker costs the rest nothing.
+            externalAudioRoute = optedIn && externalAudioRoute(),
+        )
+        val now = sung.getOrNull(cur)?.takeIf { allowed }
         val lyric = now?.let { line ->
             // A long line is cut off on the small split-screen card, so it is split over
             // the title and the subtitle instead of showing the next line.
@@ -8917,6 +8949,8 @@ class PlaybackService : MediaLibraryService() {
             if (session.isAutoCompanionController(controller) || session.isAutomotiveController(controller)) {
                 carControllers += controller
                 refreshCustomLayouts()
+                // A lyric already up on the notification comes down before the car reads it.
+                updateLyricSubtitle()
             }
         }
 
@@ -9043,7 +9077,7 @@ class PlaybackService : MediaLibraryService() {
                     createFolderItem(MEDIA_QUICK_PICKS_ID, getString(R.string.auto_quick_picks), folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS),
                     // Android Auto shows at most 4 tabs. With more than 4, Android Auto moves the rest
                     // into its own "More" tab, so Recent and Liked songs are inside our More folder.
-                    createFolderItem(MEDIA_LYRICS_ID, "Lyrics"),
+                    createFolderItem(MEDIA_LYRICS_ID, getString(R.string.lyrics_tab)),
                     createFolderItem(MEDIA_PLAYLISTS_ID, getString(R.string.playlists), folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS, isGrid = true),
                     createFolderItem(MEDIA_MORE_ID, getString(R.string.more), folderType = MediaMetadata.FOLDER_TYPE_MIXED),
                 )
@@ -9051,6 +9085,8 @@ class PlaybackService : MediaLibraryService() {
                 MEDIA_MORE_ID -> listOf(
                     createFolderItem(MEDIA_RECENTS_ID, getString(R.string.auto_recents), folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS),
                     createFolderItem(MEDIA_LIKED_ID, getString(R.string.auto_liked), folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS),
+                    createFolderItem(MEDIA_ALBUMS_ID, getString(R.string.albums), folderType = MediaMetadata.FOLDER_TYPE_ALBUMS, isGrid = true),
+                    createFolderItem(MEDIA_ARTISTS_ID, getString(R.string.artists), folderType = MediaMetadata.FOLDER_TYPE_ARTISTS, isGrid = true),
                     createFolderItem(MEDIA_DOWNLOADS_ID, getString(R.string.downloads), folderType = MediaMetadata.FOLDER_TYPE_MIXED),
                     createFolderItem(MEDIA_LOCAL_MUSIC_ID, getString(R.string.local_music), folderType = MediaMetadata.FOLDER_TYPE_MIXED),
                 )
@@ -9174,6 +9210,26 @@ class PlaybackService : MediaLibraryService() {
                         )
                     }
                 }
+                MEDIA_ALBUMS_ID, MEDIA_ARTISTS_ID -> {
+                    if (com.music.bitchord.data.innertube.Innertube.cookie == null) {
+                        listOf(createLoginPromptItem())
+                    } else {
+                        val fetched = withTimeoutOrNull(4_000L) {
+                            if (parentId == MEDIA_ALBUMS_ID) YtMusicRepository.libraryAlbums() else YtMusicRepository.libraryArtists()
+                        }?.getOrNull()
+                        when {
+                            fetched == null -> listOf(createUnreachableItem())
+                            fetched.isEmpty() -> listOf(
+                                createInfoItem(
+                                    "msg:empty_$parentId",
+                                    getString(R.string.auto_empty_playlists_title),
+                                    getString(R.string.auto_empty_playlists_subtitle),
+                                ),
+                            )
+                            else -> fetched.filter { it.browseId != null }.map(::shelfToGridPlaylistItem)
+                        }
+                    }
+                }
                 MEDIA_LOCAL_MUSIC_ID -> {
                     val local = LocalMediaRepository.getLocalMusic(this@PlaybackService)
                     local.forEach { songCache[it.videoId] = it }
@@ -9195,7 +9251,9 @@ class PlaybackService : MediaLibraryService() {
                                 YtMusicRepository.browseSongs(browseId).getOrNull()
                                     ?: if (browseId != id) YtMusicRepository.browseSongs(id).getOrNull() else null
                             }
-                            if (songPage == null) emptyList() else {
+                            // Offline, or YouTube didn't answer in time: say so rather than show
+                            // an empty list the driver can't tell from an empty playlist.
+                            if (songPage == null) listOf(createUnreachableItem()) else {
                                 songPage.songs.forEach { songCache[it.videoId] = it }
                                 val source = QueueSource(
                                     songPage.header?.title ?: getString(R.string.playlists),
@@ -9257,9 +9315,11 @@ class PlaybackService : MediaLibraryService() {
                 MEDIA_LIKED_ID -> createFolderItem(MEDIA_LIKED_ID, getString(R.string.auto_liked), folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS)
                 // Android Auto subscribes to the Lyrics folder, and so hears about changes,
                 // only when onGetItem returns the folder as browsable.
-                MEDIA_LYRICS_ID -> createFolderItem(MEDIA_LYRICS_ID, "Lyrics")
+                MEDIA_LYRICS_ID -> createFolderItem(MEDIA_LYRICS_ID, getString(R.string.lyrics_tab))
                 MEDIA_DOWNLOADS_ID -> createFolderItem(MEDIA_DOWNLOADS_ID, getString(R.string.downloads))
                 MEDIA_LOCAL_MUSIC_ID -> createFolderItem(MEDIA_LOCAL_MUSIC_ID, getString(R.string.local_music))
+                MEDIA_ALBUMS_ID -> createFolderItem(MEDIA_ALBUMS_ID, getString(R.string.albums), folderType = MediaMetadata.FOLDER_TYPE_ALBUMS, isGrid = true)
+                MEDIA_ARTISTS_ID -> createFolderItem(MEDIA_ARTISTS_ID, getString(R.string.artists), folderType = MediaMetadata.FOLDER_TYPE_ARTISTS, isGrid = true)
                 "msg:login_required" -> createLoginPromptItem()
                 else -> {
                     if (mediaId.startsWith("msg:")) {
@@ -9833,6 +9893,13 @@ class PlaybackService : MediaLibraryService() {
             )
             .build()
 
+    /** A row saying the content couldn't be reached — offline, or YouTube not answering. */
+    private fun createUnreachableItem(): MediaItem = createInfoItem(
+        "msg:unreachable",
+        getString(R.string.auto_unreachable_title),
+        getString(R.string.auto_unreachable_subtitle),
+    )
+
     private fun createInfoItem(mediaId: String, title: String, subtitle: String? = null): MediaItem =
         MediaItem.Builder()
             .setMediaId(mediaId)
@@ -9855,6 +9922,8 @@ class PlaybackService : MediaLibraryService() {
         const val MEDIA_MORE_ID = "more"
         const val MEDIA_LIKED_ID = "liked"
         const val MEDIA_LYRICS_ID = "lyrics"
+        const val MEDIA_ALBUMS_ID = "library_albums"
+        const val MEDIA_ARTISTS_ID = "library_artists"
         /** Lyric rows have ids like "lyric:12000", where the number is the line's start time in ms. */
         const val LYRIC_ITEM_PREFIX = "lyric:"
         /** How many lyric rows fit on the car screen. The 800x480 Android Auto simulator shows 4, and a bigger screen shows more. */

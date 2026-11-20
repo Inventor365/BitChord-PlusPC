@@ -1619,6 +1619,11 @@
     <string name="winter_effect_frost">Bordes escarchados</string>
     <string name="winter_effects_low_tier">Empieza desactivado en este teléfono para que vaya fluido</string>
     <string name="winter_effects_footer">Cada uno se pausa solo en el modo de bajo consumo, el ahorro de datos o el ahorro de batería, con las animaciones desactivadas y cuando Sonara no está a la vista. Desactivado, verás una versión estática.</string>
+    <string name="lyrics_in_now_playing">Letra en la pantalla de bloqueo</string>
+    <string name="lyrics_in_now_playing_subtitle">La línea que se canta en lugar del título en la notificación. Nunca se envía a tu coche ni a dispositivos Bluetooth.</string>
+    <string name="lyrics_tab">Letra</string>
+    <string name="auto_unreachable_title">No se pudo cargar</string>
+    <string name="auto_unreachable_subtitle">Puede que no tengas conexión. Las descargas siguen sonando.</string>
     <string name="winter_night_after_sunset">Cielo nocturno tras el atardecer</string>
     <string name="winter_night_after_sunset_subtitle">En modo claro, noche polar a partir de las 18:00 y de vuelta a las 6:00</string>
 </resources>

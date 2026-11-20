@@ -1648,6 +1648,11 @@
     <string name="winter_effect_frost">Bords givrés</string>
     <string name="winter_effects_low_tier">Désactivé au départ sur ce téléphone, pour rester fluide</string>
     <string name="winter_effects_footer">Chacun se met en pause tout seul en mode économie d’énergie, économiseur de données ou de batterie, quand les animations sont désactivées et quand Sonara n’est pas affiché. Désactivé, une version fixe s’affiche.</string>
+    <string name="lyrics_in_now_playing">Paroles sur l’écran de verrouillage</string>
+    <string name="lyrics_in_now_playing_subtitle">La ligne chantée à la place du titre dans la notification. Jamais envoyée à ta voiture ni aux appareils Bluetooth.</string>
+    <string name="lyrics_tab">Paroles</string>
+    <string name="auto_unreachable_title">Chargement impossible</string>
+    <string name="auto_unreachable_subtitle">Tu es peut-être hors ligne. Les téléchargements restent lisibles.</string>
     <string name="winter_night_after_sunset">Ciel nocturne après le coucher du soleil</string>
     <string name="winter_night_after_sunset_subtitle">En mode clair, nuit polaire après 18 h et retour après 6 h</string>
 </resources>

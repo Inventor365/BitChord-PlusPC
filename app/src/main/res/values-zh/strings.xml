@@ -1624,6 +1624,11 @@
     <string name="winter_effect_frost">霜冻边缘</string>
     <string name="winter_effects_low_tier">在此手机上默认关闭，以保持流畅</string>
     <string name="winter_effects_footer">在低电量模式、流量节省模式或省电模式下、动画关闭时，以及看不到 Sonara 时，每个效果都会自动暂停。关闭后会显示静态版本。</string>
+    <string name="lyrics_in_now_playing">锁屏显示歌词</string>
+    <string name="lyrics_in_now_playing_subtitle">在通知中以正在唱的歌词取代歌名。绝不会发送到车上或蓝牙设备。</string>
+    <string name="lyrics_tab">歌词</string>
+    <string name="auto_unreachable_title">无法加载</string>
+    <string name="auto_unreachable_subtitle">你可能处于离线状态，已下载的歌曲仍可播放。</string>
     <string name="winter_night_after_sunset">日落后切换为夜空</string>
     <string name="winter_night_after_sunset_subtitle">在浅色模式下，18:00 后切换为极夜，6:00 后恢复白天</string>
 </resources>

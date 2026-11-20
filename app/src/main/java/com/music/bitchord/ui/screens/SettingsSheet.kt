@@ -1508,6 +1508,24 @@ fun SettingsScreen(
             // sources are third-party services being reached on the user's
             // connection — which is the part worth being able to narrow.
             if (syncedLyrics) {
+                // Off by default: the session's title is what cars and Bluetooth devices show,
+                // so a lyric there only ever goes up with none of them listening.
+                val lyricsInNowPlaying by AppSettings.lyricsInNowPlaying.collectAsStateWithLifecycle()
+                val nowPlayingLyricsTitle = stringResource(R.string.lyrics_in_now_playing)
+                row(nowPlayingLyricsTitle, "lyrics", "notification", "lock screen", "car", "bluetooth") {
+                    SettingsRow(
+                        icon = SfIcons.Notes,
+                        title = nowPlayingLyricsTitle,
+                        subtitle = stringResource(R.string.lyrics_in_now_playing_subtitle),
+                        trailing = {
+                            IosSwitch(
+                                checked = lyricsInNowPlaying,
+                                onCheckedChange = AppSettings::setLyricsInNowPlaying,
+                            )
+                        },
+                        onClick = { AppSettings.setLyricsInNowPlaying(!lyricsInNowPlaying) },
+                    )
+                }
                 val lyricsBlurTitle = stringResource(R.string.blur_unfocused_lyrics)
                 row(lyricsBlurTitle, "lyrics", "blur") {
                     SettingsRow(

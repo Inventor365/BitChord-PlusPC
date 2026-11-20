@@ -1625,6 +1625,11 @@
     <string name="winter_effect_frost">霜の縁取り</string>
     <string name="winter_effects_low_tier">この端末ではなめらかさのため最初はオフ</string>
     <string name="winter_effects_footer">低電力モード、データセーバー、バッテリーセーバー中、アニメーションがオフのとき、Sonara が見えていないときは自動で止まります。オフにすると静止版になります。</string>
+    <string name="lyrics_in_now_playing">ロック画面に歌詞</string>
+    <string name="lyrics_in_now_playing_subtitle">通知でタイトルの代わりに歌っている行を表示。車や Bluetooth 機器には送りません。</string>
+    <string name="lyrics_tab">歌詞</string>
+    <string name="auto_unreachable_title">読み込めませんでした</string>
+    <string name="auto_unreachable_subtitle">オフラインかもしれません。ダウンロード済みの曲は再生できます。</string>
     <string name="winter_night_after_sunset">日没後は夜空に</string>
     <string name="winter_night_after_sunset_subtitle">ライトモードでは 18 時以降は極夜、6 時に昼へ戻ります</string>
 </resources>

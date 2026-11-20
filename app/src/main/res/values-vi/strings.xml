@@ -1566,6 +1566,11 @@
     <string name="winter_effect_frost">Viền sương giá</string>
     <string name="winter_effects_low_tier">Mặc định tắt trên điện thoại này để giữ mượt</string>
     <string name="winter_effects_footer">Mỗi hiệu ứng tự tạm dừng trong Chế độ nguồn điện thấp, Tiết kiệm dữ liệu hoặc tiết kiệm pin, khi tắt hoạt ảnh và khi Sonara không hiển thị. Khi tắt, bạn sẽ thấy phiên bản tĩnh.</string>
+    <string name="lyrics_in_now_playing">Lời bài hát trên màn hình khóa</string>
+    <string name="lyrics_in_now_playing_subtitle">Dòng đang hát thay cho tiêu đề trong thông báo. Không bao giờ gửi tới ô tô hay thiết bị Bluetooth.</string>
+    <string name="lyrics_tab">Lời bài hát</string>
+    <string name="auto_unreachable_title">Không tải được</string>
+    <string name="auto_unreachable_subtitle">Có thể bạn đang ngoại tuyến. Bài đã tải vẫn phát được.</string>
     <string name="winter_night_after_sunset">Bầu trời đêm sau hoàng hôn</string>
     <string name="winter_night_after_sunset_subtitle">Ở chế độ sáng, chuyển sang đêm vùng cực sau 18:00 và trở lại sau 6:00</string>
 </resources>

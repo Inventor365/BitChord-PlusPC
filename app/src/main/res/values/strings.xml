@@ -1526,6 +1526,11 @@
     <string name="winter_effect_frost">Frost edges</string>
     <string name="winter_effects_low_tier">Starts off on this phone, to keep it smooth</string>
     <string name="winter_effects_footer">Each one pauses by itself in Low Power Mode, Data Saver or battery saver, when animations are off, and whenever Sonara is out of sight. Off, you get a still version instead.</string>
+    <string name="lyrics_in_now_playing">Lyrics on the lock screen</string>
+    <string name="lyrics_in_now_playing_subtitle">The line being sung in place of the title in the notification. Never sent to your car or Bluetooth devices.</string>
+    <string name="lyrics_tab">Lyrics</string>
+    <string name="auto_unreachable_title">Couldn’t load this</string>
+    <string name="auto_unreachable_subtitle">You may be offline. Downloads still play.</string>
     <string name="winter_night_after_sunset">Night sky after sunset</string>
     <string name="winter_night_after_sunset_subtitle">In light mode, switch to the polar night after 6 pm and back after 6 am</string>
 </resources>

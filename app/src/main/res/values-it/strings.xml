@@ -1586,6 +1586,11 @@
     <string name="winter_effect_frost">Bordi brinati</string>
     <string name="winter_effects_low_tier">All’inizio è spento su questo telefono, per restare fluido</string>
     <string name="winter_effects_footer">Ognuno si mette in pausa da solo con il risparmio energetico, il risparmio dati o il risparmio batteria, con le animazioni disattivate e quando Sonara non è visibile. Da spento vedi una versione statica.</string>
+    <string name="lyrics_in_now_playing">Testi nella schermata di blocco</string>
+    <string name="lyrics_in_now_playing_subtitle">La riga cantata al posto del titolo nella notifica. Mai inviata all’auto o ai dispositivi Bluetooth.</string>
+    <string name="lyrics_tab">Testo</string>
+    <string name="auto_unreachable_title">Impossibile caricare</string>
+    <string name="auto_unreachable_subtitle">Forse sei offline. I download si possono ancora ascoltare.</string>
     <string name="winter_night_after_sunset">Cielo notturno dopo il tramonto</string>
     <string name="winter_night_after_sunset_subtitle">In modalità chiara, notte polare dopo le 18 e di nuovo giorno dopo le 6</string>
 </resources>

@@ -1647,6 +1647,11 @@
     <string name="winter_effect_frost">पाले वाले किनारे</string>
     <string name="winter_effects_low_tier">इस फ़ोन पर स्मूथ रखने के लिए शुरू में बंद</string>
     <string name="winter_effects_footer">लो पावर मोड, डेटा सेवर या बैटरी सेवर में, एनिमेशन बंद होने पर और Sonara न दिखने पर हर इफ़ेक्ट अपने आप रुक जाता है। बंद होने पर स्थिर रूप दिखता है।</string>
+    <string name="lyrics_in_now_playing">लॉक स्क्रीन पर लिरिक्स</string>
+    <string name="lyrics_in_now_playing_subtitle">नोटिफ़िकेशन में टाइटल की जगह गाई जा रही लाइन। कार या Bluetooth डिवाइस पर कभी नहीं भेजी जाती।</string>
+    <string name="lyrics_tab">लिरिक्स</string>
+    <string name="auto_unreachable_title">लोड नहीं हो सका</string>
+    <string name="auto_unreachable_subtitle">शायद आप ऑफ़लाइन हैं। डाउनलोड अब भी चलेंगे।</string>
     <string name="winter_night_after_sunset">सूर्यास्त के बाद रात का आसमान</string>
     <string name="winter_night_after_sunset_subtitle">लाइट मोड में शाम 6 बजे के बाद ध्रुवीय रात, सुबह 6 बजे फिर दिन</string>
 </resources>

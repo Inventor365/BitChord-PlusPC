@@ -1679,6 +1679,11 @@
     <string name="winter_effect_frost">Иней по краям</string>
     <string name="winter_effects_low_tier">На этом телефоне сначала выключено, чтобы всё было плавно</string>
     <string name="winter_effects_footer">Каждый эффект сам приостанавливается в режиме энергосбережения, экономии трафика или заряда, при выключенных анимациях и когда Sonara не на экране. Выключенный эффект заменяется статичным.</string>
+    <string name="lyrics_in_now_playing">Текст на экране блокировки</string>
+    <string name="lyrics_in_now_playing_subtitle">Текущая строка вместо названия в уведомлении. Никогда не отправляется в машину и на Bluetooth-устройства.</string>
+    <string name="lyrics_tab">Текст</string>
+    <string name="auto_unreachable_title">Не удалось загрузить</string>
+    <string name="auto_unreachable_subtitle">Возможно, нет сети. Загрузки по-прежнему играют.</string>
     <string name="winter_night_after_sunset">Ночное небо после заката</string>
     <string name="winter_night_after_sunset_subtitle">В светлом режиме — полярная ночь после 18:00 и обратно после 6:00</string>
 </resources>

@@ -1063,6 +1063,16 @@ object YtMusicRepository {
         InnertubeParser.parseUserPlaylists(libraryItemsPaged(LIBRARY_PLAYLISTS))
     }
 
+    /** The albums saved to the library, every page of them (Android Auto's Albums folder). */
+    suspend fun libraryAlbums(): Result<List<ShelfItem>> = call("libraryAlbums") {
+        libraryItemsPaged("FEmusic_liked_albums")
+    }
+
+    /** The artists of the library's songs, every page of them (Android Auto's Artists folder). */
+    suspend fun libraryArtists(): Result<List<ShelfItem>> = call("libraryArtists") {
+        libraryItemsPaged("FEmusic_library_corpus_track_artists")
+    }
+
     /**
      * All playlists in user library (including Liked Music and saved playlists).
      */

@@ -1652,6 +1652,11 @@
     <string name="winter_effect_frost">קצוות כפור</string>
     <string name="winter_effects_low_tier">כבוי בהתחלה בטלפון הזה, כדי לשמור על חלקות</string>
     <string name="winter_effects_footer">כל אחד נעצר מעצמו במצב חיסכון בסוללה, בחוסך הנתונים או בחוסך הסוללה של המערכת, כשהאנימציות כבויות וכש-Sonara לא מוצג. כשהוא כבוי מוצגת גרסה סטטית.</string>
+    <string name="lyrics_in_now_playing">מילים במסך הנעילה</string>
+    <string name="lyrics_in_now_playing_subtitle">השורה שמושרת במקום שם השיר בהתראה. אף פעם לא נשלחת לרכב או למכשירי Bluetooth.</string>
+    <string name="lyrics_tab">מילים</string>
+    <string name="auto_unreachable_title">לא ניתן לטעון</string>
+    <string name="auto_unreachable_subtitle">ייתכן שאין חיבור. הורדות עדיין מתנגנות.</string>
     <string name="winter_night_after_sunset">שמי לילה אחרי השקיעה</string>
     <string name="winter_night_after_sunset_subtitle">במצב בהיר, לילה קוטבי אחרי 18:00 וחזרה אחרי 6:00</string>
 </resources>

@@ -1631,6 +1631,11 @@
     <string name="winter_effect_frost">ขอบน้ำค้างแข็ง</string>
     <string name="winter_effects_low_tier">เริ่มต้นเป็นปิดบนโทรศัพท์นี้เพื่อความลื่นไหล</string>
     <string name="winter_effects_footer">แต่ละเอฟเฟกต์จะหยุดเองในโหมดประหยัดพลังงาน ประหยัดอินเทอร์เน็ต หรือประหยัดแบตเตอรี่ เมื่อปิดแอนิเมชัน และเมื่อไม่ได้เปิด Sonara อยู่ หากปิดจะแสดงแบบภาพนิ่งแทน</string>
+    <string name="lyrics_in_now_playing">เนื้อเพลงบนหน้าจอล็อก</string>
+    <string name="lyrics_in_now_playing_subtitle">แสดงท่อนที่กำลังร้องแทนชื่อเพลงในการแจ้งเตือน ไม่ส่งไปยังรถหรืออุปกรณ์ Bluetooth</string>
+    <string name="lyrics_tab">เนื้อเพลง</string>
+    <string name="auto_unreachable_title">โหลดไม่ได้</string>
+    <string name="auto_unreachable_subtitle">คุณอาจออฟไลน์อยู่ เพลงที่ดาวน์โหลดยังเล่นได้</string>
     <string name="winter_night_after_sunset">ท้องฟ้ายามค่ำหลังพระอาทิตย์ตก</string>
     <string name="winter_night_after_sunset_subtitle">ในโหมดสว่าง เปลี่ยนเป็นคืนขั้วโลกหลัง 18:00 และกลับหลัง 6:00</string>
 </resources>
