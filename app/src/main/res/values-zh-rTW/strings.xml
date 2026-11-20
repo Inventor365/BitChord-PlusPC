@@ -1623,7 +1623,6 @@
     <string name="theme_sonara_line">原版</string>
     <string name="theme_vice_line">霓虹黃昏</string>
     <string name="theme_doom_line">冷鋼</string>
-    <string name="theme_icon_pending">離開 Sonara 後主畫面圖示會更換，部分啟動器需要一點時間。</string>
     <string name="theme_preview_greeting">晚安</string>
     <string name="theme_switch">更換主題</string>
     <string name="app_theme_title">主題</string>

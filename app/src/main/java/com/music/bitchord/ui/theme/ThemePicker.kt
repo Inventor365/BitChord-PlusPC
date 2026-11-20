@@ -1,7 +1,6 @@
 package com.music.bitchord.ui.theme
 
 import android.content.Context
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -98,9 +97,7 @@ private fun themeLine(id: ThemeId): String = stringResource(
 fun chooseTheme(context: Context, id: ThemeId) {
     if (AppSettings.appTheme.value == id) return
     AppSettings.setAppTheme(id)
-    if (ThemeIcons.follow(context, id)) {
-        Toast.makeText(context, R.string.theme_icon_pending, Toast.LENGTH_LONG).show()
-    }
+    ThemeIcons.follow(context, id)
 }
 
 /**

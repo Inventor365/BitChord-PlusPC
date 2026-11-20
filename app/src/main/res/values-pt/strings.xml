@@ -1634,7 +1634,6 @@
     <string name="theme_sonara_line">O original</string>
     <string name="theme_vice_line">Crepúsculo neon</string>
     <string name="theme_doom_line">Aço frio</string>
-    <string name="theme_icon_pending">O ícone da tela inicial muda quando você sai do Sonara. Alguns launchers levam um instante.</string>
     <string name="theme_preview_greeting">Boa noite</string>
     <string name="theme_switch">Mudar tema</string>
     <string name="app_theme_title">Tema</string>

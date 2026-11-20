@@ -46,8 +46,12 @@ object ThemeIcons {
     }
 
     /**
-     * Queues the icon for [theme] (or the listener's own, for Sonara or with the theme icon
-     * turned off). Returns true when the icon will change, so the caller can say so.
+     * Puts the icon for [theme] on the home screen now (or the listener's own, for Sonara or with
+     * "Match app icon" off). Returns true when the icon changed.
+     *
+     * Immediate since every launcher alias opens [LauncherEntryActivity] rather than MainActivity:
+     * disabling an alias used to finish the running screen, so the swap had to wait for the app
+     * to leave the screen. If the package manager refuses, it's queued for then instead.
      */
     fun follow(context: Context, theme: ThemeId, dark: Boolean = appIsDark(context)): Boolean {
         val current = AppIcon.current(context)

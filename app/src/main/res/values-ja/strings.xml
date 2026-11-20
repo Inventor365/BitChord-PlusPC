@@ -1607,7 +1607,6 @@
     <string name="theme_sonara_line">オリジナル</string>
     <string name="theme_vice_line">ネオンの夕暮れ</string>
     <string name="theme_doom_line">冷たい鋼</string>
-    <string name="theme_icon_pending">Sonara を閉じるとホーム画面のアイコンが変わります。ランチャーによっては少し時間がかかります。</string>
     <string name="theme_preview_greeting">こんばんは</string>
     <string name="theme_switch">テーマを変更</string>
     <string name="app_theme_title">テーマ</string>

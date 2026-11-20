@@ -1613,7 +1613,6 @@
     <string name="theme_sonara_line">ต้นฉบับ</string>
     <string name="theme_vice_line">แสงนีออนยามเย็น</string>
     <string name="theme_doom_line">เหล็กเย็น</string>
-    <string name="theme_icon_pending">ไอคอนบนหน้าจอหลักจะเปลี่ยนเมื่อคุณออกจาก Sonara บางลอนเชอร์อาจใช้เวลาสักครู่</string>
     <string name="theme_preview_greeting">สวัสดีตอนเย็น</string>
     <string name="theme_switch">เปลี่ยนธีม</string>
     <string name="app_theme_title">ธีม</string>

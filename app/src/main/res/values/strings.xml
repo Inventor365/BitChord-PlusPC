@@ -1508,7 +1508,6 @@
     <string name="theme_sonara_line">The original</string>
     <string name="theme_vice_line">Neon dusk</string>
     <string name="theme_doom_line">Cold steel</string>
-    <string name="theme_icon_pending">Your home-screen icon changes when you leave Sonara. Some launchers take a moment.</string>
     <string name="theme_preview_greeting">Good evening</string>
     <string name="theme_switch">Change theme</string>
     <string name="app_theme_title">Theme</string>

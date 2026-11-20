@@ -60,15 +60,23 @@ enum class AppIcon(val alias: String, val iconRes: Int, val labelRes: Int, val p
             } ?: Default
         }
 
-        /** Enables [icon] before disabling the rest so there is never a moment with no launcher entry. */
+        /**
+         * Makes [icon] the one launcher entry. On Android 13+ all the changes go in one call, so the
+         * launcher sees a single swap; before that, [icon] is enabled before the rest are disabled
+         * so there is never a moment with no launcher entry. Never kills the app (see
+         * [LauncherEntryActivity] for why the running screen survives it too).
+         */
         fun apply(context: Context, icon: AppIcon) {
             val pm = context.packageManager
-            pm.setComponentEnabledSetting(
-                icon.component(context),
-                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                PackageManager.DONT_KILL_APP,
-            )
-            entries.filter { it != icon }.forEach {
+            val started = android.os.SystemClock.elapsedRealtime()
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                pm.setComponentEnabledSettings(
+                    listOf(icon to PackageManager.COMPONENT_ENABLED_STATE_ENABLED) +
+                        entries.filter { it != icon }.map { it to PackageManager.COMPONENT_ENABLED_STATE_DISABLED },
+                ) { (entry, state) ->
+                    PackageManager.ComponentEnabledSetting(entry.component(context), state, PackageManager.DONT_KILL_APP)
+                }
+            } else {
                 pm.setComponentEnabledSetting(
                     icon.component(context),
                     PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
@@ -82,6 +90,12 @@ enum class AppIcon(val alias: String, val iconRes: Int, val labelRes: Int, val p
                     )
                 }
             }
+            android.util.Log.i("ThemeIcons", "icon now ${icon.name} (${android.os.SystemClock.elapsedRealtime() - started} ms)")
         }
+
+        private inline fun PackageManager.setComponentEnabledSettings(
+            changes: List<Pair<AppIcon, Int>>,
+            build: (Pair<AppIcon, Int>) -> PackageManager.ComponentEnabledSetting,
+        ) = setComponentEnabledSettings(changes.map(build))
     }
 }

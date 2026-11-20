@@ -1630,7 +1630,6 @@
     <string name="theme_sonara_line">L\'original</string>
     <string name="theme_vice_line">Crépuscule néon</string>
     <string name="theme_doom_line">Acier froid</string>
-    <string name="theme_icon_pending">L\'icône de l\'écran d\'accueil change quand vous quittez Sonara. Certains lanceurs prennent un instant.</string>
     <string name="theme_preview_greeting">Bonsoir</string>
     <string name="theme_switch">Changer de thème</string>
     <string name="app_theme_title">Thème</string>

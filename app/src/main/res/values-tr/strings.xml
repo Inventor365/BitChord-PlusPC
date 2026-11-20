@@ -1612,7 +1612,6 @@
     <string name="theme_sonara_line">Orijinal</string>
     <string name="theme_vice_line">Neon gün batımı</string>
     <string name="theme_doom_line">Soğuk çelik</string>
-    <string name="theme_icon_pending">Sonara\'dan çıktığınızda ana ekran simgesi değişir. Bazı başlatıcılar biraz zaman alır.</string>
     <string name="theme_preview_greeting">İyi akşamlar</string>
     <string name="theme_switch">Temayı değiştir</string>
     <string name="app_theme_title">Tema</string>

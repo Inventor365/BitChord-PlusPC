@@ -1606,7 +1606,6 @@
     <string name="theme_sonara_line">原版</string>
     <string name="theme_vice_line">霓虹黄昏</string>
     <string name="theme_doom_line">冷钢</string>
-    <string name="theme_icon_pending">离开 Sonara 后主屏幕图标会更换，部分启动器需要一点时间。</string>
     <string name="theme_preview_greeting">晚上好</string>
     <string name="theme_switch">更换主题</string>
     <string name="app_theme_title">主题</string>
