@@ -94,15 +94,12 @@ fun YtMusicLoginScreen(
     val chooser = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
     ) { result ->
+        // Google refuses its one-time device sign-in link to apps outside Google: measured, the
+        // server answers WILL_NOT_SIGN_IN after showing an "UnsupportedTokenLabel" consent screen.
+        // So the chosen account goes straight into Google's own sign-in, already filled in, where
+        // Google can confirm it with a prompt to this phone instead of a password.
         val email = DeviceGoogleAccounts.chosenAccount(result.data)
-        val activity = context.findActivity()
-        if (email == null || activity == null) {
-            startUrl = LOGIN_URL
-        } else {
-            DeviceGoogleAccounts.webSignInUrl(activity, email) { link ->
-                startUrl = link ?: DeviceGoogleAccounts.prefilledLoginUrl(email)
-            }
-        }
+        startUrl = email?.let(DeviceGoogleAccounts::prefilledLoginUrl) ?: LOGIN_URL
     }
     LaunchedEffect(Unit) {
         if (startUrl == null) {
@@ -158,12 +155,6 @@ fun YtMusicLoginScreen(
             if (url != null && view.url == null) view.loadUrl(url)
         },
     )
-}
-
-private tailrec fun android.content.Context.findActivity(): android.app.Activity? = when (this) {
-    is android.app.Activity -> this
-    is android.content.ContextWrapper -> baseContext.findActivity()
-    else -> null
 }
 
 /**
