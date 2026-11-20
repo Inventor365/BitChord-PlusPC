@@ -70,7 +70,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -845,16 +845,16 @@ fun PullToRefresh(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    if (!LocalPullToRefreshEnabled.current) {
-        Box(modifier.fillMaxSize()) { content() }
-        return
-    }
-    PullToRefreshBox(
-        isRefreshing = refreshing,
-        onRefresh = onRefresh,
-        state = state,
-        modifier = modifier.fillMaxSize(),
-        indicator = {},
+    // Off while the system takes a long ("scrolling") screenshot. Android drives that by asking
+    // the list to scroll, through nested scroll; at the top of a page, "scroll up" is a pull, so
+    // the refresh soaked it up and reported it as scrolled, and the capture drew the top of the
+    // page three times over ("Top Picks for You" repeated). Same structure either way, so the
+    // list the capture holds on to is never torn down mid-capture.
+    val enabled = LocalPullToRefreshEnabled.current && !androidx.compose.ui.platform.LocalScrollCaptureInProgress.current
+    Box(
+        modifier
+            .fillMaxSize()
+            .pullToRefresh(isRefreshing = refreshing, state = state, enabled = enabled, onRefresh = onRefresh),
     ) {
         content()
     }
