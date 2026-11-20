@@ -79,19 +79,34 @@ import kotlin.math.abs
  *    early by exactly that lead — and being *consistently* early is worse than
  *    being occasionally late, because it is below the drift limit and would
  *    never be corrected. So a resume waits out [ListenTogether.msUntilStart].
- *  - **Drift is corrected by seeking, and only when it is real.** A seek is
- *    audible, so [DRIFT_LIMIT_MS] is set well above the jitter of two decoders
- *    running independently and at the level of an actual desync — a buffering
- *    stall, a doze, a device that came back from a tunnel.
+ *  - **Drift is closed by tempo, and by seeking only when it is large.** See
+ *    [com.music.bitchord.data.listentogether.PartyDriftCorrector]: gaps up to
+ *    ~0.45 s are closed by playing up to 3.5% faster or slower (pitch kept), and
+ *    larger ones by a seek aimed ahead by this device's learned re-buffer time, so
+ *    a phone on mobile data does not sit a second behind for the whole song.
  *  - **Position is only trusted once the clock is.** Before the first
  *    ping/pong there is no measured offset, so track and play/pause are applied
  *    and the playhead is left alone rather than seeked to a guess.
  */
 class PartySync(
     private val scope: CoroutineScope,
+    /**
+     * Whether the playback speed may be nudged right now: not mid-crossfade or loop mix, which
+     * own the speed while they run. Read each tick.
+     */
+    private val canNudgeTempo: () -> Boolean = { true },
     /** Read fresh every time: the service swaps players at a crossfade. */
     private val player: () -> Player?,
 ) {
+    /**
+     * Holds this device on the party's playhead: small gaps by tempo, big ones by seeking ahead
+     * by this device's learned seek latency. See [PartyDriftCorrector] for why parties used to
+     * sit a second apart.
+     */
+    private val corrector = com.music.bitchord.data.listentogether.PartyDriftCorrector(canNudge = true)
+
+    /** The tempo the corrector last set; restored to normal when it stops or the party ends. */
+    private var nudgedRate = 1.0
 
     private val jobs = mutableListOf<Job>()
     private var publishJob: Job? = null
@@ -241,12 +256,6 @@ class PartySync(
      */
     @Volatile
     private var rejoining = false
-
-    /** Consecutive over-limit readings. See the drift branch of [reconcile]. */
-    private var driftStrikes = 0
-
-    /** When the player may next be seeked for drift, having just been. */
-    private var driftCooldownUntilMs = 0L
 
     private var lastPartyCode: String? = null
 
@@ -539,6 +548,8 @@ class PartySync(
         }
         lastConnection = party.connection
         if (!party.inParty) {
+            restoreTempo()
+            corrector.reset()
             clearPlaylist()
             loadingVideoId = null
             focusLost = false
@@ -654,7 +665,11 @@ class PartySync(
                 }
                 return
             }
-            if (want != null) exo.seekTo(want)
+            // A cold player is silent for its re-buffer after `play()`, and comes in that far
+            // behind: aimed ahead by this device's learned seek latency, it arrives on time.
+            if (want != null) {
+                exo.seekTo(corrector.seekTarget(want, SystemClock.elapsedRealtime(), buffered = exo.playbackState == Player.STATE_READY))
+            }
             deferredPlayPending = false
             startJob?.cancel()
             exo.play()
@@ -675,7 +690,7 @@ class PartySync(
         // `currentPosition` is where it will resume rather than where it is, so
         // the party runs on and this reads as drift that is not there.
         if (exo.playbackState != Player.STATE_READY) {
-            driftStrikes = 0
+            corrector.decide(0L, want, SystemClock.elapsedRealtime(), settled = false).let(::applyCorrection)
             return
         }
 
@@ -703,35 +718,48 @@ class PartySync(
             lastTrackId = track.videoId
             lastIsPlaying = target.isPlaying
 
+            // A control everyone hears as a jump anyway (a seek, a track change): land on it
+            // exactly. Ordinary drift afterwards is the corrector's.
             val tolerance = if (ownTrackChange) DRIFT_LIMIT_MS else ALIGN_TOLERANCE_MS
             if (isPlaybackAnchorChanged && abs(drift) > tolerance) {
                 Log.i(TAG, "aligning ${drift}ms onto party control ${target.seq}")
-                exo.seekTo(want)
+                exo.seekTo(corrector.seekTarget(want, SystemClock.elapsedRealtime(), buffered = abs(drift) < 3_000))
                 return
             }
         }
-        if (abs(drift) <= DRIFT_LIMIT_MS) {
-            driftStrikes = 0
-            return
+        // Everything else — the late start a cold player makes, a stall, the slow creep of two
+        // clocks — is the corrector's: tempo for small gaps, a seek aimed by this device's learned
+        // re-buffer time for big ones, with the strikes, cooldown and rate cap that keep a slow
+        // device from the seek loop measured here once (-1402 ms every 1.4 s). The old 1.2 s
+        // dead zone is gone: it is what let phones sit a second apart for a whole song.
+        // Ready, meant to play and not suppressed — all checked above — is settled.
+        applyCorrection(corrector.decide(drift, want, SystemClock.elapsedRealtime(), settled = true))
+    }
+
+    private fun applyCorrection(action: com.music.bitchord.data.listentogether.PartyDriftCorrector.Action) {
+        val exo = player() ?: return
+        when (action) {
+            is com.music.bitchord.data.listentogether.PartyDriftCorrector.Action.Seek -> {
+                Log.i(TAG, "seeking onto the party (lead ${corrector.seekLeadMs}ms)")
+                restoreTempo()
+                exo.seekTo(action.toMs)
+            }
+            is com.music.bitchord.data.listentogether.PartyDriftCorrector.Action.Rate -> {
+                // Only while nothing else owns the speed; otherwise the next tick asks again.
+                if (action.rate != 1.0 && !canNudgeTempo()) return restoreTempo()
+                nudgedRate = action.rate
+                exo.setPlaybackSpeed((com.music.bitchord.data.settings.AppSettings.playbackSpeed.value * action.rate).toFloat())
+            }
+            com.music.bitchord.data.listentogether.PartyDriftCorrector.Action.None -> Unit
         }
-        // Seeking is not free, and on a slow device it is not cheap either: the
-        // re-buffer it costs can be longer than the gap being closed, so the
-        // correction arrives already as far behind as the error it was fixing,
-        // and does it again, forever. That loop is real — it was measured here
-        // at a flat -1402ms every 1.4s, to the millisecond, for as long as it
-        // was left running.
-        //
-        // Two things keep it out. A correction has to be asked for twice in a
-        // row before it happens, so one reading taken while the pipeline was
-        // catching up cannot trigger anything; and after one, the player is left
-        // alone long enough to settle and show what it is really doing.
-        val now = SystemClock.elapsedRealtime()
-        if (now < driftCooldownUntilMs) return
-        if (++driftStrikes < DRIFT_STRIKES) return
-        Log.i(TAG, "correcting ${drift}ms of drift against the party")
-        driftStrikes = 0
-        driftCooldownUntilMs = now + DRIFT_COOLDOWN_MS
-        exo.seekTo(want)
+    }
+
+    /** Puts the listener's own speed back if the corrector had changed it. */
+    private fun restoreTempo() {
+        if (nudgedRate == 1.0) return
+        nudgedRate = 1.0
+        if (!canNudgeTempo()) return // a crossfade owns the speed and will set its own
+        player()?.setPlaybackSpeed(com.music.bitchord.data.settings.AppSettings.playbackSpeed.value)
     }
 
     /**
@@ -1087,28 +1115,10 @@ class PartySync(
         const val TICK_MS = 700L
 
         /**
-         * How far out of step is worth an audible seek.
-         *
-         * Above the jitter of two decoders on different hardware, and at the
-         * level of a real desync. Tightening this does not make a party more
-         * synchronised — it makes it seek more often, which is what people
-         * actually hear.
+         * How far a device may be off its *own* new control before re-seeking it: the issuer of
+         * a track change has just put it there itself. Ordinary drift is [PartyDriftCorrector]'s.
          */
         const val DRIFT_LIMIT_MS = 1_200L
-
-        /** Readings in a row above the limit before a correction is made. */
-        const val DRIFT_STRIKES = 2
-
-        /**
-         * How long the player is left alone after a corrective seek.
-         *
-         * Long enough to cover the re-buffer a seek costs on a slow device
-         * plus room to show a settled position afterwards. This is the value
-         * that decides whether correction converges or oscillates, so it is
-         * deliberately generous: a party a second out for a few seconds is
-         * fine, a party seeking every 1.4s is not listenable.
-         */
-        const val DRIFT_COOLDOWN_MS = 6_000L
 
         /** While paused there is nothing to hear, so the playhead can be exact. */
         const val PAUSED_TOLERANCE_MS = 400L

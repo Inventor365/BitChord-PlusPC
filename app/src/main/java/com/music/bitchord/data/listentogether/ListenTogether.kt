@@ -1266,9 +1266,11 @@ object ListenTogether {
      * milliseconds per minute.
      */
     private suspend fun DefaultClientWebSocketSession.pingLoop() {
-        repeat(4) {
+        // A longer opening burst: on mobile data the first pings often wait on the radio waking,
+        // and the clock is only as good as the quickest round trip among them.
+        repeat(8) {
             ping()
-            delay(300)
+            delay(250)
         }
         while (true) {
             delay(PING_INTERVAL_MS)

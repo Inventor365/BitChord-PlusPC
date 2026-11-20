@@ -1,3 +1,4 @@
+import { DriftCorrector } from './driftCorrector';
 import type { Track } from '@/data/music/types';
 import type { QueueTier } from '@/playback/queue/timeline';
 import { getAudio, partyPlayer, setPartyHooks, usePlayer } from '@/state/player';
@@ -26,9 +27,6 @@ import { autoplaySupplierId, detectSingleMove, partyQueueIndexOf, partyUpcomingA
  */
 
 const TICK_MS = 700;
-const DRIFT_LIMIT_MS = 1_200;
-const DRIFT_STRIKES = 2;
-const DRIFT_COOLDOWN_MS = 6_000;
 const PAUSED_TOLERANCE_MS = 400;
 const ALIGN_TOLERANCE_MS = 120;
 const SEEK_REPORT_FLOOR_MS = 1_000;
@@ -97,8 +95,7 @@ let lastTrackId: string | null = null;
 let lastIsPlaying = false;
 let loadingVideoId: string | null = null;
 let locallyPaused = false;
-let driftStrikes = 0;
-let driftCooldownUntil = 0;
+const corrector = new DriftCorrector();
 let publishTimer: ReturnType<typeof setTimeout> | undefined;
 let startTimer: ReturnType<typeof setTimeout> | undefined;
 let lastPartyCode: string | null = null;
@@ -237,6 +234,7 @@ function reconcile(): void {
     lastTrackId = null;
     lastIsPlaying = false;
     setAwaiting(false);
+    corrector.reset();
     return;
   }
   if (locallyPaused && !controlsLocked(state)) locallyPaused = false;
@@ -274,7 +272,9 @@ function reconcile(): void {
       startTimer = setTimeout(reconcile, wait);
       return;
     }
-    if (want !== null) partyPlayer.seekTo(want / 1000);
+    // A cold stream is silent after play() and comes in that far behind: aimed ahead by this
+    // player's learned re-buffer time, it arrives on time.
+    if (want !== null) partyPlayer.seekTo(corrector.seekTarget(want, performance.now(), false) / 1000);
     setAwaiting(false);
     clearTimeout(startTimer);
     partyPlayer.play();
@@ -285,7 +285,7 @@ function reconcile(): void {
   if (want === null) return;
   // Only a settled player can be measured.
   if (usePlayer.getState().status !== 'playing') {
-    driftStrikes = 0;
+    corrector.decide(0, want, performance.now(), false);
     return;
   }
 
@@ -300,21 +300,14 @@ function reconcile(): void {
     lastTrackId = track.videoId;
     lastIsPlaying = target.isPlaying;
     if (anchorChanged && Math.abs(drift) > ALIGN_TOLERANCE_MS) {
-      partyPlayer.seekTo(want / 1000);
+      partyPlayer.seekTo(corrector.seekTarget(want, performance.now(), Math.abs(drift) < 3_000) / 1000);
       return;
     }
   }
-  if (Math.abs(drift) <= DRIFT_LIMIT_MS) {
-    driftStrikes = 0;
-    return;
-  }
-  // A seek costs a re-buffer; asked for twice in a row, then left alone to settle.
-  const now = performance.now();
-  if (now < driftCooldownUntil) return;
-  if (++driftStrikes < DRIFT_STRIKES) return;
-  driftStrikes = 0;
-  driftCooldownUntil = now + DRIFT_COOLDOWN_MS;
-  partyPlayer.seekTo(want / 1000);
+  // Ordinary drift — a late cold start, a stall — is the corrector's: a seek past 180 ms, aimed by
+  // this player's learned re-buffer time. The old 1.2 s dead zone left players a second apart.
+  const to = corrector.decide(drift, want, performance.now(), true);
+  if (to !== null) partyPlayer.seekTo(to / 1000);
 }
 
 /** The party's running order onto the player, at its position; started only if the party is going now. */

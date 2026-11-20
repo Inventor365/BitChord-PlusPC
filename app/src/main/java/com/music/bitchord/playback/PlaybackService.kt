@@ -1926,7 +1926,11 @@ class PlaybackService : MediaLibraryService() {
         exoPlayer.addListener(playbackListener)
         // After the player exists and before the session is built: the
         // session's wrapper reports the user's actions to it.
-        partySync = PartySync(scope) { player }.also { it.start() }
+        partySync = PartySync(
+            scope,
+            // Not while a crossfade or loop mix holds the speed for its own blend.
+            canNudgeTempo = { crossfade?.isTransitioning() != true && crossfade?.loopPositionMs() == null },
+        ) { player }.also { it.start() }
         // AutoPlay has one shared supplier in a party. The host supplies it
         // while connected; if they disappear, the lowest stable connected member
         // ID takes over. That election is deterministic on every phone, so two

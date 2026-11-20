@@ -30,9 +30,12 @@ import kotlin.math.abs
  *    future so every device has one instant to aim at. Playing the moment the frame lands would
  *    start this device early by exactly that lead — and being *consistently* early is worse than
  *    occasionally late, because it sits under the drift limit and is never corrected.
- *  - **Drift is corrected by seeking, and only when it is real.** A seek is audible, so
- *    [DRIFT_LIMIT_MS] sits well above the jitter of two decoders running independently, and a
- *    correction needs [DRIFT_STRIKES] readings in a row before it fires.
+ *  - **Drift is corrected by seeking, aimed by this machine's own re-buffer time.** The shared
+ *    [com.music.bitchord.data.listentogether.PartyDriftCorrector] seeks past ~0.18 s, aimed
+ *    ahead by a seek latency it learns from where each seek lands, with strikes, a cooldown and a
+ *    per-minute cap so a slow stream cannot loop. The old 1.2 s dead zone let a machine that
+ *    started a cold stream sit a second behind for the whole song. New controls (a seek, a
+ *    track change) are still landed on exactly, through [decideSeek].
  *  - **Position is only trusted once the clock is.** Before the first ping/pong there is no
  *    measured offset, so the track and play/pause are applied and the playhead is left alone
  *    rather than seeked to a guess.
@@ -68,6 +71,13 @@ internal class DesktopPartySync(
     private var alignedSeq = -1L
     private var driftStrikes = 0
     private var driftCooldownUntilMs = 0L
+
+    /**
+     * Closes ordinary drift — the late start a cold stream makes, a stall — with seeks aimed ahead
+     * by this machine's learned re-buffer time. Seek-only: the engine's tempo stretcher belongs to
+     * the crossfades. See [com.music.bitchord.data.listentogether.PartyDriftCorrector].
+     */
+    private val corrector = com.music.bitchord.data.listentogether.PartyDriftCorrector(canNudge = false)
     /**
      * The seqs the party reaches once every control this device last sent has come back round.
      * Until then a reconcile would undo the very thing the listener just did; past them the quiet
@@ -135,6 +145,7 @@ internal class DesktopPartySync(
         loadingVideoId = null
         alignedSeq = -1L
         driftStrikes = 0
+        corrector.reset()
         awaitPlaybackSeq = Long.MAX_VALUE
         awaitQueueSeq = Long.MAX_VALUE
         locallyPaused = false
@@ -267,29 +278,44 @@ internal class DesktopPartySync(
                 }
                 return
             }
-            if (want != null) engine.seekTo(want)
+            // A stream still loading is silent after `play()` and comes in that far behind:
+            // aimed ahead by this machine's learned re-buffer time, it arrives on time.
+            if (want != null) engine.seekTo(corrector.seekTarget(want, nowMs(), buffered = !playback.isLoading))
             startJob?.cancel()
             engine.play()
             return
         }
 
         if (want == null) return
-        val drift = playback.positionMs - want
         val now = nowMs()
-        val decision = decideSeek(
-            drift = drift,
-            controlSeq = target.seq,
-            alignedSeq = alignedSeq,
-            strikes = driftStrikes,
-            nowMs = now,
-            cooldownUntilMs = driftCooldownUntilMs,
-        )
-        alignedSeq = decision.alignedSeq
-        driftStrikes = decision.strikes
-        if (decision.cooldownUntilMs > 0) driftCooldownUntilMs = decision.cooldownUntilMs
-        if (decision.seek) {
-            DesktopTrackLog.log("party: ${decision.reason} ${drift}ms")
-            engine.seekTo(want)
+        // The engine's position is stamped with when it was read; moved on to now, or every
+        // reading is behind by however long ago the audio thread last reported.
+        val age = if (playback.positionSampledAtNanos > 0) (System.nanoTime() - playback.positionSampledAtNanos) / 1_000_000L else 0L
+        val drift = playback.positionMs + age.coerceIn(0L, 1_000L) - want
+        if (target.seq != alignedSeq) {
+            // A new control: land on it exactly, at once.
+            val decision = decideSeek(
+                drift = drift,
+                controlSeq = target.seq,
+                alignedSeq = alignedSeq,
+                strikes = driftStrikes,
+                nowMs = now,
+                cooldownUntilMs = driftCooldownUntilMs,
+            )
+            alignedSeq = decision.alignedSeq
+            if (decision.seek) {
+                DesktopTrackLog.log("party: ${decision.reason} ${drift}ms")
+                engine.seekTo(corrector.seekTarget(want, now, buffered = abs(drift) < 3_000))
+            }
+            return
+        }
+        val settled = playback.isPlaying && !playback.isLoading && !playback.awaitingAudio
+        when (val action = corrector.decide(drift, want, now, settled)) {
+            is com.music.bitchord.data.listentogether.PartyDriftCorrector.Action.Seek -> {
+                DesktopTrackLog.log("party: correcting ${drift}ms (lead ${corrector.seekLeadMs}ms)")
+                engine.seekTo(action.toMs)
+            }
+            else -> Unit
         }
     }
 
