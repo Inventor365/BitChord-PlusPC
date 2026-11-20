@@ -1870,11 +1870,16 @@ fun BitChordDesktopApp() {
     val playerPosition = remember { PlaybackPosition() }
     LaunchedEffect(playbackEngine) {
         playbackEngine.state.collect {
-            // The audio thread's own timestamp, not this collector's: it runs on the UI thread and
-            // gets to a reading as late as the UI is busy.
-            playerPosition.report(it.positionMs, it.positionSampledAtNanos)
+            // The seek count first: a reading is stamped with the jump it belongs to as it is
+            // reported, and the lyrics only let a reading move them back if its stamp is new.
+            // Reported first, every seek's and every new track's landing went out under the old
+            // stamp, so the lyrics treated it as a late reading and held where they were.
             playerPosition.seeks = it.seeks
             playerPosition.advancing = !it.awaitingAudio
+            // The audio thread's own timestamp, not this collector's: it runs on the UI thread and
+            // gets to a reading as late as the UI is busy. With the engine's own play state, so the
+            // lyric clock never runs on through a pause the UI has not caught up with.
+            playerPosition.report(it.positionMs, it.positionSampledAtNanos, isPlaying = it.isPlaying && !it.isLoading)
         }
     }
 
@@ -1918,7 +1923,6 @@ fun BitChordDesktopApp() {
     // so looking up against a length of zero would settle on the wrong recording.
     LaunchedEffect(
         selectedSong?.videoId,
-        lyricsLengthMs,
         syncedLyrics,
         prioritizeSyllables,
         lyricsOn,
@@ -1939,15 +1943,20 @@ fun BitChordDesktopApp() {
             lyricsLoading = false
             return@LaunchedEffect
         }
-        // A length is what a database match is made on, and it lands a beat after the track. Looking
-        // up without one would settle on whichever recording shares the name — so this waits, the
-        // same way Android's `loadLyrics` turns the call away until a duration exists.
-        val length = lyricsLengthMs.takeIf { it > 0L } ?: current.durationMillis()
+        // A length is what a database match is made on, and the engine's real one lands a beat after
+        // the track. Waited for (briefly) rather than looked up twice: keyed on it, the first lookup
+        // ran on the catalogue's length — often another recording's, a video's or a remaster's —
+        // showed that recording's lyrics, and was then replaced when the real length arrived. The
+        // catalogue's length is the fallback for a stream that never reports one.
+        lyricsLoading = true
+        val length = kotlinx.coroutines.withTimeoutOrNull(LYRICS_LENGTH_WAIT_MS) {
+            snapshotFlow { lyricsLengthMs }.first { it > 0L }
+        } ?: current.durationMillis()
         if (length <= 0L) {
-            lyricsLoading = true
+            lyricsLoading = false
+            lyricsError = "Lyrics unavailable"
             return@LaunchedEffect
         }
-        lyricsLoading = true
         // The manual search asks the same providers under the typed words rather
         // than the track's own credits; a provider switch keeps that query.
         val probe = lyricsQuery?.let { (title, artist) -> current.copy(title = title, artist = artist) } ?: current
@@ -3084,7 +3093,11 @@ fun BitChordDesktopApp() {
     }
 
     // What the player and the lyrics column beside the page both read, worked out once for the two.
-    val sharedLyrics = lyrics?.lines
+    // Only lyrics found for the song whose audio drives the clock: anything else — a lookup for the
+    // track before, still on screen for the frame before its replacement starts — would sing one
+    // song's words to another's timing.
+    val clockSongId = (playback.song ?: selectedSong)?.videoId
+    val sharedLyrics = lyrics?.takeIf { it.videoId.isEmpty() || it.videoId == clockSongId }?.lines
     val sharedLyricsSource = remember(lyrics) { lyrics?.source?.let(::lyricsSourceNamed) }
     val sharedLyricsUnavailable = !lyricsLoading && sharedLyrics.isNullOrEmpty()
     val providerStates = remember(lyricsOrder, lyricsOn, sharedLyricsSource, lyricsLoading) {
@@ -8391,3 +8404,6 @@ private fun formatCollectionDuration(totalSeconds: Long): String {
 }
 
 private fun formatSleepTimer(ms: Long): String = formatTime(ms)
+
+/** How long a lyrics lookup waits for the engine's real track length before using the catalogue's. */
+private const val LYRICS_LENGTH_WAIT_MS = 2_500L

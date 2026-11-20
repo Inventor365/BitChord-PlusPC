@@ -9,8 +9,11 @@ import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.model.durationMillis
 import java.util.concurrent.ConcurrentHashMap
 
-/** A track's lyrics and which provider they came from, by its label. */
-data class DesktopLyrics(val source: String, val lines: List<LyricLine>) {
+/**
+ * A track's lyrics and which provider they came from, by its label — and [videoId], the track
+ * they were found for, so they are never drawn over another song's audio.
+ */
+data class DesktopLyrics(val source: String, val lines: List<LyricLine>, val videoId: String = "") {
     val plainText: String get() = lines.joinToString("\n") { it.text }
     val wordSynced: Boolean get() = lines.any(LyricLine::isWordSynced)
 }
@@ -112,8 +115,10 @@ object DesktopLyricsClient {
                 Result.success(DesktopLyrics(found.source.label, found.lines))
             }
         }
-        cache[cacheKey] = Cached(System.currentTimeMillis(), result)
-        return result
+        // Stamped with the track it is for — the cache key's first part — whatever was looked up.
+        val stamped = result.map { it.copy(videoId = song.videoId) }
+        cache[cacheKey] = Cached(System.currentTimeMillis(), stamped)
+        return stamped
     }
 
     /** The words inside the file this track plays from, when it plays from one. */
