@@ -119,6 +119,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -527,9 +528,18 @@ class MainActivity : AppCompatActivity() {
                 // page is drawn over it and the glass samples it too. Sonara's is flat, as before.
                 val themeTokens = com.music.bitchord.ui.theme.LocalThemeTokens.current
                 val backdropPainter = remember { com.music.bitchord.ui.theme.ThemeBackdropPainter() }
-                val paintBackdrop: ContentDrawScope.() -> Unit = remember(windowBackground, themeTokens) {
+                // Winter's live scene, recorded into one layer by the page floor (see BitChordApp).
+                // With Liquid glass on, every page is drawn through the backdrop below, which paints
+                // its own solid floor first — so without this the whole Winter sky (aurora, stars,
+                // snow, the landscape) sat hidden under it. Drawn here too, it is on the page and
+                // in what the glass blurs. A layer reference: it keeps moving without re-recording.
+                val winterSceneLayer = if (themeTokens.animated) androidx.compose.ui.graphics.rememberGraphicsLayer() else null
+                val paintBackdrop: ContentDrawScope.() -> Unit = remember(windowBackground, themeTokens, winterSceneLayer) {
                     {
                         backdropPainter.draw(this, themeTokens, windowBackground)
+                        if (winterSceneLayer != null && winterSceneLayer.size.width > 0) {
+                            drawLayer(winterSceneLayer)
+                        }
                         drawContent()
                     }
                 }
@@ -561,6 +571,7 @@ class MainActivity : AppCompatActivity() {
                     LocalAppBackdrop provides appBackdrop,
                     com.music.bitchord.ui.theme.LocalThemeEffects provides themeEffects,
                     com.music.bitchord.ui.theme.LocalAuroraLayer provides auroraLayer,
+                    LocalWinterSceneLayer provides winterSceneLayer,
                 ) {
                 // The window's width, measured rather than asked for.
                 //
@@ -3217,6 +3228,7 @@ private fun BitChordApp(
             val tierSnow = remember { com.music.bitchord.ui.performance.DeviceTier.of(context).snowScale }
             val night = floorTokens.motif == com.music.bitchord.ui.theme.ThemeMotif.AURORA
             val minuteOfDay = rememberMinuteOfDay()
+            val winterSceneLayer = LocalWinterSceneLayer.current
             com.music.bitchord.ui.theme.WinterScene(
                 night = night,
                 effects = floorEffects,
@@ -3228,6 +3240,16 @@ private fun BitChordApp(
                 // By day, the sun's place along its arc from the time; it moves a minute at a time.
                 sun = if (night) null else com.music.bitchord.ui.performance.WinterScenePolicy.sunProgress(minuteOfDay),
                 background = pageFloor,
+                // Drawn here and recorded for the Liquid glass backdrop, which paints over this.
+                modifier = Modifier.drawWithContent {
+                    val sceneLayer = winterSceneLayer
+                    if (sceneLayer != null) {
+                        sceneLayer.record { this@drawWithContent.drawContent() }
+                        drawLayer(sceneLayer)
+                    } else {
+                        drawContent()
+                    }
+                },
             )
         }
         // A pushed page replaces the tab content but leaves the tab bar and
@@ -7500,6 +7522,9 @@ private suspend fun LazyListState.scrollToTopEased() {
 
 /** Safely converts a nullable Float to non-null, defaulting to 0f for null. */
 private fun Float?.orZero(): Float = this ?: 0f
+
+/** Winter's scene, recorded once for both the page floor and the Liquid glass backdrop. */
+private val LocalWinterSceneLayer = androidx.compose.runtime.staticCompositionLocalOf<androidx.compose.ui.graphics.layer.GraphicsLayer?> { null }
 
 /** Set by the page while the full player covers it, so Winter's sky clock can stop. */
 private val LocalWinterSkyCovered = androidx.compose.runtime.staticCompositionLocalOf { androidx.compose.runtime.mutableStateOf(false) }

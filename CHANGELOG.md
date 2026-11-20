@@ -27,6 +27,7 @@ All notable changes to **Sonara** (`https://github.com/Inventor365/Sonara`), for
 - The Home greeting and quote get a soft halo in the page's colour, so they stay readable over a theme's artwork.
 
 ### Fixed
+- **Winter's sky didn't show with Liquid glass on.** With Liquid glass on, pages draw their own solid floor for the glass to blur, and it covered the aurora, stars, snow and landscape. The scene is now part of that floor too, so it shows and the glass blurs it.
 - **Listen Together devices drifted about a second apart.** A device told to start a track it had not buffered yet played on time but stayed silent while the stream loaded, then came in that far behind. Its own corrective seeks re-buffered the same way, and nothing under 1.2 s was ever corrected. Now:
   - gaps up to about 0.45 s are closed by playing up to 3.5% faster or slower, pitch kept;
   - larger gaps are seeked, aimed ahead by each device's own measured re-buffer time;
