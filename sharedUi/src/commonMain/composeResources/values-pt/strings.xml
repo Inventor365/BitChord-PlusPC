@@ -287,4 +287,65 @@
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
     <string name="library_search_hint">Pesquisar na sua biblioteca</string>
     <string name="library_no_matches">Nada na sua biblioteca corresponde a “%1$s”</string>
+    <string name="search_empty_title">O que você quer ouvir?</string>
+    <string name="browse_categories">Explorar categorias</string>
+    <string name="import_apple_music">Importar Apple Music</string>
+    <string name="import_amazon_music">Importar Amazon Music</string>
+    <string name="import_amazon_music_subtitle">De uma lista de músicas colada</string>
+    <string name="video_off_short">Desl.</string>
+    <string name="video_quality_off">Vídeo desligado</string>
+    <string name="video_quality_off_detail">Banner estático · economiza dados e bateria</string>
+    <string name="video_forced_off">%1$s está mostrando o banner. Sua escolha volta quando ele desligar.</string>
+    <string name="video_forced_cap">%1$s mantém o vídeo em %2$s ou menos.</string>
+    <string name="greeting_named">%1$s, %2$s</string>
+    <string-array name="greetings_morning">
+        <item>Bom dia</item>
+        <item>Acorda pra vida</item>
+        <item>Primeiro, café</item>
+        <item>Bora lá</item>
+        <item>Recomeço</item>
+    </string-array>
+    <string-array name="greetings_afternoon">
+        <item>Boa tarde</item>
+        <item>Clima pós-almoço</item>
+        <item>Metade do caminho</item>
+        <item>Firme e forte</item>
+        <item>Oi</item>
+    </string-array>
+    <string-array name="greetings_evening">
+        <item>Boa noite</item>
+        <item>Hora dourada</item>
+        <item>Relaxa</item>
+        <item>Hora de desacelerar</item>
+        <item>Luz baixa</item>
+    </string-array>
+    <string-array name="greetings_night">
+        <item>Acordado até tarde</item>
+        <item>Hora das corujas</item>
+        <item>Ainda acordado</item>
+        <item>Varando a madrugada</item>
+        <item>O sono pode esperar</item>
+    </string-array>
+    <string-array name="home_quotes">
+        <item>Pule músicas com responsabilidade.</item>
+        <item>Previsão de hoje: 100% de chance de hits.</item>
+        <item>Fones no ouvido. Mundo desligado.</item>
+        <item>Nenhuma música foi pulada na criação desta playlist.</item>
+        <item>Tem dia de uma música. Tem dia de quarenta.</item>
+        <item>Seu gosto é excelente. A gente conferiu.</item>
+        <item>Volume lá em cima, preocupação lá embaixo.</item>
+        <item>Não é uma fase. É uma playlist.</item>
+        <item>Dance como se o aleatório estivesse olhando.</item>
+        <item>Beba água. Depois aperte o play.</item>
+        <item>A vida é curta demais para playlists ruins.</item>
+        <item>Só mais uma música. Tá, mais uma.</item>
+        <item>Música: mais barata que terapia, e com batida.</item>
+        <item>Em algum lugar, uma música espera virar sua favorita.</item>
+        <item>Inspire. Aperte o play. Expire.</item>
+        <item>O cabo auxiliar acredita em você.</item>
+        <item>Plantas crescem melhor com música. Gente também.</item>
+        <item>Os vizinhos ligaram. Querem saber o nome desta música.</item>
+        <item>Todo grande dia tem uma trilha sonora.</item>
+        <item>Cante como se ninguém estivesse ouvindo. Alguém provavelmente está.</item>
+    </string-array>
 </resources>

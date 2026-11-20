@@ -1615,4 +1615,17 @@
     <string name="theme_icon_subtitle">ホーム画面でテーマ専用のアイコンを使う</string>
     <string name="theme_mode_title">ライトとダーク</string>
     <string name="theme_mode_dark_only">Vice と Doom はダークのみです。この設定は Sonara に適用されます。</string>
+    <string name="theme_winter">Winter</string>
+    <string name="theme_winter_line">雪とオーロラ</string>
+    <string name="theme_winter_day">Winter(昼)</string>
+    <string name="winter_effects">冬のエフェクト</string>
+    <string name="winter_effect_aurora">オーロラのアニメーション</string>
+    <string name="winter_effect_snow">降雪</string>
+    <string name="winter_effect_stars">星と流れ星</string>
+    <string name="winter_effect_glass">リキッドグラスのぼかし</string>
+    <string name="winter_effect_frost">霜の縁取り</string>
+    <string name="winter_effects_low_tier">この端末ではなめらかさのため最初はオフ</string>
+    <string name="winter_effects_footer">低電力モード、データセーバー、バッテリーセーバー中、アニメーションがオフのとき、Sonara が見えていないときは自動で止まります。オフにすると静止版になります。</string>
+    <string name="winter_night_after_sunset">日没後は夜空に</string>
+    <string name="winter_night_after_sunset_subtitle">ライトモードでは 18 時以降は極夜、6 時に昼へ戻ります</string>
 </resources>

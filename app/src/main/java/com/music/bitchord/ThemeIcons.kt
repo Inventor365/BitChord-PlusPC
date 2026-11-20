@@ -25,33 +25,44 @@ object ThemeIcons {
         })
     }
 
-    /** The icon that goes with [theme], or null for the listener's own choice. */
-    fun iconFor(theme: ThemeId): AppIcon? = when (theme) {
+    /** The icon that goes with [theme] in a dark or light app, or null for the listener's own choice. */
+    fun iconFor(theme: ThemeId, dark: Boolean = true): AppIcon? = when (theme) {
         ThemeId.SONARA -> null
         ThemeId.VICE -> AppIcon.ThemeVice
         ThemeId.DOOM -> AppIcon.ThemeDoom
+        // Winter has a polar-night icon and a snow-day one, following the app's light or dark.
+        ThemeId.WINTER -> if (dark) AppIcon.ThemeWinter else AppIcon.ThemeWinterLight
     }
 
-    private val themeIcons = setOf(AppIcon.ThemeVice, AppIcon.ThemeDoom)
+    private val themeIcons = setOf(AppIcon.ThemeVice, AppIcon.ThemeDoom, AppIcon.ThemeWinter, AppIcon.ThemeWinterLight)
+
+    /** Whether the app is drawn dark right now: its own setting, or the system's under System. */
+    fun appIsDark(context: Context): Boolean = when (AppSettings.themeMode.value) {
+        com.music.bitchord.data.settings.ThemeMode.DARK -> true
+        com.music.bitchord.data.settings.ThemeMode.LIGHT -> false
+        com.music.bitchord.data.settings.ThemeMode.SYSTEM ->
+            (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+                android.content.res.Configuration.UI_MODE_NIGHT_YES
+    }
 
     /**
      * Queues the icon for [theme] (or the listener's own, for Sonara or with the theme icon
      * turned off). Returns true when the icon will change, so the caller can say so.
      */
-    fun follow(context: Context, theme: ThemeId): Boolean {
+    fun follow(context: Context, theme: ThemeId, dark: Boolean = appIsDark(context)): Boolean {
         val current = AppIcon.current(context)
         if (current !in themeIcons) AppSettings.iconBeforeTheme = current.name
-        val wanted = iconFor(theme).takeIf { AppSettings.themeIcon.value }
+        val wanted = iconFor(theme, dark).takeIf { AppSettings.themeIcon.value }
             ?: AppIcon.entries.firstOrNull { it.name == AppSettings.iconBeforeTheme }
             ?: AppIcon.Default
-        // The queued change, or what is already there, is what will be on the home screen.
-        val shown = AppIcon.entries.firstOrNull { it.name == AppSettings.pendingIcon } ?: current
-        if (wanted == current) {
-            AppSettings.pendingIcon = null
-            return shown != current
+        AppSettings.pendingIcon = null
+        if (wanted == current) return false
+        val applied = runCatching { AppIcon.apply(context.applicationContext, wanted) }
+        if (applied.isFailure) {
+            android.util.Log.w("ThemeIcons", "icon swap refused; queued for when the app leaves", applied.exceptionOrNull())
+            AppSettings.pendingIcon = wanted.name
         }
-        AppSettings.pendingIcon = wanted.name
-        return wanted != shown
+        return true
     }
 
     /** The listener picked an icon by hand: that wins over anything queued by a theme. */

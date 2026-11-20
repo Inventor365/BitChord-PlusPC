@@ -287,4 +287,65 @@
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
     <string name="library_search_hint">Bibliothek durchsuchen</string>
     <string name="library_no_matches">Nichts in deiner Bibliothek passt zu „%1$s“</string>
+    <string name="search_empty_title">Was möchtest du hören?</string>
+    <string name="browse_categories">Kategorien durchsuchen</string>
+    <string name="import_apple_music">Apple Music importieren</string>
+    <string name="import_amazon_music">Amazon Music importieren</string>
+    <string name="import_amazon_music_subtitle">Aus einer eingefügten Songliste</string>
+    <string name="video_off_short">Aus</string>
+    <string name="video_quality_off">Video aus</string>
+    <string name="video_quality_off_detail">Standbild · spart Daten und Akku</string>
+    <string name="video_forced_off">%1$s zeigt das Standbild. Deine Wahl gilt wieder, sobald es aus ist.</string>
+    <string name="video_forced_cap">%1$s begrenzt Video auf %2$s.</string>
+    <string name="greeting_named">%1$s, %2$s</string>
+    <string-array name="greetings_morning">
+        <item>Guten Morgen</item>
+        <item>Aufstehen, Sonnenschein</item>
+        <item>Erst mal Kaffee</item>
+        <item>Auf geht’s</item>
+        <item>Neuer Tag, neues Glück</item>
+    </string-array>
+    <string-array name="greetings_afternoon">
+        <item>Guten Tag</item>
+        <item>Nach-dem-Essen-Modus</item>
+        <item>Halbzeit</item>
+        <item>Immer noch topfit</item>
+        <item>Hallo</item>
+    </string-array>
+    <string-array name="greetings_evening">
+        <item>Guten Abend</item>
+        <item>Goldene Stunde</item>
+        <item>Füße hoch</item>
+        <item>Zeit zum Abschalten</item>
+        <item>Licht gedimmt</item>
+    </string-array>
+    <string-array name="greetings_night">
+        <item>Noch wach</item>
+        <item>Nachteulen-Zeit</item>
+        <item>Immer noch wach</item>
+        <item>Nachtschicht</item>
+        <item>Schlaf kann warten</item>
+    </string-array>
+    <string-array name="home_quotes">
+        <item>Verantwortungsvoll skippen.</item>
+        <item>Vorhersage für heute: 100 % Hit-Wahrscheinlichkeit.</item>
+        <item>Kopfhörer auf. Welt aus.</item>
+        <item>Bei dieser Playlist wurden keine Skips verletzt.</item>
+        <item>Manche Tage brauchen einen Song. Manche vierzig.</item>
+        <item>Dein Geschmack ist exzellent. Wir haben nachgesehen.</item>
+        <item>Lauter drehen, Sorgen leiser.</item>
+        <item>Das ist keine Phase. Das ist eine Playlist.</item>
+        <item>Tanz, als würde die Zufallswiedergabe zusehen.</item>
+        <item>Erst trinken. Dann Play drücken.</item>
+        <item>Das Leben ist zu kurz für schlechte Playlists.</item>
+        <item>Noch ein Song. Na gut, noch einer.</item>
+        <item>Musik: billiger als Therapie und mit Beat.</item>
+        <item>Irgendwo wartet ein Song darauf, dein Lieblingssong zu werden.</item>
+        <item>Einatmen. Play. Ausatmen.</item>
+        <item>Das Aux-Kabel glaubt an dich.</item>
+        <item>Pflanzen wachsen besser mit Musik. Menschen auch.</item>
+        <item>Die Nachbarn haben angerufen. Sie wollen wissen, wie der Song heißt.</item>
+        <item>Jeder großartige Tag hat einen Soundtrack.</item>
+        <item>Sing, als würde niemand zuhören. Vermutlich tut es doch jemand.</item>
+    </string-array>
 </resources>

@@ -1,0 +1,17 @@
+Winter theme artwork
+
+Files (sharedUi/src/commonMain/composeResources/drawable/):
+  winter_night_sky.webp, winter_night_land.webp,
+  winter_day_sky.webp, winter_day_land.webp,
+  winter_aurora_0.webp .. winter_aurora_3.webp
+
+Source: original work, rendered procedurally for Sonara by scripts/winter/render_backplates.py
+(seeded noise, a perspective render of a generated heightmap, a synthetic starfield and
+Milky Way). No photographs or third-party images were used. The live aurora is drawn at runtime
+by the app's own AGSL shader (sharedUi/src/androidMain/.../theme/AuroraShader.android.kt).
+
+License: CC0 1.0 Universal (public domain dedication).
+https://creativecommons.org/publicdomain/zero/1.0/
+
+To the extent possible under law, the Sonara authors have waived all copyright and related or
+neighboring rights to this artwork.

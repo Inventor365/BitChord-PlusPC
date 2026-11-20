@@ -1642,4 +1642,17 @@
     <string name="theme_icon_subtitle">השתמש בסמל של ערכת הנושא במסך הבית</string>
     <string name="theme_mode_title">בהיר וכהה</string>
     <string name="theme_mode_dark_only">Vice ו-Doom כהים בלבד. ההגדרה חלה על Sonara.</string>
+    <string name="theme_winter">Winter</string>
+    <string name="theme_winter_line">שלג וזוהר</string>
+    <string name="theme_winter_day">Winter (יום)</string>
+    <string name="winter_effects">אפקטים של חורף</string>
+    <string name="winter_effect_aurora">אנימציית זוהר</string>
+    <string name="winter_effect_snow">שלג יורד</string>
+    <string name="winter_effect_stars">כוכבים וכוכבים נופלים</string>
+    <string name="winter_effect_glass">טשטוש זכוכית נוזלית</string>
+    <string name="winter_effect_frost">קצוות כפור</string>
+    <string name="winter_effects_low_tier">כבוי בהתחלה בטלפון הזה, כדי לשמור על חלקות</string>
+    <string name="winter_effects_footer">כל אחד נעצר מעצמו במצב חיסכון בסוללה, בחוסך הנתונים או בחוסך הסוללה של המערכת, כשהאנימציות כבויות וכש-Sonara לא מוצג. כשהוא כבוי מוצגת גרסה סטטית.</string>
+    <string name="winter_night_after_sunset">שמי לילה אחרי השקיעה</string>
+    <string name="winter_night_after_sunset_subtitle">במצב בהיר, לילה קוטבי אחרי 18:00 וחזרה אחרי 6:00</string>
 </resources>

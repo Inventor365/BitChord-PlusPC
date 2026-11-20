@@ -287,4 +287,65 @@
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
     <string name="library_search_hint">Szukaj w bibliotece</string>
     <string name="library_no_matches">Nic w Twojej bibliotece nie pasuje do „%1$s”</string>
+    <string name="search_empty_title">Czego chcesz posłuchać?</string>
+    <string name="browse_categories">Przeglądaj kategorie</string>
+    <string name="import_apple_music">Importuj z Apple Music</string>
+    <string name="import_amazon_music">Importuj z Amazon Music</string>
+    <string name="import_amazon_music_subtitle">Z wklejonej listy utworów</string>
+    <string name="video_off_short">Wył.</string>
+    <string name="video_quality_off">Wideo wyłączone</string>
+    <string name="video_quality_off_detail">Statyczny baner · oszczędza dane i baterię</string>
+    <string name="video_forced_off">%1$s pokazuje baner. Twój wybór wróci po wyłączeniu.</string>
+    <string name="video_forced_cap">%1$s ogranicza wideo do %2$s.</string>
+    <string name="greeting_named">%1$s, %2$s</string>
+    <string-array name="greetings_morning">
+        <item>Dzień dobry</item>
+        <item>Pobudka, słoneczko</item>
+        <item>Najpierw kawa</item>
+        <item>Do dzieła</item>
+        <item>Nowy start</item>
+    </string-array>
+    <string-array name="greetings_afternoon">
+        <item>Dzień dobry</item>
+        <item>Popołudniowy luz</item>
+        <item>Połowa za nami</item>
+        <item>Wciąż w formie</item>
+        <item>Hej</item>
+    </string-array>
+    <string-array name="greetings_evening">
+        <item>Dobry wieczór</item>
+        <item>Złota godzina</item>
+        <item>Pora odpocząć</item>
+        <item>Czas się wyciszyć</item>
+        <item>Przygaszone światła</item>
+    </string-array>
+    <string-array name="greetings_night">
+        <item>Nocny marek</item>
+        <item>Pora sów</item>
+        <item>Wciąż na nogach</item>
+        <item>Zarywanie nocki</item>
+        <item>Sen poczeka</item>
+    </string-array>
+    <string-array name="home_quotes">
+        <item>Pomijaj odpowiedzialnie.</item>
+        <item>Prognoza na dziś: 100% szans na hity.</item>
+        <item>Słuchawki na uszy. Świat wyłączony.</item>
+        <item>Podczas tworzenia tej playlisty nie ucierpiał żaden utwór.</item>
+        <item>Są dni na jeden utwór. I dni na czterdzieści.</item>
+        <item>Masz świetny gust. Sprawdziliśmy.</item>
+        <item>Głośniej muzyka, ciszej zmartwienia.</item>
+        <item>To nie faza. To playlista.</item>
+        <item>Tańcz, jakby losowe odtwarzanie patrzyło.</item>
+        <item>Napij się wody. Potem wciśnij play.</item>
+        <item>Życie jest za krótkie na słabe playlisty.</item>
+        <item>Jeszcze jeden utwór. No dobra, jeszcze jeden.</item>
+        <item>Muzyka: tańsza niż terapia i ma rytm.</item>
+        <item>Gdzieś czeka utwór, który zostanie twoim ulubionym.</item>
+        <item>Wdech. Play. Wydech.</item>
+        <item>Kabel AUX w ciebie wierzy.</item>
+        <item>Rośliny lepiej rosną przy muzyce. Ludzie też.</item>
+        <item>Dzwonili sąsiedzi. Chcą wiedzieć, co to za piosenka.</item>
+        <item>Każdy wspaniały dzień ma swoją ścieżkę dźwiękową.</item>
+        <item>Śpiewaj, jakby nikt nie słuchał. Pewnie ktoś słucha.</item>
+    </string-array>
 </resources>

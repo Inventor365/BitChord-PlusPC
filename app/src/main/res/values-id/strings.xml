@@ -1614,4 +1614,17 @@
     <string name="theme_icon_subtitle">Gunakan ikon tema di layar utama</string>
     <string name="theme_mode_title">Terang &amp; gelap</string>
     <string name="theme_mode_dark_only">Vice dan Doom hanya gelap. Ini berlaku untuk Sonara.</string>
+    <string name="theme_winter">Winter</string>
+    <string name="theme_winter_line">Salju &amp; aurora</string>
+    <string name="theme_winter_day">Winter (siang)</string>
+    <string name="winter_effects">Efek musim dingin</string>
+    <string name="winter_effect_aurora">Animasi aurora</string>
+    <string name="winter_effect_snow">Hujan salju</string>
+    <string name="winter_effect_stars">Bintang dan bintang jatuh</string>
+    <string name="winter_effect_glass">Blur kaca cair</string>
+    <string name="winter_effect_frost">Tepi beku</string>
+    <string name="winter_effects_low_tier">Mati di awal pada ponsel ini agar tetap mulus</string>
+    <string name="winter_effects_footer">Masing-masing berhenti sendiri di Mode Daya Rendah, Penghemat Data, atau penghemat baterai, saat animasi mati, dan saat Sonara tidak terlihat. Saat mati, versi diam yang tampil.</string>
+    <string name="winter_night_after_sunset">Langit malam setelah matahari terbenam</string>
+    <string name="winter_night_after_sunset_subtitle">Dalam mode terang, malam kutub setelah pukul 18.00 dan kembali setelah 06.00</string>
 </resources>

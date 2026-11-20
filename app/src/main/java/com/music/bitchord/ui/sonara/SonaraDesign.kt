@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import com.music.bitchord.ui.theme.LocalThemeTokens
 import com.music.bitchord.ui.theme.drawThemeTexture
+import com.music.bitchord.ui.theme.themeEdge
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -247,6 +248,7 @@ fun SonaraPassCard(
     onClick: (() -> Unit)? = null,
 ) {
     val tokens = LocalThemeTokens.current
+    val effects = com.music.bitchord.ui.theme.LocalThemeEffects.current
     // Rounded under Sonara and Vice, cut like a plate under Doom.
     val shape = if (tokens.angular) tokens.cardShape else RoundedCornerShape(24.dp)
     val bars = remember(passId) { soundprint(passId, 38) }
@@ -283,7 +285,7 @@ fun SonaraPassCard(
                 )
             }
             // The theme's material: Sonara's dots, Vice's grid, Doom's brushed steel and rivets.
-            .drawBehind { drawThemeTexture(tokens) }
+            .drawBehind { drawThemeTexture(tokens, effects) }
             .border(1.dp, if (tokens.angular) tokens.accent2.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.10f), shape)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
     ) {
@@ -429,6 +431,7 @@ fun ListeningTimeCard(
             .pressScale(0.98f)
             .clip(LocalThemeTokens.current.cardShape)
             .background(MaterialTheme.colorScheme.surfaceVariant)
+            .themeEdge(LocalThemeTokens.current.cardShape)
             .clickable(onClick = onViewStats)
             .padding(horizontal = 22.dp, vertical = 20.dp),
     ) {

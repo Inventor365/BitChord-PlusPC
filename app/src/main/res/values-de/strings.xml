@@ -1637,4 +1637,17 @@
     <string name="theme_icon_subtitle">Das Symbol des Designs auf dem Startbildschirm verwenden</string>
     <string name="theme_mode_title">Hell &amp; dunkel</string>
     <string name="theme_mode_dark_only">Vice und Doom gibt es nur dunkel. Dies gilt für Sonara.</string>
+    <string name="theme_winter">Winter</string>
+    <string name="theme_winter_line">Schnee &amp; Polarlicht</string>
+    <string name="theme_winter_day">Winter (Tag)</string>
+    <string name="winter_effects">Winter-Effekte</string>
+    <string name="winter_effect_aurora">Polarlicht-Animation</string>
+    <string name="winter_effect_snow">Schneefall</string>
+    <string name="winter_effect_stars">Sterne und Sternschnuppen</string>
+    <string name="winter_effect_glass">Flüssigglas-Unschärfe</string>
+    <string name="winter_effect_frost">Frostränder</string>
+    <string name="winter_effects_low_tier">Auf diesem Handy anfangs aus, damit alles flüssig bleibt</string>
+    <string name="winter_effects_footer">Jeder Effekt pausiert von selbst im Stromsparmodus, im Datensparmodus oder beim Energiesparen, wenn Animationen aus sind und wenn Sonara nicht sichtbar ist. Aus zeigt eine ruhige Version.</string>
+    <string name="winter_night_after_sunset">Nachthimmel nach Sonnenuntergang</string>
+    <string name="winter_night_after_sunset_subtitle">Im hellen Modus ab 18 Uhr Polarnacht, ab 6 Uhr wieder Tag</string>
 </resources>

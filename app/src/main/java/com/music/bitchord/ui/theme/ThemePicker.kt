@@ -80,6 +80,7 @@ fun themeName(id: ThemeId): String = stringResource(
         ThemeId.SONARA -> R.string.theme_sonara
         ThemeId.VICE -> R.string.theme_vice
         ThemeId.DOOM -> R.string.theme_doom
+        ThemeId.WINTER -> R.string.theme_winter
     },
 )
 
@@ -89,13 +90,11 @@ private fun themeLine(id: ThemeId): String = stringResource(
         ThemeId.SONARA -> R.string.theme_sonara_line
         ThemeId.VICE -> R.string.theme_vice_line
         ThemeId.DOOM -> R.string.theme_doom_line
+        ThemeId.WINTER -> R.string.theme_winter_line
     },
 )
 
-/**
- * Applies [id] at once, and queues its home-screen icon for when the app next leaves the screen.
- * Says so when the icon is going to change, since that part is not instant.
- */
+/** Applies [id] at once, home-screen icon included (see [ThemeIcons.follow]). */
 fun chooseTheme(context: Context, id: ThemeId) {
     if (AppSettings.appTheme.value == id) return
     AppSettings.setAppTheme(id)
@@ -118,7 +117,7 @@ fun ThemePickerRow(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         for (id in ThemeId.entries) {
             ThemePreviewCard(
@@ -180,7 +179,7 @@ private fun ThemePreviewCard(id: ThemeId, selected: Boolean, onClick: () -> Unit
         Spacer(Modifier.height(8.dp))
         Text(
             text = name,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.W600),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.W600, fontSize = 14.sp),
             color = if (selected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
@@ -202,10 +201,16 @@ private fun MiniHome(tokens: ThemeTokens, background: Color, surface: Color, onB
     val painter = remember { ThemeBackdropPainter() }
     val density = LocalDensity.current
     val direction = LocalLayoutDirection.current
+    // Winter's card shows its real plates: the night one, as the theme's own look.
+    val winterArt = if (tokens.motif == ThemeMotif.AURORA || tokens.motif == ThemeMotif.GLACIER) {
+        com.music.bitchord.ui.theme.rememberWinterArt(night = tokens.motif == ThemeMotif.AURORA)
+    } else {
+        null
+    }
     Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
             // The real hero, drawn at this size: the painter scales its motif to the canvas.
-            painter.draw(this, tokens, background)
+            painter.draw(this, tokens, background, art = winterArt)
             val pad = 10.dp.toPx()
             val cardW = (size.width - pad * 3) / 2f
             val cardH = cardW * 1.25f
@@ -248,8 +253,8 @@ private fun MiniHome(tokens: ThemeTokens, background: Color, surface: Color, onB
             text = stringResource(R.string.theme_preview_greeting),
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontFamily = tokens.headingFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
-                fontSize = 13.sp,
-                lineHeight = 17.sp,
+                fontSize = 11.sp,
+                lineHeight = 13.sp,
             ),
             color = onBackground,
             maxLines = 2,

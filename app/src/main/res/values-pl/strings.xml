@@ -1677,4 +1677,17 @@
     <string name="theme_icon_subtitle">Używaj ikony motywu na ekranie głównym</string>
     <string name="theme_mode_title">Jasny i ciemny</string>
     <string name="theme_mode_dark_only">Vice i Doom są tylko ciemne. Dotyczy to Sonary.</string>
+    <string name="theme_winter">Winter</string>
+    <string name="theme_winter_line">Śnieg i zorza</string>
+    <string name="theme_winter_day">Winter (dzień)</string>
+    <string name="winter_effects">Efekty zimowe</string>
+    <string name="winter_effect_aurora">Animacja zorzy</string>
+    <string name="winter_effect_snow">Opady śniegu</string>
+    <string name="winter_effect_stars">Gwiazdy i spadające gwiazdy</string>
+    <string name="winter_effect_glass">Rozmycie płynnego szkła</string>
+    <string name="winter_effect_frost">Oszronione krawędzie</string>
+    <string name="winter_effects_low_tier">Na tym telefonie domyślnie wyłączone, by działał płynnie</string>
+    <string name="winter_effects_footer">Każdy efekt sam się wstrzymuje w trybie niskiego zużycia energii, oszczędzania danych lub baterii, gdy animacje są wyłączone i gdy Sonara jest niewidoczna. Wyłączony pokazuje wersję statyczną.</string>
+    <string name="winter_night_after_sunset">Nocne niebo po zachodzie słońca</string>
+    <string name="winter_night_after_sunset_subtitle">W trybie jasnym noc polarna po 18:00 i powrót po 6:00</string>
 </resources>

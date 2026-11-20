@@ -59,6 +59,7 @@ import com.music.bitchord.ui.components.ShimmerBox
 import com.music.bitchord.ui.components.feedSkeleton
 import com.music.bitchord.ui.components.pressScale
 import com.music.bitchord.ui.theme.themedShape
+import com.music.bitchord.ui.theme.themeEdge
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,13 +95,13 @@ fun ExploreScreen(
                             val count = (state as? UiState.Success)?.data?.sumOf { it.items.size }
                             Text(
                                 text = if (count != null) "BROWSE · $count MOODS & GENRES" else "BROWSE",
-                                style = MONO_LABEL,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MONO_LABEL.copy(shadow = com.music.bitchord.ui.theme.heroTextShadow(soft = true)),
+                                color = com.music.bitchord.ui.theme.heroSubtitleColor(MaterialTheme.colorScheme.onSurfaceVariant),
                             )
                             Text(
                                 text = stringResource(Res.string.explore),
-                                style = MaterialTheme.typography.displayLarge,
-                                color = MaterialTheme.colorScheme.onBackground,
+                                style = MaterialTheme.typography.displayLarge.copy(shadow = com.music.bitchord.ui.theme.heroTextShadow()),
+                                color = com.music.bitchord.ui.theme.heroTitleColor(MaterialTheme.colorScheme.onBackground),
                             )
                         }
                     }
@@ -187,6 +188,7 @@ private fun FeaturedMoodCard(item: MoodGenre, onClick: () -> Unit, modifier: Mod
             .fillMaxWidth()
             .aspectRatio(2.1f)
             .clip(themedShape(26.dp))
+            .themeEdge(themedShape(26.dp))
             .clickable(onClick = onClick),
     )
 }
@@ -430,13 +432,13 @@ fun MoodGenrePlaylistsScreen(
                 val count = (state as? UiState.Success)?.data?.sumOf { it.items.size }
                 Text(
                     text = if (count != null) "EXPLORE · $count PLAYLISTS" else "EXPLORE",
-                    style = MONO_LABEL,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MONO_LABEL.copy(shadow = com.music.bitchord.ui.theme.heroTextShadow(soft = true)),
+                    color = com.music.bitchord.ui.theme.heroSubtitleColor(MaterialTheme.colorScheme.onSurfaceVariant),
                 )
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.displayLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    style = MaterialTheme.typography.displayLarge.copy(shadow = com.music.bitchord.ui.theme.heroTextShadow()),
+                    color = com.music.bitchord.ui.theme.heroTitleColor(MaterialTheme.colorScheme.onBackground),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

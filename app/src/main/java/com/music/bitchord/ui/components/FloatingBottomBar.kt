@@ -48,6 +48,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
+import com.music.bitchord.ui.theme.winterBarGlow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
@@ -193,14 +194,12 @@ fun FloatingBottomBar(
     /** Called when the user taps the currently active tab (scroll-to-top). */
     onActiveTabTap: () -> Unit = {},
 ) {
-    // Doom's bar is a chamfered plate; the others keep the capsule. Vice and Doom edge it in
-    // their neon, faintly.
+    // A capsule, unless a theme cuts its corners; the glass's own white edge in every theme.
     val theme = com.music.bitchord.ui.theme.LocalThemeTokens.current
     val pillShape: androidx.compose.foundation.shape.CornerBasedShape =
         (theme.controlShape as? androidx.compose.foundation.shape.CornerBasedShape)
             ?.takeIf { theme.angular }
             ?: RoundedCornerShape(percent = 50)
-    val edgeColor = theme.glow?.copy(alpha = 0.30f) ?: GLASS_EDGE_COLOR
     val container = MaterialTheme.colorScheme.surface
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val useGlass = LocalLiquidGlassEnabled.current && isGlassSupported()
@@ -274,6 +273,9 @@ fun FloatingBottomBar(
             .then(
                 if (reduceDynamicBlur) {
                     Modifier.background(container)
+                } else if (theme.animated && !com.music.bitchord.ui.theme.LocalThemeEffects.current.glass) {
+                    // Winter with its glass effect off: a translucent tint, no blur to pay for.
+                    Modifier.background(container.copy(alpha = 0.88f))
                 } else if (useGlass) {
                     Modifier.liquidGlass(shape = pillShape)
                 } else {
@@ -283,7 +285,8 @@ fun FloatingBottomBar(
                     )
                 },
             )
-            .border(GLASS_EDGE_WIDTH, edgeColor, pillShape)
+            .winterBarGlow(pillShape)
+            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, pillShape)
             .padding(horizontal = PILL_INSET, vertical = PILL_INSET),
     ) {
         if (tabWidthPx > 0f) {

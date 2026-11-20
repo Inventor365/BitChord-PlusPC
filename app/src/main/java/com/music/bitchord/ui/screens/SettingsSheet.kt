@@ -38,6 +38,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.ScrollState
 import androidx.compose.material.icons.Icons
+import com.music.bitchord.ui.theme.themeEdge
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.automirrored.rounded.Notes
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
@@ -1555,6 +1556,56 @@ fun SettingsScreen(
             }
         }
 
+        // Winter's effects, one switch each, only while Winter is the theme. Each shows what is
+        // in force — the listener's choice, or the device tier's default until they make one.
+        if (shows(SettingsCategory.APPEARANCE) && appTheme == com.music.bitchord.ui.theme.ThemeId.WINTER) {
+            val tier = remember { com.music.bitchord.ui.performance.DeviceTier.of(context) }
+            val winterPrefs by AppSettings.winterEffects.collectAsStateWithLifecycle()
+            val inForce = com.music.bitchord.ui.performance.WinterEffectsPolicy.chosen(winterPrefs, tier)
+            SearchableSettingsGroup(
+                search,
+                header = stringResource(R.string.winter_effects),
+                footer = stringResource(R.string.winter_effects_footer),
+                keepHeaderInPage = true,
+            ) {
+                @Composable
+                fun effectRow(title: String, on: Boolean, subtitle: String? = null, set: (Boolean) -> com.music.bitchord.ui.performance.WinterEffectPrefs) {
+                    SettingsRow(
+                        title = title,
+                        subtitle = subtitle,
+                        trailing = { IosSwitch(checked = on, onCheckedChange = { AppSettings.setWinterEffects(set(it)) }) },
+                        onClick = { AppSettings.setWinterEffects(set(!on)) },
+                    )
+                }
+                val lowTierNote = if (tier == com.music.bitchord.ui.performance.DeviceTier.LOW) stringResource(R.string.winter_effects_low_tier) else null
+                val auroraTitle = stringResource(R.string.winter_effect_aurora)
+                row(auroraTitle, "aurora", "northern lights", "winter") {
+                    effectRow(auroraTitle, inForce.aurora, lowTierNote) { winterPrefs.copy(aurora = it) }
+                }
+                val snowTitle = stringResource(R.string.winter_effect_snow)
+                row(snowTitle, "snow", "winter") { effectRow(snowTitle, inForce.snow) { winterPrefs.copy(snow = it) } }
+                val starsTitle = stringResource(R.string.winter_effect_stars)
+                row(starsTitle, "stars", "shooting", "winter") { effectRow(starsTitle, inForce.stars) { winterPrefs.copy(stars = it) } }
+                val glassTitle = stringResource(R.string.winter_effect_glass)
+                row(glassTitle, "glass", "blur", "winter") { effectRow(glassTitle, inForce.glass) { winterPrefs.copy(glass = it) } }
+                val frostTitle = stringResource(R.string.winter_effect_frost)
+                row(frostTitle, "frost", "ice", "winter") { effectRow(frostTitle, inForce.frost) { winterPrefs.copy(frost = it) } }
+                // Not an effect but the scene: light mode stays light all day unless this is on.
+                val nightAfterSunset by AppSettings.winterNightSkyAfterSunset.collectAsStateWithLifecycle()
+                val nightTitle = stringResource(R.string.winter_night_after_sunset)
+                row(nightTitle, "night", "sunset", "dark", "winter") {
+                    SettingsRow(
+                        title = nightTitle,
+                        subtitle = stringResource(R.string.winter_night_after_sunset_subtitle),
+                        trailing = {
+                            IosSwitch(checked = nightAfterSunset, onCheckedChange = AppSettings::setWinterNightSkyAfterSunset)
+                        },
+                        onClick = { AppSettings.setWinterNightSkyAfterSunset(!nightAfterSunset) },
+                    )
+                }
+            }
+        }
+
         if (shows(SettingsCategory.PERFORMANCE)) SearchableSettingsGroup(search, header = stringResource(R.string.performance)) {
             val highPerformanceModeTitle = stringResource(R.string.high_performance_mode)
             row(highPerformanceModeTitle, "frame rate", "refresh rate", "hz", "battery", "smooth") {
@@ -2155,7 +2206,7 @@ fun SettingsScreen(
                                         .size(68.dp)
                                         .clip(RoundedCornerShape(22.dp)),
                                 )
-                            } else if (option == AppIcon.ThemeVice || option == AppIcon.ThemeDoom) {
+                            } else if (option.isThemeIcon) {
                                 // A theme icon's preview is the whole square, shown through the
                                 // same mask as the default.
                                 Image(
@@ -2674,6 +2725,7 @@ internal fun AccountCard(
                         .padding(horizontal = GROUP_INSET)
                         .clip(GroupShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .themeEdge(GroupShape)
                 },
             )
             .then(
@@ -3006,8 +3058,8 @@ private inline fun SearchableSettingsGroup(
 internal fun SettingsPageTitle(text: String) {
     Text(
         text = text,
-        style = MaterialTheme.typography.displayLarge,
-        color = MaterialTheme.colorScheme.onBackground,
+        style = MaterialTheme.typography.displayLarge.copy(shadow = com.music.bitchord.ui.theme.heroTextShadow()),
+        color = com.music.bitchord.ui.theme.heroTitleColor(MaterialTheme.colorScheme.onBackground),
         modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 14.dp),
     )
 }
@@ -3045,7 +3097,8 @@ internal fun SettingsGroup(
             .fillMaxWidth()
             .padding(horizontal = GROUP_INSET)
             .clip(GroupShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .themeEdge(GroupShape),
     ) {
         content()
     }
@@ -3489,6 +3542,7 @@ private fun SettingsCategoryTile(
             .pressScale(0.96f)
             .clip(com.music.bitchord.ui.theme.themedShape(24.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
+            .themeEdge(com.music.bitchord.ui.theme.themedShape(24.dp))
             .clickable(onClick = onClick),
     ) {
         Icon(

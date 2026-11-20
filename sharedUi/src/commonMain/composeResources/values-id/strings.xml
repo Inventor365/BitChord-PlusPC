@@ -287,4 +287,65 @@
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
     <string name="library_search_hint">Cari di koleksimu</string>
     <string name="library_no_matches">Tidak ada di koleksimu yang cocok dengan “%1$s”</string>
+    <string name="search_empty_title">Mau dengar apa?</string>
+    <string name="browse_categories">Jelajahi kategori</string>
+    <string name="import_apple_music">Impor Apple Music</string>
+    <string name="import_amazon_music">Impor Amazon Music</string>
+    <string name="import_amazon_music_subtitle">Dari daftar lagu yang ditempel</string>
+    <string name="video_off_short">Mati</string>
+    <string name="video_quality_off">Video mati</string>
+    <string name="video_quality_off_detail">Banner diam · hemat data dan baterai</string>
+    <string name="video_forced_off">%1$s menampilkan banner. Pilihanmu kembali saat dimatikan.</string>
+    <string name="video_forced_cap">%1$s membatasi video pada %2$s atau lebih rendah.</string>
+    <string name="greeting_named">%1$s, %2$s</string>
+    <string-array name="greetings_morning">
+        <item>Selamat pagi</item>
+        <item>Bangun, bersinar</item>
+        <item>Kopi dulu</item>
+        <item>Ayo mulai</item>
+        <item>Awal yang baru</item>
+    </string-array>
+    <string-array name="greetings_afternoon">
+        <item>Selamat siang</item>
+        <item>Habis makan siang</item>
+        <item>Sudah setengah jalan</item>
+        <item>Masih semangat</item>
+        <item>Hai</item>
+    </string-array>
+    <string-array name="greetings_evening">
+        <item>Selamat malam</item>
+        <item>Jam emas</item>
+        <item>Santai dulu</item>
+        <item>Waktunya rehat</item>
+        <item>Lampu temaram</item>
+    </string-array>
+    <string-array name="greetings_night">
+        <item>Begadang</item>
+        <item>Jam burung hantu</item>
+        <item>Masih melek</item>
+        <item>Lembur malam</item>
+        <item>Tidur bisa menunggu</item>
+    </string-array>
+    <string-array name="home_quotes">
+        <item>Skip dengan bijak.</item>
+        <item>Prakiraan hari ini: 100% peluang lagu keren.</item>
+        <item>Headphone terpasang. Dunia dimatikan.</item>
+        <item>Tidak ada skip yang terluka dalam pembuatan playlist ini.</item>
+        <item>Ada hari cukup satu lagu. Ada hari butuh empat puluh.</item>
+        <item>Seleramu luar biasa. Kami sudah cek.</item>
+        <item>Volume naik, beban turun.</item>
+        <item>Ini bukan fase. Ini playlist.</item>
+        <item>Menarilah seolah tombol acak sedang menonton.</item>
+        <item>Minum dulu. Lalu tekan putar.</item>
+        <item>Hidup terlalu singkat untuk playlist yang jelek.</item>
+        <item>Satu lagu lagi. Oke, satu lagi.</item>
+        <item>Musik: lebih murah dari terapi, dan ada iramanya.</item>
+        <item>Di suatu tempat, sebuah lagu menunggu jadi favoritmu.</item>
+        <item>Tarik napas. Tekan putar. Embuskan.</item>
+        <item>Kabel AUX percaya padamu.</item>
+        <item>Tanaman tumbuh lebih baik dengan musik. Manusia juga.</item>
+        <item>Tetanggamu menelepon. Mereka ingin tahu judul lagu ini.</item>
+        <item>Setiap hari hebat punya soundtrack-nya.</item>
+        <item>Bernyanyilah seolah tak ada yang mendengar. Mungkin ada.</item>
+    </string-array>
 </resources>

@@ -21,15 +21,33 @@ import kotlin.math.min
  * One instance per window; [draw] is called from the window's own background pass.
  */
 class ThemeBackdropPainter {
-    private var builtFor: Pair<ThemeId, Size>? = null
+    private var builtFor: Triple<ThemeId, ThemeMotif, Size>? = null
     private val palmLeft = Path()
     private val palmRight = Path()
-    private val crestOuter = Path()
     private val crestInner = Path()
     private val chevrons = Path()
 
-    fun draw(scope: DrawScope, tokens: ThemeTokens, background: Color) = with(scope) {
+    /**
+     * @param effects the theme's effects in force (Winter's frost edges, here).
+     * @param art Winter's painted plates, for the places that show Winter without its live scene
+     *   (the theme picker's previews, the welcome screen); the window's floor passes none and
+     *   draws the live WinterScene over the plain page colour instead.
+     */
+    fun draw(
+        scope: DrawScope,
+        tokens: ThemeTokens,
+        background: Color,
+        effects: ThemeEffects = ThemeEffects.None,
+        art: WinterArt? = null,
+    ) = with(scope) {
         drawRect(background)
+        if (tokens.motif == ThemeMotif.AURORA || tokens.motif == ThemeMotif.GLACIER) {
+            // Winter's sky is a painted plate and live layers (WinterScene), not vectors: the
+            // plate's foot fades out, so the page colour carries on beneath with no seam.
+            art?.let { drawWinterArt(it) }
+            if (tokens.edge == ThemeEdge.FROST && effects.frost) frostCorners(tokens, top = STATUS_BAR_CLEARANCE.toPx())
+            return@with
+        }
         if (tokens.backdropGradient.isEmpty()) return@with
         val hero = heroHeight()
         // The sky: the theme's gradient, landing on the page colour at the hero's foot.
@@ -46,7 +64,7 @@ class ThemeBackdropPainter {
                 center = center,
             )
         }
-        val key = tokens.id to size
+        val key = Triple(tokens.id, tokens.motif, size)
         if (builtFor != key) {
             build(tokens, hero)
             builtFor = key
@@ -54,7 +72,7 @@ class ThemeBackdropPainter {
         when (tokens.motif) {
             ThemeMotif.SUNSET -> drawSunset(tokens, hero)
             ThemeMotif.CREST -> drawCrest(tokens, hero)
-            ThemeMotif.NONE -> Unit
+            ThemeMotif.AURORA, ThemeMotif.GLACIER, ThemeMotif.NONE -> Unit
         }
         // Into the page: the motif is gone before the first row of content.
         drawRect(
@@ -72,7 +90,7 @@ class ThemeBackdropPainter {
     private fun DrawScope.heroHeight(): Float = min(HERO_HEIGHT.toPx(), size.height * 0.5f)
 
     private fun DrawScope.build(tokens: ThemeTokens, hero: Float) {
-        palmLeft.reset(); palmRight.reset(); crestOuter.reset(); crestInner.reset(); chevrons.reset()
+        palmLeft.reset(); palmRight.reset(); crestInner.reset(); chevrons.reset()
         when (tokens.motif) {
             ThemeMotif.SUNSET -> {
                 val horizon = hero * HORIZON
@@ -80,19 +98,28 @@ class ThemeBackdropPainter {
                 palm(palmRight, baseX = size.width * 0.95f, baseY = horizon, height = hero * 0.36f, lean = -1f)
             }
             ThemeMotif.CREST -> {
-                val cx = size.width / 2f
-                val cy = hero * 0.40f
-                chamferedPlate(crestOuter, cx, cy, size.width * 0.66f, hero * 0.56f, cut = 0.22f)
-                chamferedPlate(crestInner, cx, cy, size.width * 0.66f - 22.dp.toPx(), hero * 0.56f - 22.dp.toPx(), cut = 0.22f)
-                // Three engraved chevrons pointing down the plate.
-                for (i in 0 until 3) {
-                    val top = cy - hero * 0.10f + i * hero * 0.07f
-                    val half = size.width * (0.17f - i * 0.035f)
-                    chevrons.moveTo(cx - half, top)
-                    chevrons.lineTo(cx, top + half * 0.42f)
-                    chevrons.lineTo(cx + half, top)
+                // The arcane dial: tick marks between two engraved rings, long every sixth.
+                val c = Offset(size.width / 2f, hero * DIAL_Y)
+                val inner = size.width * 0.30f
+                val outer = size.width * 0.36f
+                for (k in 0 until 72) {
+                    val a = k * Math.PI * 2 / 72
+                    val long = k % 6 == 0
+                    val from = if (long) inner - 4.dp.toPx() else inner + (outer - inner) * 0.45f
+                    chevrons.moveTo(c.x + (kotlin.math.cos(a) * from).toFloat(), c.y + (kotlin.math.sin(a) * from).toFloat())
+                    chevrons.lineTo(c.x + (kotlin.math.cos(a) * outer).toFloat(), c.y + (kotlin.math.sin(a) * outer).toFloat())
+                }
+                // Four small diamonds on the outer ring, at the quarters.
+                for (k in 0 until 4) {
+                    val a = k * Math.PI / 2
+                    val p = Offset(c.x + (kotlin.math.cos(a) * outer).toFloat(), c.y + (kotlin.math.sin(a) * outer).toFloat())
+                    val d = 5.dp.toPx()
+                    crestInner.moveTo(p.x, p.y - d); crestInner.lineTo(p.x + d * 0.6f, p.y)
+                    crestInner.lineTo(p.x, p.y + d); crestInner.lineTo(p.x - d * 0.6f, p.y); crestInner.close()
                 }
             }
+            // Winter is painted plates, drawn above.
+            ThemeMotif.AURORA, ThemeMotif.GLACIER -> Unit
             ThemeMotif.NONE -> Unit
         }
     }
@@ -149,34 +176,44 @@ class ThemeBackdropPainter {
     }
 
     private fun DrawScope.drawCrest(tokens: ThemeTokens, hero: Float) {
-        val cy = hero * 0.40f
-        // Brushed metal: fine horizontal hairlines over the hero.
+        val c = Offset(size.width / 2f, hero * DIAL_Y)
+        // Forged iron: fine horizontal hairlines over the hero.
         val hair = 4.dp.toPx()
         var y = 0f
         while (y < hero) {
-            drawLine(Color.White.copy(alpha = 0.018f), Offset(0f, y), Offset(size.width, y), 1f)
+            drawLine(Color.White.copy(alpha = 0.02f), Offset(0f, y), Offset(size.width, y), 1f)
             y += hair
         }
-        // The heart of the plate glows green.
+        // The arcane glow behind the header: emerald, strongest at the dial's heart.
+        val glow = size.width * 0.62f
         drawCircle(
             Brush.radialGradient(
-                listOf(tokens.accent.copy(alpha = 0.18f), tokens.accent.copy(alpha = 0.04f), Color.Transparent),
-                Offset(size.width / 2f, cy),
-                size.width * 0.42f,
+                listOf(tokens.accent.copy(alpha = 0.30f), tokens.accent.copy(alpha = 0.10f), tokens.accent.copy(alpha = 0.03f), Color.Transparent),
+                c,
+                glow,
             ),
-            radius = size.width * 0.42f,
-            center = Offset(size.width / 2f, cy),
+            radius = glow,
+            center = c,
         )
-        drawPath(crestOuter, tokens.accent3.copy(alpha = 0.13f), style = Stroke(1.5.dp.toPx()))
-        drawPath(crestInner, tokens.accent2.copy(alpha = 0.09f), style = Stroke(1.dp.toPx()))
-        drawPath(chevrons, tokens.accent2.copy(alpha = 0.10f), style = Stroke(1.5.dp.toPx(), cap = StrokeCap.Square))
-        // A riveted band across the foot of the plate.
-        val bandY = hero * 0.80f
+        // The dial: two engraved rings, its ticks, and brass diamonds at the quarters.
+        val inner = size.width * 0.30f
+        val outer = size.width * 0.36f
+        drawCircle(tokens.accent.copy(alpha = 0.16f), inner, c, style = Stroke(1.dp.toPx()))
+        drawCircle(tokens.accent.copy(alpha = 0.22f), outer, c, style = Stroke(1.5.dp.toPx()))
+        drawCircle(tokens.accent3.copy(alpha = 0.06f), outer + 6.dp.toPx(), c, style = Stroke(1.dp.toPx()))
+        drawPath(chevrons, tokens.accent.copy(alpha = 0.14f), style = Stroke(1.dp.toPx(), cap = StrokeCap.Square))
+        drawPath(crestInner, tokens.accent2.copy(alpha = 0.32f))
+        // An armour seam across the foot of the header: a cut, its lit lip, and rivets along it.
+        val seam = hero * 0.80f
+        drawLine(Color.Black.copy(alpha = 0.45f), Offset(0f, seam), Offset(size.width, seam), 1.5.dp.toPx())
+        drawLine(Color.White.copy(alpha = 0.06f), Offset(0f, seam + 1.5.dp.toPx()), Offset(size.width, seam + 1.5.dp.toPx()), 1.dp.toPx())
         val step = 26.dp.toPx()
         var x = step / 2f
         while (x < size.width) {
-            drawCircle(tokens.accent3.copy(alpha = 0.12f), radius = 2.2.dp.toPx(), center = Offset(x, bandY))
-            drawCircle(Color.White.copy(alpha = 0.10f), radius = 0.8.dp.toPx(), center = Offset(x - 0.6.dp.toPx(), bandY - 0.6.dp.toPx()))
+            val r = Offset(x, seam - 7.dp.toPx())
+            drawCircle(Color.Black.copy(alpha = 0.40f), radius = 2.6.dp.toPx(), center = r + Offset(0f, 0.6.dp.toPx()))
+            drawCircle(tokens.accent3.copy(alpha = 0.22f), radius = 2.2.dp.toPx(), center = r)
+            drawCircle(Color.White.copy(alpha = 0.16f), radius = 0.8.dp.toPx(), center = r - Offset(0.6.dp.toPx(), 0.6.dp.toPx()))
             x += step
         }
     }
@@ -187,6 +224,12 @@ class ThemeBackdropPainter {
 
         /** Where the Vice horizon sits, as a share of the hero. */
         const val HORIZON = 0.56f
+
+        /** Where Doom's dial is centred, as a share of the hero. */
+        const val DIAL_Y = 0.30f
+
+        /** Clears a typical status bar, for decoration that must not sit beside its icons. */
+        val STATUS_BAR_CLEARANCE = 52.dp
     }
 }
 
@@ -217,28 +260,12 @@ private fun palm(path: Path, baseX: Float, baseY: Float, height: Float, lean: Fl
     }
 }
 
-/** A plate with its four corners cut off at [cut] of the smaller side. */
-private fun chamferedPlate(path: Path, cx: Float, cy: Float, width: Float, height: Float, cut: Float) {
-    val c = min(width, height) * cut
-    val l = cx - width / 2f
-    val r = cx + width / 2f
-    val t = cy - height / 2f
-    val b = cy + height / 2f
-    path.moveTo(l + c, t)
-    path.lineTo(r - c, t)
-    path.lineTo(r, t + c)
-    path.lineTo(r, b - c * 1.8f)
-    path.lineTo(cx, b)
-    path.lineTo(l, b - c * 1.8f)
-    path.lineTo(l, t + c)
-    path.close()
-}
-
 /**
  * A theme's fine texture over a card: dots for Sonara, a fine grid for Vice, brushed hairlines
- * and corner rivets for Doom. Faint by design; it reads as material, not pattern.
+ * and corner rivets for Doom, frost for Winter (only with its Frost edges switch on, [effects]).
+ * Faint by design; it reads as material, not pattern.
  */
-fun DrawScope.drawThemeTexture(tokens: ThemeTokens) {
+fun DrawScope.drawThemeTexture(tokens: ThemeTokens, effects: ThemeEffects = ThemeEffects.None) {
     when (tokens.texture) {
         ThemeTexture.DOTS -> {
             val spacing = 14.dp.toPx()
@@ -266,6 +293,7 @@ fun DrawScope.drawThemeTexture(tokens: ThemeTokens) {
                 y += spacing
             }
         }
+        ThemeTexture.FROST -> if (effects.frost) frostCorners(tokens)
         ThemeTexture.RIVETS -> {
             var y = 0f
             val hair = 3.dp.toPx()
@@ -286,3 +314,4 @@ fun DrawScope.drawThemeTexture(tokens: ThemeTokens) {
         }
     }
 }
+

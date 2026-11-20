@@ -287,10 +287,6 @@
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
     <string name="library_search_hint">Search your library</string>
     <string name="library_no_matches">Nothing in your library matches “%1$s”</string>
-    <string name="greeting_morning">Good morning</string>
-    <string name="greeting_afternoon">Good afternoon</string>
-    <string name="greeting_evening">Good evening</string>
-    <string name="greeting_night">Up late</string>
     <string name="greeting_named">%1$s, %2$s</string>
     <string name="search_empty_title">What do you want to hear?</string>
     <string name="browse_categories">Browse categories</string>
@@ -302,4 +298,54 @@
     <string name="video_quality_off_detail">Static banner · saves data and battery</string>
     <string name="video_forced_off">%1$s is showing the banner. Your choice comes back when it turns off.</string>
     <string name="video_forced_cap">%1$s is keeping video at %2$s or below.</string>
+    <string-array name="greetings_morning">
+        <item>Good morning</item>
+        <item>Rise and shine</item>
+        <item>Coffee first</item>
+        <item>Up and at ’em</item>
+        <item>Fresh start</item>
+    </string-array>
+    <string-array name="greetings_afternoon">
+        <item>Good afternoon</item>
+        <item>Post-lunch vibes</item>
+        <item>Halfway there</item>
+        <item>Still going strong</item>
+        <item>Hey there</item>
+    </string-array>
+    <string-array name="greetings_evening">
+        <item>Good evening</item>
+        <item>Golden hour</item>
+        <item>Kick back</item>
+        <item>Wind-down time</item>
+        <item>Lights low</item>
+    </string-array>
+    <string-array name="greetings_night">
+        <item>Up late</item>
+        <item>Night owl hours</item>
+        <item>Still awake</item>
+        <item>Burning the midnight oil</item>
+        <item>Sleep can wait</item>
+    </string-array>
+    <string-array name="home_quotes">
+        <item>Skip responsibly.</item>
+        <item>Today’s forecast: 100% chance of bangers.</item>
+        <item>Headphones on. World off.</item>
+        <item>No skips were harmed in the making of this playlist.</item>
+        <item>Some days you need one song. Some days, forty.</item>
+        <item>Your taste is excellent. We checked.</item>
+        <item>Volume up, worries down.</item>
+        <item>It’s not a phase. It’s a playlist.</item>
+        <item>Dance like the shuffle button is watching.</item>
+        <item>Hydrate. Then press play.</item>
+        <item>Life’s too short for bad playlists.</item>
+        <item>One more song. Okay, one more.</item>
+        <item>Music: cheaper than therapy, and it has a beat.</item>
+        <item>Somewhere, a song is waiting to become your favourite.</item>
+        <item>Breathe in. Press play. Breathe out.</item>
+        <item>The aux cord believes in you.</item>
+        <item>Plants grow better with music. So do people.</item>
+        <item>Your neighbours called. They want the name of this song.</item>
+        <item>Every great day has a soundtrack.</item>
+        <item>Sing like nobody’s listening. Somebody probably is.</item>
+    </string-array>
 </resources>

@@ -1637,4 +1637,17 @@
     <string name="theme_icon_subtitle">होम स्क्रीन पर थीम का अपना आइकन इस्तेमाल करें</string>
     <string name="theme_mode_title">लाइट और डार्क</string>
     <string name="theme_mode_dark_only">Vice और Doom सिर्फ़ डार्क हैं। यह Sonara पर लागू होता है।</string>
+    <string name="theme_winter">Winter</string>
+    <string name="theme_winter_line">बर्फ़ और ऑरोरा</string>
+    <string name="theme_winter_day">Winter (दिन)</string>
+    <string name="winter_effects">विंटर इफ़ेक्ट्स</string>
+    <string name="winter_effect_aurora">ऑरोरा एनिमेशन</string>
+    <string name="winter_effect_snow">बर्फ़बारी</string>
+    <string name="winter_effect_stars">तारे और टूटते तारे</string>
+    <string name="winter_effect_glass">लिक्विड-ग्लास ब्लर</string>
+    <string name="winter_effect_frost">पाले वाले किनारे</string>
+    <string name="winter_effects_low_tier">इस फ़ोन पर स्मूथ रखने के लिए शुरू में बंद</string>
+    <string name="winter_effects_footer">लो पावर मोड, डेटा सेवर या बैटरी सेवर में, एनिमेशन बंद होने पर और Sonara न दिखने पर हर इफ़ेक्ट अपने आप रुक जाता है। बंद होने पर स्थिर रूप दिखता है।</string>
+    <string name="winter_night_after_sunset">सूर्यास्त के बाद रात का आसमान</string>
+    <string name="winter_night_after_sunset_subtitle">लाइट मोड में शाम 6 बजे के बाद ध्रुवीय रात, सुबह 6 बजे फिर दिन</string>
 </resources>

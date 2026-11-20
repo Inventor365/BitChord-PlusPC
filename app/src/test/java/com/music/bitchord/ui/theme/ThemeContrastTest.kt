@@ -26,7 +26,7 @@ class ThemeContrastTest {
     fun everyThemesTextClearsWcagAA() {
         for (id in ThemeId.entries) {
             for (dark in listOf(true, false)) {
-                if (id != ThemeId.SONARA && !dark) continue // Vice and Doom are dark-only.
+                if (id.tokens.darkOnly && !dark) continue // Vice and Doom are dark-only.
                 val s = themeColorScheme(id, dark)
                 val name = "$id${if (dark) "/dark" else "/light"}"
                 assertAA(name, "onBackground", s.onBackground, s.background)
@@ -50,9 +50,8 @@ class ThemeContrastTest {
 
     @Test
     fun accentButtonsKeepTheirLabelsReadable() {
-        for (id in listOf(ThemeId.VICE, ThemeId.DOOM)) {
-            val t = id.tokens
-            assertAA("$id", "onAccent on accent", t.onAccent, t.accent)
+        for (t in listOf(ThemeTokens.Vice, ThemeTokens.Doom, ThemeTokens.WinterNight, ThemeTokens.WinterDay)) {
+            assertAA("${t.id}/${t.motif}", "onAccent on accent", t.onAccent, t.accent)
         }
     }
 
@@ -79,16 +78,26 @@ class ThemeContrastTest {
 
     @Test
     fun storedKeysAreStable_andAnUnknownOneFallsBackToSonara() {
-        assertEquals(listOf("sonara", "vice", "doom"), ThemeId.entries.map { it.key })
+        assertEquals(listOf("sonara", "vice", "doom", "winter"), ThemeId.entries.map { it.key })
         assertEquals(ThemeId.VICE, ThemeId.fromKey("vice"))
         assertEquals(ThemeId.SONARA, ThemeId.fromKey(null))
         assertEquals(ThemeId.SONARA, ThemeId.fromKey("removed-theme"))
     }
 
     @Test
-    fun viceAndDoomAreDarkOnly_andDoomIsAngular() {
+    fun viceAndDoomAreDarkOnly_andEveryThemeIsRounded() {
         assertTrue(ThemeTokens.Vice.darkOnly && ThemeTokens.Doom.darkOnly)
-        assertTrue(!ThemeTokens.Sonara.darkOnly)
-        assertTrue(ThemeTokens.Doom.angular && !ThemeTokens.Vice.angular)
+        assertTrue(!ThemeTokens.Sonara.darkOnly && !ThemeTokens.WinterNight.darkOnly)
+        // Doom was chamfered once and read as fussy: every theme is rounded now.
+        for (id in ThemeId.entries) assertTrue("$id", !id.tokens.angular)
+    }
+
+    @Test
+    fun winterHasADayAndANight_andFollowsTheAppsMode() {
+        assertTrue(!ThemeId.WINTER.tokens.darkOnly)
+        assertEquals(ThemeMotif.AURORA, ThemeId.WINTER.tokens(dark = true).motif)
+        assertEquals(ThemeMotif.GLACIER, ThemeId.WINTER.tokens(dark = false).motif)
+        assertTrue(themeColorScheme(ThemeId.WINTER, dark = false).background.luminance() > 0.8f)
+        assertTrue(themeColorScheme(ThemeId.WINTER, dark = true).background.luminance() < 0.05f)
     }
 }

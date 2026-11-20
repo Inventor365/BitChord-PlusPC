@@ -57,11 +57,11 @@ fun LibraryProfileHeader(
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.Bottom) {
                 Column(Modifier.weight(1f)) {
-                    MonoLabel("Your library")
+                    MonoLabel("Your library", color = com.music.bitchord.ui.theme.heroSubtitleColor(MaterialTheme.colorScheme.onSurfaceVariant))
                     Text(
                         text = name.ifBlank { "Library" },
-                        style = MaterialTheme.typography.displayLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
+                        style = MaterialTheme.typography.displayLarge.copy(shadow = com.music.bitchord.ui.theme.heroTextShadow()),
+                        color = com.music.bitchord.ui.theme.heroTitleColor(MaterialTheme.colorScheme.onBackground),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )

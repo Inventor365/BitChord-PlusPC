@@ -287,4 +287,65 @@
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
     <string name="library_search_hint">Rechercher dans ta bibliothèque</string>
     <string name="library_no_matches">Rien dans ta bibliothèque ne correspond à « %1$s »</string>
+    <string name="search_empty_title">Qu’avez-vous envie d’écouter ?</string>
+    <string name="browse_categories">Parcourir les catégories</string>
+    <string name="import_apple_music">Importer Apple Music</string>
+    <string name="import_amazon_music">Importer Amazon Music</string>
+    <string name="import_amazon_music_subtitle">Depuis une liste de titres collée</string>
+    <string name="video_off_short">Non</string>
+    <string name="video_quality_off">Vidéo désactivée</string>
+    <string name="video_quality_off_detail">Bannière fixe · économise données et batterie</string>
+    <string name="video_forced_off">%1$s affiche la bannière. Votre choix revient quand il se désactive.</string>
+    <string name="video_forced_cap">%1$s limite la vidéo à %2$s.</string>
+    <string name="greeting_named">%1$s, %2$s</string>
+    <string-array name="greetings_morning">
+        <item>Bonjour</item>
+        <item>Debout, soleil</item>
+        <item>Café d’abord</item>
+        <item>En route</item>
+        <item>Nouveau départ</item>
+    </string-array>
+    <string-array name="greetings_afternoon">
+        <item>Bon après-midi</item>
+        <item>Ambiance digestion</item>
+        <item>À mi-chemin</item>
+        <item>Toujours en forme</item>
+        <item>Coucou</item>
+    </string-array>
+    <string-array name="greetings_evening">
+        <item>Bonsoir</item>
+        <item>Heure dorée</item>
+        <item>On se pose</item>
+        <item>L’heure de décompresser</item>
+        <item>Lumière tamisée</item>
+    </string-array>
+    <string-array name="greetings_night">
+        <item>Couche-tard</item>
+        <item>L’heure des hiboux</item>
+        <item>Toujours debout</item>
+        <item>Nuit blanche en vue</item>
+        <item>Le sommeil attendra</item>
+    </string-array>
+    <string-array name="home_quotes">
+        <item>Zappez avec modération.</item>
+        <item>Météo du jour : 100 % de chances de tubes.</item>
+        <item>Casque sur les oreilles. Monde en sourdine.</item>
+        <item>Aucun morceau n’a été maltraité pendant cette playlist.</item>
+        <item>Certains jours, il faut un morceau. D’autres, quarante.</item>
+        <item>Vous avez un goût excellent. On a vérifié.</item>
+        <item>Volume en haut, soucis en bas.</item>
+        <item>Ce n’est pas une phase. C’est une playlist.</item>
+        <item>Dansez comme si la lecture aléatoire vous regardait.</item>
+        <item>Hydratez-vous. Puis appuyez sur lecture.</item>
+        <item>La vie est trop courte pour les mauvaises playlists.</item>
+        <item>Encore un morceau. Bon, encore un.</item>
+        <item>La musique : moins chère qu’un psy, et avec du rythme.</item>
+        <item>Quelque part, un morceau attend de devenir votre préféré.</item>
+        <item>Inspirez. Lecture. Expirez.</item>
+        <item>Le câble auxiliaire croit en vous.</item>
+        <item>Les plantes poussent mieux en musique. Les gens aussi.</item>
+        <item>Vos voisins ont appelé. Ils veulent le nom de ce morceau.</item>
+        <item>Chaque belle journée a sa bande-son.</item>
+        <item>Chantez comme si personne n’écoutait. Quelqu’un écoute sûrement.</item>
+    </string-array>
 </resources>

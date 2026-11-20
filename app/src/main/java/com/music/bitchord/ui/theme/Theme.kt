@@ -23,6 +23,7 @@ import com.music.bitchord.ui.theme.LocalThemeTokens
 import com.music.bitchord.ui.theme.ThemeId
 import com.music.bitchord.ui.theme.ThemeTokens
 import com.music.bitchord.ui.theme.ViceColors
+import com.music.bitchord.ui.theme.WinterColors
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
@@ -239,40 +240,135 @@ private val DoomScheme = darkColorScheme(
     surfaceContainerHighest = DoomColors.Plate,
 )
 
+/** Winter, polar night: navy to black surfaces, ice-blue primary, aurora green and violet. */
+private val WinterNightScheme = darkColorScheme(
+    primary = WinterColors.Ice,
+    onPrimary = Color(0xFF04121F),
+    primaryContainer = Color(0xFF15406A),
+    onPrimaryContainer = Color(0xFFD6EEFF),
+    inversePrimary = Color(0xFF1D6FC0),
+    secondary = WinterColors.AuroraGreen,
+    onSecondary = Color(0xFF00241A),
+    secondaryContainer = Color(0xFF0E4A3A),
+    onSecondaryContainer = Color(0xFFC6FFE9),
+    tertiary = WinterColors.AuroraViolet,
+    onTertiary = Color(0xFF1A0E40),
+    tertiaryContainer = Color(0xFF3A2C78),
+    onTertiaryContainer = Color(0xFFE8DEFF),
+    background = WinterColors.Polar,
+    onBackground = Color(0xFFEAF4FF),
+    surface = WinterColors.NightSurface,
+    onSurface = Color(0xFFEAF4FF),
+    surfaceVariant = WinterColors.NightSurfaceHigh,
+    onSurfaceVariant = Color(0xFFA8BFD8),
+    surfaceTint = WinterColors.Ice,
+    inverseSurface = Color(0xFFE3EEF9),
+    inverseOnSurface = Color(0xFF14243B),
+    error = Color(0xFFFF8A80),
+    onError = Color(0xFF2D0000),
+    errorContainer = Color(0xFF6B1A16),
+    onErrorContainer = Color(0xFFFFDAD6),
+    outline = Color(0xFF34507A),
+    outlineVariant = Color(0xFF1E3354),
+    scrim = Color.Black,
+    surfaceBright = Color(0xFF213659),
+    surfaceDim = WinterColors.Polar,
+    surfaceContainerLowest = Color(0xFF030713),
+    surfaceContainerLow = Color(0xFF0A1428),
+    surfaceContainer = WinterColors.NightSurface,
+    surfaceContainerHigh = Color(0xFF13213B),
+    surfaceContainerHighest = WinterColors.NightSurfaceHigh,
+)
+
+/** Winter day: snow and frosted-glass surfaces, glacier blues, deep navy text. */
+private val WinterDayScheme = lightColorScheme(
+    primary = WinterColors.IceBlue,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFD3E8FA),
+    onPrimaryContainer = Color(0xFF062A4F),
+    inversePrimary = WinterColors.Ice,
+    secondary = Color(0xFF0E7C9E),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFCDEEF8),
+    onSecondaryContainer = Color(0xFF00313F),
+    tertiary = Color(0xFF5B4BB0),
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFE6E0FF),
+    onTertiaryContainer = Color(0xFF1C0F55),
+    background = WinterColors.Snow,
+    onBackground = WinterColors.Navy,
+    surface = WinterColors.SnowSurface,
+    onSurface = WinterColors.Navy,
+    surfaceVariant = WinterColors.Glacier,
+    onSurfaceVariant = WinterColors.NavySoft,
+    surfaceTint = WinterColors.IceBlue,
+    inverseSurface = Color(0xFF16304F),
+    inverseOnSurface = Color(0xFFE9F3FC),
+    error = Color(0xFFB3261E),
+    onError = Color.White,
+    errorContainer = Color(0xFFF9DEDC),
+    onErrorContainer = Color(0xFF410E0B),
+    outline = Color(0xFF9DB9D3),
+    outlineVariant = Color(0xFFD4E4F2),
+    scrim = Color.Black,
+    surfaceBright = Color.White,
+    surfaceDim = Color(0xFFDDE9F4),
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = Color(0xFFF2F8FD),
+    surfaceContainer = Color(0xFFECF4FB),
+    surfaceContainerHigh = WinterColors.Glacier,
+    surfaceContainerHighest = WinterColors.GlacierDeep,
+)
+
+/** Quicksand: clean, rounded and airy — Winter's headings. A variable font; OFL, see assets/licenses. */
+@OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
+val QuicksandFamily = FontFamily(
+    Font(R.font.quicksand_variable, FontWeight.W600, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
+    Font(R.font.quicksand_variable, FontWeight.W700, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
+)
+
 /** Righteous: rounded, retro, a little glam — Vice's headings. OFL; see assets/licenses. */
 val RighteousFamily = FontFamily(Font(R.font.righteous_regular, FontWeight.W400))
 
-/** Cinzel: Roman capitals, cut sharp — Doom's headings. A variable font; OFL, see assets/licenses. */
+/**
+ * Oswald: a clean condensed sans in the spirit of a blockbuster title card — Doom's headings.
+ * A variable font; OFL, see assets/licenses.
+ */
 @OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
-val CinzelFamily = FontFamily(
-    Font(R.font.cinzel_variable, FontWeight.W600, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
-    Font(R.font.cinzel_variable, FontWeight.W700, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
-    Font(R.font.cinzel_variable, FontWeight.W800, variationSettings = FontVariation.Settings(FontVariation.weight(800))),
+val OswaldFamily = FontFamily(
+    Font(R.font.oswald_variable, FontWeight.W500, variationSettings = FontVariation.Settings(FontVariation.weight(500))),
+    Font(R.font.oswald_variable, FontWeight.W600, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
+    Font(R.font.oswald_variable, FontWeight.W700, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
 )
 
-/** [id]'s colour scheme. Vice and Doom have only their dark one. */
+/** [id]'s colour scheme. Vice and Doom have only their dark one; Sonara and Winter both. */
 fun themeColorScheme(id: ThemeId, dark: Boolean): ColorScheme = when (id) {
     ThemeId.SONARA -> if (dark) DarkColors else LightColors
     ThemeId.VICE -> ViceScheme
     ThemeId.DOOM -> DoomScheme
+    ThemeId.WINTER -> if (dark) WinterNightScheme else WinterDayScheme
 }
 
-/** The tokens for [id], with the heading face only the app module can load filled in. */
-fun themeTokensFor(id: ThemeId): ThemeTokens = when (id) {
+/** The tokens for [id] in a dark or light app, with the heading face only this module can load. */
+fun themeTokensFor(id: ThemeId, dark: Boolean = true): ThemeTokens = when (id) {
     ThemeId.SONARA -> ThemeTokens.Sonara
     ThemeId.VICE -> ThemeTokens.Vice.copy(headingFamily = RighteousFamily)
-    ThemeId.DOOM -> ThemeTokens.Doom.copy(headingFamily = CinzelFamily)
+    ThemeId.DOOM -> ThemeTokens.Doom.copy(headingFamily = OswaldFamily)
+    ThemeId.WINTER -> id.tokens(dark).copy(headingFamily = QuicksandFamily)
 }
 
 /**
  * The page titles and greetings in the theme's own face; titles of songs, body and labels stay
- * in the app's face, which is set for reading at small sizes. Cinzel's small capitals read
- * larger than their size, and Righteous rounder, so both are set a step looser.
+ * in the app's face, which is set for reading at small sizes. Each face is set at the weight it
+ * reads best in, and a condensed one a little looser.
  */
 private fun Typography.withHeadings(tokens: ThemeTokens): Typography {
     val family = tokens.headingFamily ?: return this
-    val spacing = if (tokens.angular) 0.6.sp else 0.2.sp
-    val weight = if (tokens.angular) FontWeight.W700 else FontWeight.W400
+    val (weight, spacing) = when (tokens.id) {
+        ThemeId.DOOM -> FontWeight.W600 to 0.4.sp
+        ThemeId.WINTER -> FontWeight.W700 to 0.sp
+        else -> FontWeight.W400 to 0.2.sp
+    }
     fun TextStyle.heading() = copy(fontFamily = family, fontWeight = weight, letterSpacing = spacing)
     return copy(
         displayLarge = displayLarge.heading(),
@@ -293,7 +389,7 @@ private fun shapesFor(tokens: ThemeTokens): Shapes = when {
         large = CutCornerShape(14.dp),
         extraLarge = CutCornerShape(20.dp),
     )
-    tokens.id == ThemeId.VICE -> Shapes(
+    tokens.id == ThemeId.VICE || tokens.id == ThemeId.WINTER -> Shapes(
         extraSmall = RoundedCornerShape(8.dp),
         small = RoundedCornerShape(12.dp),
         medium = RoundedCornerShape(18.dp),
@@ -316,7 +412,7 @@ fun BitChordTheme(
     reduceMotion: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val tokens = remember(themeId) { themeTokensFor(themeId) }
+    val tokens = remember(themeId, darkTheme) { themeTokensFor(themeId, darkTheme) }
     val target = themeColorScheme(themeId, darkTheme)
     val base = when (font) {
         AppFont.DEFAULT -> BitChordTypography

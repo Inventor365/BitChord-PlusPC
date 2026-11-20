@@ -20,14 +20,20 @@ enum class ThemeId(val key: String) {
     SONARA("sonara"),
     VICE("vice"),
     DOOM("doom"),
+    WINTER("winter"),
     ;
 
+    /** The theme's main look: its only one, or for Winter the polar night. */
     val tokens: ThemeTokens
-        get() = when (this) {
-            SONARA -> ThemeTokens.Sonara
-            VICE -> ThemeTokens.Vice
-            DOOM -> ThemeTokens.Doom
-        }
+        get() = tokens(dark = true)
+
+    /** The look for a dark or light app: only Winter (and Sonara, by its colours) has both. */
+    fun tokens(dark: Boolean): ThemeTokens = when (this) {
+        SONARA -> ThemeTokens.Sonara
+        VICE -> ThemeTokens.Vice
+        DOOM -> ThemeTokens.Doom
+        WINTER -> if (dark) ThemeTokens.WinterNight else ThemeTokens.WinterDay
+    }
 
     companion object {
         fun fromKey(key: String?): ThemeId = entries.firstOrNull { it.key == key } ?: SONARA
@@ -42,8 +48,26 @@ enum class ThemeMotif {
     /** A banded synthwave sun going down behind two palm silhouettes, over a horizon grid. */
     SUNSET,
 
-    /** A chamfered crest plate, engraved, with a faint glow at its heart. */
+    /** Forged iron, an engraved arcane dial with an emerald glow, a riveted seam. */
     CREST,
+
+    /** Polar night: stars, the aurora and an ice shelf against the sky. */
+    AURORA,
+
+    /** Winter day: a pale sky, layered glaciers and an ice shelf. */
+    GLACIER,
+}
+
+/** How a theme edges its cards, tiles and bars. */
+enum class ThemeEdge {
+    /** As the app always has: nothing beyond the shape. */
+    NONE,
+
+    /** Brushed metal: a soft light across the top of the surface, no outline (Doom). */
+    FORGED,
+
+    /** Frost creeping in at the corners (Winter). */
+    FROST,
 }
 
 /** The fine surface texture of a theme's cards and hero. */
@@ -56,6 +80,9 @@ enum class ThemeTexture {
 
     /** Brushed-metal hairlines and rivets. */
     RIVETS,
+
+    /** Frost: a pale bloom and crystals at the corners. */
+    FROST,
 }
 
 /**
@@ -105,11 +132,31 @@ data class ThemeTokens(
     val chipShape: Shape,
     /** Display and headline type; null keeps the app's own face. */
     val headingFamily: FontFamily? = null,
+    /** A soft diagonal sheen over Now Playing, as light on velvet; null for none. */
+    val playerSheen: Color? = null,
+    /** How cards, bars and tiles are edged: see [ThemeEdge]. */
+    val edge: ThemeEdge = ThemeEdge.NONE,
+    /**
+     * Chamfered rather than rounded: corners cut, not curved. Every theme today is rounded — Doom
+     * was cut once and read as fussy — but the shapes still honour it for a theme that wants it.
+     */
+    val angular: Boolean = false,
+    /** The theme has animated layers (aurora, snow, stars) and the effect switches that go with them. */
+    val animated: Boolean = false,
+    /**
+     * Page titles over the theme's hero (Home's greeting, Library, Settings, Explore, Search): their
+     * colour, the subtitle's under them, and a soft glow behind both, chosen to sit naturally on
+     * the hero art rather than as page text dropped on a picture. Null keeps the scheme's colours.
+     */
+    val heroTitle: Color? = null,
+    val heroSubtitle: Color? = null,
+    val heroShadow: Color? = null,
 ) {
-    /** Chamfered rather than rounded: corners are cut, not curved. */
-    val angular: Boolean get() = motif == ThemeMotif.CREST
 
     companion object {
+        val WinterNight: ThemeTokens get() = WinterNightTokens
+        val WinterDay: ThemeTokens get() = WinterDayTokens
+
         val Sonara = ThemeTokens(
             id = ThemeId.SONARA,
             darkOnly = false,
@@ -152,6 +199,10 @@ data class ThemeTokens(
             progressColors = listOf(ViceColors.HotPink, ViceColors.Sunset),
             lyricGlow = ViceColors.HotPink,
             glow = ViceColors.HotPink,
+            // Warm white with a neon-pink glow over the sunset; the subtitle in soft pink.
+            heroTitle = Color(0xFFFFF4F9),
+            heroSubtitle = Color(0xFFFFC2E2),
+            heroShadow = ViceColors.HotPink.copy(alpha = 0.55f),
             cardShape = RoundedCornerShape(28.dp),
             controlShape = CircleShape,
             chipShape = CircleShape,
@@ -172,15 +223,48 @@ data class ThemeTokens(
             heroGlow = DoomColors.Emerald,
             motif = ThemeMotif.CREST,
             texture = ThemeTexture.RIVETS,
-            playerTint = listOf(Color(0xFF0A3320).copy(alpha = 0.30f), Color.Transparent, DoomColors.Void.copy(alpha = 0.30f)),
+            // Cape-green velvet: deep green falling to near black, with a sheen across it.
+            playerTint = listOf(
+                Color(0xFF0D3B25).copy(alpha = 0.55f),
+                Color(0xFF07200F).copy(alpha = 0.30f),
+                Color(0xFF02100A).copy(alpha = 0.62f),
+            ),
+            playerSheen = Color(0xFF6CFFB5),
+            edge = ThemeEdge.FORGED,
             progressColors = listOf(DoomColors.Emerald, Color(0xFF8CFFC0)),
             lyricGlow = DoomColors.Emerald,
             glow = DoomColors.Emerald,
-            cardShape = CutCornerShape(14.dp),
-            controlShape = CutCornerShape(10.dp),
-            chipShape = CutCornerShape(7.dp),
+            // Pale emerald-white with a green glow over the crest; the subtitle in sage.
+            heroTitle = Color(0xFFEAFFF3),
+            heroSubtitle = Color(0xFFA6DCBE),
+            heroShadow = DoomColors.Emerald.copy(alpha = 0.45f),
+            cardShape = RoundedCornerShape(24.dp),
+            controlShape = CircleShape,
+            chipShape = CircleShape,
         )
     }
+}
+
+/** Winter's palette. */
+object WinterColors {
+    // Night
+    val Polar = Color(0xFF050B1A)
+    val NightSky = Color(0xFF0B1E3D)
+    val NightSurface = Color(0xFF0E1A31)
+    val NightSurfaceHigh = Color(0xFF162744)
+    val Ice = Color(0xFF9FDCFF)
+    val AuroraGreen = Color(0xFF5CF2B5)
+    val AuroraTeal = Color(0xFF3FC8E8)
+    val AuroraViolet = Color(0xFFA48BFA)
+    val Frost = Color(0xFFDDF3FF)
+    // Day
+    val Snow = Color(0xFFF6FAFE)
+    val SnowSurface = Color(0xFFFFFFFF)
+    val Glacier = Color(0xFFE3F0FA)
+    val GlacierDeep = Color(0xFFBFDDF2)
+    val IceBlue = Color(0xFF1D6FC0)
+    val Navy = Color(0xFF0C2340)
+    val NavySoft = Color(0xFF3F5975)
 }
 
 /** Vice's palette. */
@@ -208,6 +292,64 @@ object DoomColors {
     val Steel = Color(0xFFA9B6C1)
     val Ash = Color(0xFF8A969F)
 }
+
+private val WinterShape = RoundedCornerShape(24.dp)
+
+/** Polar night: navy to black, the aurora's greens and violets, ice for the accent. */
+private val WinterNightTokens = ThemeTokens(
+    id = ThemeId.WINTER,
+    darkOnly = false,
+    accent = WinterColors.Ice,
+    accent2 = WinterColors.AuroraGreen,
+    accent3 = WinterColors.Frost,
+    accentDeep = Color(0xFF0B2A4A),
+    onAccent = Color(0xFF04121F),
+    ink = WinterColors.Polar,
+    passGradient = listOf(Color(0xFF123660), Color(0xFF0A1832), WinterColors.Polar),
+    backdropGradient = listOf(Color(0xFF0E2547), Color(0xFF09162E), WinterColors.Polar),
+    heroGlow = WinterColors.AuroraGreen,
+    motif = ThemeMotif.AURORA,
+    texture = ThemeTexture.FROST,
+    // The sleeve's colours under the aurora's: teal above, violet below.
+    playerTint = listOf(Color(0xFF1C6E74).copy(alpha = 0.32f), Color.Transparent, Color(0xFF3B2A78).copy(alpha = 0.30f)),
+    progressColors = listOf(WinterColors.Ice, WinterColors.AuroraGreen),
+    lyricGlow = WinterColors.Ice,
+    glow = WinterColors.AuroraTeal,
+    cardShape = WinterShape,
+    controlShape = CircleShape,
+    chipShape = CircleShape,
+    playerSheen = WinterColors.AuroraGreen,
+    edge = ThemeEdge.FROST,
+    animated = true,
+    // Icy white under the aurora, frost blue below it, a faint teal glow behind both.
+    heroTitle = Color(0xFFF3FBFF),
+    heroSubtitle = Color(0xFFC4E7FF),
+    heroShadow = WinterColors.AuroraTeal.copy(alpha = 0.40f),
+)
+
+/** Winter day: snow-white and glacier blue, deep navy for text, icy blue for the accent. */
+private val WinterDayTokens = WinterNightTokens.copy(
+    accent = WinterColors.IceBlue,
+    accent2 = Color(0xFF38B6E0),
+    accent3 = Color(0xFF8CC8EC),
+    accentDeep = Color(0xFF0C2D52),
+    onAccent = Color.White,
+    ink = Color(0xFF0E2A4A),
+    passGradient = listOf(Color(0xFF2E78C0), Color(0xFF1B4E86), Color(0xFF0E2A4A)),
+    backdropGradient = listOf(Color(0xFFCDE6F8), Color(0xFFE6F2FB), WinterColors.Snow),
+    heroGlow = Color(0xFFFFFFFF),
+    motif = ThemeMotif.GLACIER,
+    playerTint = listOf(Color(0xFFDDF3FF).copy(alpha = 0.16f), Color.Transparent, Color(0xFF9FD3F5).copy(alpha = 0.18f)),
+    progressColors = listOf(Color(0xFFFFFFFF), WinterColors.Ice),
+    lyricGlow = Color(0xFFBFE6FF),
+    glow = Color(0xFF8CC8EC),
+    playerSheen = Color(0xFFFFFFFF),
+    // White on the arctic sky, carried by a deep-blue glow so it holds over snow and sun alike —
+    // navy type dropped on a blue sky read as stuck on rather than part of the scene.
+    heroTitle = Color.White,
+    heroSubtitle = Color(0xFFF2F8FD),
+    heroShadow = Color(0xFF0B3463).copy(alpha = 0.62f),
+)
 
 /** The active theme's tokens. The app provides them; anything outside a theme reads Sonara's. */
 val LocalThemeTokens = staticCompositionLocalOf { ThemeTokens.Sonara }

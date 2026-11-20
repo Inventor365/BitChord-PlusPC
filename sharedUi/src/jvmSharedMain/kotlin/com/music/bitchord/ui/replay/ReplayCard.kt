@@ -100,6 +100,10 @@ fun ReplayCreditCard(
     modifier: Modifier = Modifier,
 ) {
     val palette = rememberArtworkColors(artworkUrl)
+    // Winter by day: a frosted card — the same mesh under a cool-white wash, navy ink, embossing
+    // lit from above by a white edge — instead of a dark slab in a light page. Every other theme,
+    // and Winter's night, keeps the dark card.
+    val ink = if (com.music.bitchord.ui.theme.LocalThemeTokens.current.motif == com.music.bitchord.ui.theme.ThemeMotif.GLACIER) FrostInk else DarkInk
     Box(
         modifier = modifier
             .aspectRatio(CARD_RATIO)
@@ -120,11 +124,7 @@ fun ReplayCreditCard(
             Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.verticalGradient(
-                        0.0f to Color.Black.copy(alpha = 0.18f),
-                        0.55f to Color.Black.copy(alpha = 0.30f),
-                        1.0f to Color.Black.copy(alpha = 0.55f),
-                    ),
+                    ink.scrim,
                 ),
         )
 
@@ -141,14 +141,14 @@ fun ReplayCreditCard(
                     fontWeight = FontWeight.W700,
                     letterSpacing = 1.4.sp,
                     lineHeight = 13.sp,
-                    color = Color.White.copy(alpha = 0.72f),
+                    color = ink.text.copy(alpha = 0.72f),
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(Modifier.width(10.dp))
                 Icon(
                     painter = painterResource(Res.drawable.ic_logo),
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = ink.text,
                     modifier = Modifier.size(width = 34.dp, height = 22.dp),
                 )
             }
@@ -161,8 +161,8 @@ fun ReplayCreditCard(
                     fontSize = 27.sp,
                     lineHeight = 30.sp,
                     fontWeight = FontWeight.W800,
-                    brush = PolishedInk,
-                    shadow = EmbossShadow,
+                    brush = ink.raised,
+                    shadow = ink.shadow,
                 ),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -172,7 +172,7 @@ fun ReplayCreditCard(
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.W700,
                 letterSpacing = 1.8.sp,
-                color = Color.White.copy(alpha = 0.65f),
+                color = ink.text.copy(alpha = 0.65f),
             )
 
             // Weighted either side rather than pinned to the foot, so the figure
@@ -185,12 +185,13 @@ fun ReplayCreditCard(
                         text = holder.ifBlank { stringResource(Res.string.default_replay_holder) }
                             .uppercase(Locale.getDefault()),
                         size = 13.sp,
+                        ink = ink,
                     )
                     if (detail != null) {
                         Text(
                             text = detail,
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.6f),
+                            color = ink.text.copy(alpha = 0.6f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -205,7 +206,7 @@ fun ReplayCreditCard(
                             fontSize = 7.sp,
                             lineHeight = 8.sp,
                             letterSpacing = 0.8.sp,
-                            color = Color.White.copy(alpha = 0.55f),
+                            color = ink.text.copy(alpha = 0.55f),
                             // Both lines to the right edge, not just the block.
                             // Column alignment places the text *box*; inside it
                             // the two lines still set from the left, which left
@@ -232,7 +233,7 @@ fun ReplayCreditCard(
  * above.
  */
 @Composable
-private fun Embossed(text: String, size: TextUnit) {
+private fun Embossed(text: String, size: TextUnit, ink: CardInk = DarkInk) {
     Text(
         text = text,
         style = TextStyle(
@@ -240,8 +241,8 @@ private fun Embossed(text: String, size: TextUnit) {
             fontWeight = FontWeight.W600,
             fontSize = size,
             letterSpacing = 1.6.sp,
-            brush = PolishedInk,
-            shadow = EmbossShadow,
+            brush = ink.raised,
+            shadow = ink.shadow,
         ),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -305,6 +306,33 @@ private val EmbossShadow = Shadow(
 )
 
 private val CardShape = RoundedCornerShape(20.dp)
+
+/** How a card is inked: the wash over its mesh, its type, and its raised lines. */
+private class CardInk(val scrim: Brush, val text: Color, val raised: Brush, val shadow: Shadow)
+
+/** The card as it has always been: deepened towards the foot, pale embossed type. */
+private val DarkInk = CardInk(
+    scrim = Brush.verticalGradient(
+        0.0f to Color.Black.copy(alpha = 0.18f),
+        0.55f to Color.Black.copy(alpha = 0.30f),
+        1.0f to Color.Black.copy(alpha = 0.55f),
+    ),
+    text = Color.White,
+    raised = PolishedInk,
+    shadow = EmbossShadow,
+)
+
+/** Winter by day: frosted — a cool-white wash, navy type, raised lines lit by a white edge. */
+private val FrostInk = CardInk(
+    scrim = Brush.verticalGradient(
+        0.0f to Color(0xFFF4F9FD).copy(alpha = 0.62f),
+        0.55f to Color(0xFFEAF3FA).copy(alpha = 0.72f),
+        1.0f to Color(0xFFE2EEF8).copy(alpha = 0.84f),
+    ),
+    text = Color(0xFF0F2A44),
+    raised = Brush.verticalGradient(listOf(Color(0xFF16385A), Color(0xFF0F2A44), Color(0xFF0A1E33))),
+    shadow = Shadow(color = Color(0xCCFFFFFF), offset = Offset(0f, 1.5f), blurRadius = 2f),
+)
 
 /** Whose card it is when there is no signed-in account to name. */
 

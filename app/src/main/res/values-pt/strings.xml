@@ -1642,4 +1642,17 @@
     <string name="theme_icon_subtitle">Use o ícone do tema na tela inicial</string>
     <string name="theme_mode_title">Claro e escuro</string>
     <string name="theme_mode_dark_only">Vice e Doom são apenas escuros. Isto vale para o Sonara.</string>
+    <string name="theme_winter">Winter</string>
+    <string name="theme_winter_line">Neve e aurora</string>
+    <string name="theme_winter_day">Winter (dia)</string>
+    <string name="winter_effects">Efeitos de inverno</string>
+    <string name="winter_effect_aurora">Animação da aurora</string>
+    <string name="winter_effect_snow">Neve caindo</string>
+    <string name="winter_effect_stars">Estrelas e estrelas cadentes</string>
+    <string name="winter_effect_glass">Desfoque de vidro líquido</string>
+    <string name="winter_effect_frost">Bordas congeladas</string>
+    <string name="winter_effects_low_tier">Começa desligado neste telefone para manter a fluidez</string>
+    <string name="winter_effects_footer">Cada um pausa sozinho no modo de pouca energia, na economia de dados ou de bateria, com as animações desligadas e quando o Sonara não está à vista. Desligado, aparece uma versão estática.</string>
+    <string name="winter_night_after_sunset">Céu noturno após o pôr do sol</string>
+    <string name="winter_night_after_sunset_subtitle">No modo claro, noite polar após as 18h e volta após as 6h</string>
 </resources>

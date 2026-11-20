@@ -100,6 +100,7 @@ import androidx.compose.ui.text.font.FontWeight
 import com.music.bitchord.ui.components.revealOnAppear
 import com.music.bitchord.ui.components.topGlow
 import com.music.bitchord.ui.theme.themedShape
+import org.jetbrains.compose.resources.stringArrayResource
 
 /** How far the Listen now heading and feed sit above the shared top inset. */
 private val HOME_TITLE_LIFT = 28.dp
@@ -136,6 +137,11 @@ fun HomeScreen(
     festiveLogo: Boolean = false,
     /** Tapping the festive wordmark, e.g. to bring its greeting back. */
     onFestiveLogoClick: (() -> Unit)? = null,
+    /**
+     * Moves on each time the app is opened: picks which greeting of the hour and which line under
+     * it, so the page says something a little different every visit.
+     */
+    greetingSeed: Int = 0,
     signedIn: Boolean = true,
     onSignIn: (() -> Unit)? = null,
     /**
@@ -205,7 +211,15 @@ fun HomeScreen(
             },
         ) {
             if (title != null) {
-                item { HomeTitle(title, listenerName = listenerName, festiveLogo = festiveLogo, onFestiveLogoClick = onFestiveLogoClick) }
+                item {
+                    HomeTitle(
+                        title,
+                        listenerName = listenerName,
+                        festiveLogo = festiveLogo,
+                        onFestiveLogoClick = onFestiveLogoClick,
+                        seed = greetingSeed,
+                    )
+                }
             }
             if (!signedIn && onSignIn != null) {
                 item {
@@ -499,8 +513,21 @@ private fun HomeTitle(
     listenerName: String? = null,
     festiveLogo: Boolean = false,
     onFestiveLogoClick: (() -> Unit)? = null,
+    seed: Int = 0,
 ) {
-    val style = MaterialTheme.typography.displayLarge
+    val themeTokens = com.music.bitchord.ui.theme.LocalThemeTokens.current
+    // Over a theme's hero art (a sunset, a dial, a night sky) the words carry a soft halo in the
+    // page's own colour, so they stay readable whatever is drawn behind them.
+    val halo = if (themeTokens.motif != com.music.bitchord.ui.theme.ThemeMotif.NONE) {
+        androidx.compose.ui.graphics.Shadow(
+            color = MaterialTheme.colorScheme.background.copy(alpha = 0.75f),
+            offset = androidx.compose.ui.geometry.Offset(0f, 1f),
+            blurRadius = 14f,
+        )
+    } else {
+        null
+    }
+    val style = MaterialTheme.typography.displayLarge.copy(shadow = com.music.bitchord.ui.theme.heroTextShadow(fallback = halo))
     val logoHeight = with(LocalDensity.current) { (style.fontSize * LOGO_TO_FONT).toDp() }
     Column(modifier = modifier.padding(horizontal = PAGE_GUTTER, vertical = 8.dp)) {
         val logoModifier = Modifier
@@ -514,38 +541,61 @@ private fun HomeTitle(
                 onClick = onFestiveLogoClick,
             )
         } else {
-            Icon(
-                painter = painterResource(Res.drawable.ic_logo),
-                contentDescription = null,
-                // The mark in its own colour, not the text colour: it is the one thing on the
-                // page that is the app's and not the listener's.
-                tint = com.music.bitchord.ui.theme.LocalThemeTokens.current.accent,
-                modifier = logoModifier,
-            )
+            Row(verticalAlignment = Alignment.Bottom) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_logo),
+                    contentDescription = null,
+                    // The mark in its own colour, not the text colour: it is the one thing on the
+                    // page that is the app's and not the listener's.
+                    tint = themeTokens.accent,
+                    modifier = logoModifier,
+                )
+            }
         }
-        // The page greets whoever opened it, by the hour and by name when it knows one. It
-        // replaces a fixed "Listen now", which said the same thing every time to everyone.
+        // The page greets whoever opened it, by the hour and by name when it knows one — in one of
+        // a handful of ways for each part of the day, and a different one each visit.
         val hour = remember { java.time.LocalTime.now().hour }
-        val greeting = stringResource(
+        val greetings = stringArrayResource(
             when (hour) {
-                in 5..11 -> Res.string.greeting_morning
-                in 12..16 -> Res.string.greeting_afternoon
-                in 17..21 -> Res.string.greeting_evening
-                else -> Res.string.greeting_night
+                in 5..11 -> Res.array.greetings_morning
+                in 12..16 -> Res.array.greetings_afternoon
+                in 17..21 -> Res.array.greetings_evening
+                else -> Res.array.greetings_night
             },
         )
+        val greeting = greetings.pick(seed)
         val firstName = listenerName?.trim()?.substringBefore(' ')?.takeIf { it.isNotBlank() }
         Text(
             text = if (firstName != null) stringResource(Res.string.greeting_named, greeting, firstName) else greeting,
             style = style,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = com.music.bitchord.ui.theme.heroTitleColor(MaterialTheme.colorScheme.onBackground),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
+        // A line under it — funny, a little sarcastic, now and then sincere — that changes with
+        // every visit. Stepped by a prime so it doesn't move in lockstep with the greeting.
+        val quote = stringArrayResource(Res.array.home_quotes).pick(seed * QUOTE_STRIDE + 3)
+        if (quote.isNotEmpty()) {
+            Text(
+                text = quote,
+                style = MaterialTheme.typography.bodyLarge.copy(shadow = com.music.bitchord.ui.theme.heroTextShadow(soft = true, fallback = halo)),
+                color = com.music.bitchord.ui.theme.heroSubtitleColor(MaterialTheme.colorScheme.onSurfaceVariant),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+        }
     }
 }
 
 /** The Sonara mark's red. */
+
+/** The quote list is walked by this step, so greeting and quote don't change in lockstep. */
+private const val QUOTE_STRIDE = 7
+
+/** The entry [seed] lands on, wrapping, or an empty string for an empty list. */
+internal fun List<String>.pick(seed: Int): String =
+    if (isEmpty()) "" else this[Math.floorMod(seed, size)]
 
 /** The wordmark's height against the heading's font size. */
 private const val LOGO_TO_FONT = 0.9f

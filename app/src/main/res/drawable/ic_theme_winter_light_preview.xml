@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Winter icon (day): the Sonara mark in glacier blues on snow. Original artwork; geometry unchanged. Flattened for in-app previews (Compose cannot draw adaptive icons). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="54" android:startY="0" android:endX="54" android:endY="108">
+                <item android:offset="0" android:color="#FFFFFFFF" />
+                <item android:offset="0.6" android:color="#FFEAF5FD" />
+                <item android:offset="1" android:color="#FFCFE7F8" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M26,24m-3.2,0l6.4,0M26,24m0,-3.2l0,6.4M26,24m-2.24,-2.24l4.48,4.48M26,24m2.24,-2.24l-4.48,4.48" android:strokeWidth="0.45" android:strokeLineCap="round" android:strokeColor="#3D8FC7EA" />
+    <path android:pathData="M84,22m-2.4,0l4.8,0M84,22m0,-2.4l0,4.8M84,22m-1.68,-1.68l3.36,3.36M84,22m1.68,-1.68l-3.36,3.36" android:strokeWidth="0.45" android:strokeLineCap="round" android:strokeColor="#3D8FC7EA" />
+    <path android:pathData="M20,86m-2.6,0l5.2,0M20,86m0,-2.6l0,5.2M20,86m-1.82,-1.82l3.64,3.64M20,86m1.82,-1.82l-3.64,3.64" android:strokeWidth="0.45" android:strokeLineCap="round" android:strokeColor="#3D8FC7EA" />
+    <path android:pathData="M88,88m-3.4,0l6.8,0M88,88m0,-3.4l0,6.8M88,88m-2.38,-2.38l4.76,4.76M88,88m2.38,-2.38l-4.76,4.76" android:strokeWidth="0.45" android:strokeLineCap="round" android:strokeColor="#3D8FC7EA" />
+    <path android:pathData="M40.46,39.34A22,22 0 0 0 67.54,39.34" android:strokeWidth="8.5" android:strokeLineCap="round" android:fillColor="#00000000">
+        <aapt:attr name="android:strokeColor">
+            <gradient android:type="linear" android:startX="40.46" android:startY="50" android:endX="67.54" android:endY="50">
+                <item android:offset="0" android:color="#FF9BD3F5" />
+                <item android:offset="1" android:color="#FF6FB8EE" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M31.84,50.37A36,36 0 0 0 76.16,50.37" android:strokeWidth="8.5" android:strokeLineCap="round" android:fillColor="#00000000">
+        <aapt:attr name="android:strokeColor">
+            <gradient android:type="linear" android:startX="31.84" android:startY="50" android:endX="76.16" android:endY="50">
+                <item android:offset="0" android:color="#FF5CA4E3" />
+                <item android:offset="1" android:color="#FF3C8BD9" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M23.22,61.40A50,50 0 0 0 84.78,61.40" android:strokeWidth="8.5" android:strokeLineCap="round" android:fillColor="#00000000">
+        <aapt:attr name="android:strokeColor">
+            <gradient android:type="linear" android:startX="23.22" android:startY="50" android:endX="84.78" android:endY="50">
+                <item android:offset="0" android:color="#FF2D6FB8" />
+                <item android:offset="1" android:color="#FF1C4A86" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

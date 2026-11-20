@@ -289,4 +289,65 @@
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
     <string name="library_search_hint">Kitaplığında ara</string>
     <string name="library_no_matches">Kitaplığında “%1$s” ile eşleşen bir şey yok</string>
+    <string name="search_empty_title">Ne dinlemek istersin?</string>
+    <string name="browse_categories">Kategorilere göz at</string>
+    <string name="import_apple_music">Apple Music’ten içe aktar</string>
+    <string name="import_amazon_music">Amazon Music’ten içe aktar</string>
+    <string name="import_amazon_music_subtitle">Yapıştırılan şarkı listesinden</string>
+    <string name="video_off_short">Kapalı</string>
+    <string name="video_quality_off">Video kapalı</string>
+    <string name="video_quality_off_detail">Sabit afiş · veri ve pil tasarrufu</string>
+    <string name="video_forced_off">%1$s afişi gösteriyor. Kapandığında seçimin geri gelir.</string>
+    <string name="video_forced_cap">%1$s videoyu %2$s ve altında tutuyor.</string>
+    <string name="greeting_named">%1$s, %2$s</string>
+    <string-array name="greetings_morning">
+        <item>Günaydın</item>
+        <item>Uyan, güneşim</item>
+        <item>Önce kahve</item>
+        <item>Hadi bakalım</item>
+        <item>Yeni bir başlangıç</item>
+    </string-array>
+    <string-array name="greetings_afternoon">
+        <item>Tünaydın</item>
+        <item>Öğle sonrası modu</item>
+        <item>Yarıladık</item>
+        <item>Hâlâ formdayız</item>
+        <item>Selam</item>
+    </string-array>
+    <string-array name="greetings_evening">
+        <item>İyi akşamlar</item>
+        <item>Altın saat</item>
+        <item>Arkana yaslan</item>
+        <item>Gevşeme vakti</item>
+        <item>Loş ışıklar</item>
+    </string-array>
+    <string-array name="greetings_night">
+        <item>Geç oldu</item>
+        <item>Baykuş saatleri</item>
+        <item>Hâlâ uyanık</item>
+        <item>Gece mesaisi</item>
+        <item>Uyku bekleyebilir</item>
+    </string-array>
+    <string-array name="home_quotes">
+        <item>Sorumlu atla.</item>
+        <item>Bugünün hava durumu: %100 hit ihtimali.</item>
+        <item>Kulaklık takıldı. Dünya kapandı.</item>
+        <item>Bu çalma listesi yapılırken hiçbir şarkı atlanmadı.</item>
+        <item>Bazı günler tek şarkı yeter. Bazı günler kırk.</item>
+        <item>Zevkin harika. Kontrol ettik.</item>
+        <item>Ses yukarı, dertler aşağı.</item>
+        <item>Bu bir dönem değil. Bu bir çalma listesi.</item>
+        <item>Karışık çalma seni izliyormuş gibi dans et.</item>
+        <item>Su iç. Sonra oynata bas.</item>
+        <item>Hayat kötü çalma listeleri için çok kısa.</item>
+        <item>Bir şarkı daha. Tamam, bir tane daha.</item>
+        <item>Müzik: terapiden ucuz ve ritmi var.</item>
+        <item>Bir yerlerde bir şarkı en sevdiğin olmayı bekliyor.</item>
+        <item>Nefes al. Oynata bas. Nefes ver.</item>
+        <item>AUX kablosu sana inanıyor.</item>
+        <item>Bitkiler müzikle daha iyi büyür. İnsanlar da.</item>
+        <item>Komşular aradı. Bu şarkının adını soruyorlar.</item>
+        <item>Her güzel günün bir film müziği vardır.</item>
+        <item>Kimse dinlemiyormuş gibi şarkı söyle. Muhtemelen biri dinliyor.</item>
+    </string-array>
 </resources>

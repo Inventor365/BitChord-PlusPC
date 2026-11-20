@@ -448,6 +448,18 @@ object AppSettings {
 
     /** Change the home-screen icon along with the theme. */
     val themeIcon = MutableStateFlow(true)
+
+    /** How many times the app has been opened; Home's greeting and quote move on with it. */
+    val appOpens = MutableStateFlow(0)
+
+    /**
+     * The Winter theme's effect switches. Null means never touched: the device's tier decides
+     * (see [com.music.bitchord.ui.performance.WinterEffectsPolicy]).
+     */
+    val winterEffects = MutableStateFlow(com.music.bitchord.ui.performance.WinterEffectPrefs())
+
+    /** Winter in light mode turns to the polar night after sunset (off: light all day). */
+    val winterNightSkyAfterSunset = MutableStateFlow(false)
     val appFont = MutableStateFlow(AppFont.DEFAULT)
 
     /** Keep playing similar music once the queue runs out. */
@@ -1133,6 +1145,16 @@ object AppSettings {
         }.getOrDefault(ThemeMode.DARK)
         appTheme.value = com.music.bitchord.ui.theme.ThemeId.fromKey(prefs.getString(KEY_APP_THEME, null))
         themeIcon.value = prefs.getBoolean(KEY_THEME_ICON, true)
+        appOpens.value = prefs.getInt(KEY_APP_OPENS, 0)
+        winterNightSkyAfterSunset.value = prefs.getBoolean(KEY_WINTER_NIGHT_AFTER_SUNSET, false)
+        fun tri(key: String): Boolean? = if (prefs.contains(key)) prefs.getBoolean(key, true) else null
+        winterEffects.value = com.music.bitchord.ui.performance.WinterEffectPrefs(
+            aurora = tri(KEY_WINTER_AURORA),
+            snow = tri(KEY_WINTER_SNOW),
+            stars = tri(KEY_WINTER_STARS),
+            glass = tri(KEY_WINTER_GLASS),
+            frost = tri(KEY_WINTER_FROST),
+        )
         appFont.value = runCatching {
             AppFont.valueOf(prefs.getString(KEY_APP_FONT, null) ?: AppFont.DEFAULT.name)
         }.getOrDefault(AppFont.DEFAULT)
@@ -1581,6 +1603,33 @@ object AppSettings {
     fun setAppTheme(value: com.music.bitchord.ui.theme.ThemeId) {
         appTheme.value = value
         prefs.edit().putString(KEY_APP_THEME, value.key).apply()
+    }
+
+    fun setWinterNightSkyAfterSunset(value: Boolean) {
+        winterNightSkyAfterSunset.value = value
+        prefs.edit().putBoolean(KEY_WINTER_NIGHT_AFTER_SUNSET, value).apply()
+    }
+
+    /** Sets one Winter effect switch; the others keep following the tier until touched. */
+    fun setWinterEffects(value: com.music.bitchord.ui.performance.WinterEffectPrefs) {
+        winterEffects.value = value
+        val editor = prefs.edit()
+        fun put(key: String, v: Boolean?) {
+            if (v == null) editor.remove(key) else editor.putBoolean(key, v)
+        }
+        put(KEY_WINTER_AURORA, value.aurora)
+        put(KEY_WINTER_SNOW, value.snow)
+        put(KEY_WINTER_STARS, value.stars)
+        put(KEY_WINTER_GLASS, value.glass)
+        put(KEY_WINTER_FROST, value.frost)
+        editor.apply()
+    }
+
+    /** Counts an opening of the app (each time it comes to the front). */
+    fun noteAppOpened() {
+        val next = appOpens.value + 1
+        appOpens.value = next
+        prefs.edit().putInt(KEY_APP_OPENS, next).apply()
     }
 
     fun setThemeIcon(value: Boolean) {
@@ -2558,6 +2607,13 @@ object AppSettings {
     private const val KEY_NAV_LABELS = "show_nav_labels"
     private const val KEY_APP_THEME = "app_theme"
     private const val KEY_THEME_ICON = "theme_icon"
+    private const val KEY_APP_OPENS = "app_opens"
+    private const val KEY_WINTER_AURORA = "winter_aurora"
+    private const val KEY_WINTER_SNOW = "winter_snow"
+    private const val KEY_WINTER_STARS = "winter_stars"
+    private const val KEY_WINTER_GLASS = "winter_glass"
+    private const val KEY_WINTER_FROST = "winter_frost"
+    private const val KEY_WINTER_NIGHT_AFTER_SUNSET = "winter_night_after_sunset"
     private const val KEY_ICON_BEFORE_THEME = "icon_before_theme"
     private const val KEY_PENDING_ICON = "pending_icon"
     private const val KEY_ONBOARDING_COMPLETE = "onboarding_complete"

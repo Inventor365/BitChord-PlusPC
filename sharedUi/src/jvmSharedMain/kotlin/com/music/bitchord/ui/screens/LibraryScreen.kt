@@ -177,8 +177,8 @@ fun LibraryScreen(
                 item {
                     Text(
                         text = stringResource(Res.string.library),
-                        style = MaterialTheme.typography.displayLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
+                        style = MaterialTheme.typography.displayLarge.copy(shadow = com.music.bitchord.ui.theme.heroTextShadow()),
+                        color = com.music.bitchord.ui.theme.heroTitleColor(MaterialTheme.colorScheme.onBackground),
                         modifier = Modifier.padding(horizontal = PAGE_GUTTER, vertical = 8.dp),
                     )
                 }

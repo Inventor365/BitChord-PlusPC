@@ -1556,4 +1556,17 @@
     <string name="theme_icon_subtitle">Dùng biểu tượng của chủ đề trên màn hình chính</string>
     <string name="theme_mode_title">Sáng và tối</string>
     <string name="theme_mode_dark_only">Vice và Doom chỉ có giao diện tối. Cài đặt này áp dụng cho Sonara.</string>
+    <string name="theme_winter">Winter</string>
+    <string name="theme_winter_line">Tuyết &amp; cực quang</string>
+    <string name="theme_winter_day">Winter (ngày)</string>
+    <string name="winter_effects">Hiệu ứng mùa đông</string>
+    <string name="winter_effect_aurora">Hoạt ảnh cực quang</string>
+    <string name="winter_effect_snow">Tuyết rơi</string>
+    <string name="winter_effect_stars">Sao và sao băng</string>
+    <string name="winter_effect_glass">Làm mờ kính lỏng</string>
+    <string name="winter_effect_frost">Viền sương giá</string>
+    <string name="winter_effects_low_tier">Mặc định tắt trên điện thoại này để giữ mượt</string>
+    <string name="winter_effects_footer">Mỗi hiệu ứng tự tạm dừng trong Chế độ nguồn điện thấp, Tiết kiệm dữ liệu hoặc tiết kiệm pin, khi tắt hoạt ảnh và khi Sonara không hiển thị. Khi tắt, bạn sẽ thấy phiên bản tĩnh.</string>
+    <string name="winter_night_after_sunset">Bầu trời đêm sau hoàng hôn</string>
+    <string name="winter_night_after_sunset_subtitle">Ở chế độ sáng, chuyển sang đêm vùng cực sau 18:00 và trở lại sau 6:00</string>
 </resources>

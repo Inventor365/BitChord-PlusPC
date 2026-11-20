@@ -173,6 +173,10 @@ class BitChordApplication : Application(), SingletonImageLoader.Factory, Configu
         com.music.bitchord.data.modes.ModeController.init(this)
         // Applies a queued theme icon when the app leaves the screen; see ThemeIcons.
         ThemeIcons.init(this)
+        // Each time the app comes to the front is an opening: Home's greeting and quote move on.
+        androidx.lifecycle.ProcessLifecycleOwner.get().lifecycle.addObserver(object : androidx.lifecycle.DefaultLifecycleObserver {
+            override fun onStart(owner: androidx.lifecycle.LifecycleOwner) = AppSettings.noteAppOpened()
+        })
         PlaylistSync.init(this)
         // The device's own listening record. Opened here rather than in
         // PlaybackService because the Replay page reads it from the UI side and

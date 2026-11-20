@@ -1621,4 +1621,17 @@
     <string name="theme_icon_subtitle">ใช้ไอคอนของธีมบนหน้าจอหลัก</string>
     <string name="theme_mode_title">สว่างและมืด</string>
     <string name="theme_mode_dark_only">Vice และ Doom มีแต่โหมดมืด การตั้งค่านี้ใช้กับ Sonara</string>
+    <string name="theme_winter">Winter</string>
+    <string name="theme_winter_line">หิมะและแสงเหนือ</string>
+    <string name="theme_winter_day">Winter (กลางวัน)</string>
+    <string name="winter_effects">เอฟเฟกต์ฤดูหนาว</string>
+    <string name="winter_effect_aurora">แอนิเมชันแสงเหนือ</string>
+    <string name="winter_effect_snow">หิมะตก</string>
+    <string name="winter_effect_stars">ดวงดาวและดาวตก</string>
+    <string name="winter_effect_glass">เบลอแบบกระจกเหลว</string>
+    <string name="winter_effect_frost">ขอบน้ำค้างแข็ง</string>
+    <string name="winter_effects_low_tier">เริ่มต้นเป็นปิดบนโทรศัพท์นี้เพื่อความลื่นไหล</string>
+    <string name="winter_effects_footer">แต่ละเอฟเฟกต์จะหยุดเองในโหมดประหยัดพลังงาน ประหยัดอินเทอร์เน็ต หรือประหยัดแบตเตอรี่ เมื่อปิดแอนิเมชัน และเมื่อไม่ได้เปิด Sonara อยู่ หากปิดจะแสดงแบบภาพนิ่งแทน</string>
+    <string name="winter_night_after_sunset">ท้องฟ้ายามค่ำหลังพระอาทิตย์ตก</string>
+    <string name="winter_night_after_sunset_subtitle">ในโหมดสว่าง เปลี่ยนเป็นคืนขั้วโลกหลัง 18:00 และกลับหลัง 6:00</string>
 </resources>

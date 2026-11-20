@@ -1620,4 +1620,17 @@
     <string name="theme_icon_subtitle">Ana ekranda temanın simgesini kullan</string>
     <string name="theme_mode_title">Açık ve koyu</string>
     <string name="theme_mode_dark_only">Vice ve Doom yalnızca koyu. Bu ayar Sonara için geçerli.</string>
+    <string name="theme_winter">Winter</string>
+    <string name="theme_winter_line">Kar ve aurora</string>
+    <string name="theme_winter_day">Winter (gündüz)</string>
+    <string name="winter_effects">Kış efektleri</string>
+    <string name="winter_effect_aurora">Aurora animasyonu</string>
+    <string name="winter_effect_snow">Kar yağışı</string>
+    <string name="winter_effect_stars">Yıldızlar ve kayan yıldızlar</string>
+    <string name="winter_effect_glass">Sıvı cam bulanıklığı</string>
+    <string name="winter_effect_frost">Kırağı kenarlar</string>
+    <string name="winter_effects_low_tier">Akıcı kalması için bu telefonda başta kapalı</string>
+    <string name="winter_effects_footer">Her biri Düşük Güç Modu, Veri Tasarrufu ya da pil tasarrufunda, animasyonlar kapalıyken ve Sonara görünmezken kendiliğinden durur. Kapalıyken sabit bir sürüm görünür.</string>
+    <string name="winter_night_after_sunset">Gün batımından sonra gece gökyüzü</string>
+    <string name="winter_night_after_sunset_subtitle">Açık modda 18.00\'den sonra kutup gecesi, 06.00\'da yeniden gündüz</string>
 </resources>

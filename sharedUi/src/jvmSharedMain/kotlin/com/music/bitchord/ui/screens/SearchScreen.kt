@@ -501,15 +501,15 @@ private fun SearchEmptyHero() {
     ) {
         Text(
             text = stringResource(Res.string.search_empty_title),
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineMedium.copy(shadow = com.music.bitchord.ui.theme.heroTextShadow()),
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = com.music.bitchord.ui.theme.heroTitleColor(MaterialTheme.colorScheme.onBackground),
         )
         Spacer(Modifier.height(4.dp))
         Text(
             text = stringResource(Res.string.search_empty),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyLarge.copy(shadow = com.music.bitchord.ui.theme.heroTextShadow(soft = true)),
+            color = com.music.bitchord.ui.theme.heroSubtitleColor(MaterialTheme.colorScheme.onSurfaceVariant),
         )
     }
 }

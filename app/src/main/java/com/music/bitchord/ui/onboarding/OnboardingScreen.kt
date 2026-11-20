@@ -140,6 +140,12 @@ fun OnboardingScreen(
         if (signedIn && page == PAGE_CONNECT) onFinish()
     }
 
+    // The welcome is drawn light-on-dark in every theme, so Winter shows its polar night here
+    // even when the app is set to light.
+    val welcomeTokens = com.music.bitchord.ui.theme.LocalThemeTokens.current.let { t ->
+        if (t.id == com.music.bitchord.ui.theme.ThemeId.WINTER) com.music.bitchord.ui.theme.themeTokensFor(t.id, dark = true) else t
+    }
+    androidx.compose.runtime.CompositionLocalProvider(com.music.bitchord.ui.theme.LocalThemeTokens provides welcomeTokens) {
     Box(
         modifier
             .fillMaxSize()
@@ -204,6 +210,7 @@ fun OnboardingScreen(
                 .padding(top = 8.dp, end = 16.dp),
         )
     }
+    }
 }
 
 /**
@@ -232,8 +239,13 @@ private fun WelcomeBackdrop(page: Int) {
     if (tokens.motif == com.music.bitchord.ui.theme.ThemeMotif.NONE) {
         FadingDotGrid(Modifier.fillMaxSize(), color = Color.White.copy(alpha = 0.075f), fade = 0.9f)
     } else {
-        // Vice's sunset or Doom's crest over the ink, as Home will show it.
-        Canvas(Modifier.fillMaxSize()) { hero.draw(this, tokens, ink) }
+        // Vice's sunset, Doom's crest or Winter's polar night over the ink, as Home will show it.
+        val winterArt = if (tokens.motif == com.music.bitchord.ui.theme.ThemeMotif.AURORA) {
+            com.music.bitchord.ui.theme.rememberWinterArt(night = true)
+        } else {
+            null
+        }
+        Canvas(Modifier.fillMaxSize()) { hero.draw(this, tokens, ink, art = winterArt) }
     }
     Canvas(Modifier.fillMaxSize()) {
         val c = Offset(

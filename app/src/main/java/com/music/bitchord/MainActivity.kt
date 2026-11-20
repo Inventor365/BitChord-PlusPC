@@ -492,10 +492,25 @@ class MainActivity : AppCompatActivity() {
             }
             // Vice and Doom are made for the dark: the Light setting is Sonara's alone.
             val systemDark = isSystemInDarkTheme()
-            val darkTheme = appTheme.tokens.darkOnly || when (theme) {
+            val modeDark = appTheme.tokens.darkOnly || when (theme) {
                 ThemeMode.SYSTEM -> systemDark
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true
+            }
+            // Winter in light mode stays light all day, unless the listener asked for the night
+            // sky after sunset: then the whole app turns to the polar night until sunrise.
+            val nightSkyAfterSunset by AppSettings.winterNightSkyAfterSunset.collectAsStateWithLifecycle()
+            val minuteOfDay = rememberMinuteOfDay()
+            val darkTheme = modeDark || (
+                appTheme == com.music.bitchord.ui.theme.ThemeId.WINTER &&
+                    com.music.bitchord.ui.performance.WinterScenePolicy.night(modeDark, nightSkyAfterSunset, minuteOfDay)
+                )
+            // Winter has a night icon and a day one: when the app turns light or dark, the home
+            // screen follows (quietly, once the app is left — see ThemeIcons).
+            LaunchedEffect(appTheme, darkTheme) {
+                if (appTheme == com.music.bitchord.ui.theme.ThemeId.WINTER) {
+                    ThemeIcons.follow(this@MainActivity, appTheme, darkTheme)
+                }
             }
             BitChordTheme(darkTheme = darkTheme, font = appFont, themeId = appTheme, reduceMotion = themeReduceMotion) {
                 // The glass surfaces sample this layer, and a layer records only
@@ -519,10 +534,33 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 val appBackdrop = rememberLayerBackdrop(onDraw = paintBackdrop)
+                // Winter's effects, resolved once here for the whole window: the listener's
+                // switches over the device tier's defaults, paused for the modes, the battery
+                // saver, system animations off and the app being out of sight. Every other theme
+                // has none, so nothing below draws or ticks for them.
+                val themeEffects = rememberThemeEffects(themeTokens)
+                val auroraLayer = if (themeTokens.animated) com.music.bitchord.ui.theme.rememberAuroraLayer() else null
+                // One clock for the sky and the bars' tint; it only ticks while something moves.
+                // The page says when the full player covers it (see BitChordApp); the sky stops then.
+                // It also holds still while a page scrolls: the sky is fixed behind the page, so
+                // nobody watches it then, and a scrolled frame shouldn't pay for it too.
+                val skyCovered = remember { mutableStateOf(false) }
+                val pageMoving = com.music.bitchord.ui.components.ScrollMotion.scrolling
+                val winterTime = if (themeTokens.animated) {
+                    com.music.bitchord.ui.theme.rememberWinterTime(
+                        running = themeEffects.anyAnimated && !skyCovered.value && !pageMoving,
+                    )
+                } else {
+                    null
+                }
                 CompositionLocalProvider(
+                    com.music.bitchord.ui.theme.LocalWinterTime provides winterTime,
+                    LocalWinterSkyCovered provides skyCovered,
                     LocalOverscrollFactory provides iosOverscrollFactory,
                     LocalLiquidGlassEnabled provides liquidGlassEnabled,
                     LocalAppBackdrop provides appBackdrop,
+                    com.music.bitchord.ui.theme.LocalThemeEffects provides themeEffects,
+                    com.music.bitchord.ui.theme.LocalAuroraLayer provides auroraLayer,
                 ) {
                 // The window's width, measured rather than asked for.
                 //
@@ -981,6 +1019,8 @@ private fun BitChordApp(
     )
 
     val homeState by viewModel.home.collectAsStateWithLifecycle()
+    // Moves on when the app comes back to the front (an "opening"), never while it is in use.
+    val homeGreetingSeed by AppSettings.appOpens.collectAsStateWithLifecycle()
     val hideRecents by AppSettings.hideRecents.collectAsStateWithLifecycle()
     val hideHomeVideos by AppSettings.hideHomeVideos.collectAsStateWithLifecycle()
     val hideTopPicks by AppSettings.hideTopPicks.collectAsStateWithLifecycle()
@@ -3132,11 +3172,14 @@ private fun BitChordApp(
     // hero — sunset or crest — at the top. Static: drawn again only when the window changes.
     val pageFloor = MaterialTheme.colorScheme.background
     val floorTokens = com.music.bitchord.ui.theme.LocalThemeTokens.current
+    val floorEffects = com.music.bitchord.ui.theme.LocalThemeEffects.current
+    val winterSkyMoving = floorTokens.animated && floorEffects.anyAnimated
     val floorPainter = remember { com.music.bitchord.ui.theme.ThemeBackdropPainter() }
     Box(
         Modifier
             .fillMaxSize()
-            .drawBehind { floorPainter.draw(this, floorTokens, pageFloor) }
+            // Under Winter's moving sky the floor is drawn by its own cached layer below instead.
+            .drawBehind { if (!winterSkyMoving) floorPainter.draw(this, floorTokens, pageFloor, floorEffects) }
             // Nothing of the page under a portrait player that is fully up:
             // that player is its own window, opaque from edge to edge, and
             // this one drawing on behind it — the page, the glass bar and the
@@ -3149,6 +3192,39 @@ private fun BitChordApp(
                 if (!coveredByPlayer) drawContent()
             },
     ) {
+        // Winter's moving sky — aurora, stars, snow — over the floor and under every page.
+        // Its clock stops while the full player covers the page, and with any effect paused.
+        if (winterSkyMoving) {
+            // The floor (night gradient, glaciers, frost) never changes while the sky moves over
+            // it: drawn once into a cached layer rather than re-issued with every sky tick.
+            androidx.compose.foundation.layout.Spacer(
+                Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+                    .drawBehind { floorPainter.draw(this, floorTokens, pageFloor, floorEffects) },
+            )
+        }
+        val winterTime = com.music.bitchord.ui.theme.LocalWinterTime.current
+        val skyCovered = LocalWinterSkyCovered.current
+        SideEffect { skyCovered.value = coveredByPlayer }
+        if (floorTokens.animated && winterTime != null) {
+            val auroraShader = remember { com.music.bitchord.ui.theme.AuroraShader() }
+            val tierSnow = remember { com.music.bitchord.ui.performance.DeviceTier.of(context).snowScale }
+            val night = floorTokens.motif == com.music.bitchord.ui.theme.ThemeMotif.AURORA
+            val minuteOfDay = rememberMinuteOfDay()
+            com.music.bitchord.ui.theme.WinterScene(
+                night = night,
+                effects = floorEffects,
+                time = winterTime,
+                auroraLayer = com.music.bitchord.ui.theme.LocalAuroraLayer.current,
+                shader = auroraShader,
+                // Low-tier phones start with snow off; if the listener turns it on, a light fall.
+                snowScale = tierSnow.coerceAtLeast(0.35f),
+                // By day, the sun's place along its arc from the time; it moves a minute at a time.
+                sun = if (night) null else com.music.bitchord.ui.performance.WinterScenePolicy.sunProgress(minuteOfDay),
+                background = pageFloor,
+            )
+        }
         // A pushed page replaces the tab content but leaves the tab bar and
         // mini player in place.
         //
@@ -3250,6 +3326,18 @@ private fun BitChordApp(
                                     .nestedScroll(navBarScroll)
                                     // Tells costly effects (live blur) that a page is moving.
                                     .nestedScroll(com.music.bitchord.ui.components.ScrollMotion.connection)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        // While Winter's sky moves behind it, the page is kept as one cached
+                        // texture. Otherwise every sky tick re-issued the whole page's draw
+                        // commands — every card and row — to move a few snowflakes; measured, that
+                        // was what made a Winter frame cost 18–25 ms. The cache is redrawn only
+                        // when the page itself changes. Every other theme draws as before.
+                        .then(
+                            if (winterSkyMoving) {
+                                Modifier.graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
                             } else {
                                 Modifier
                             },
@@ -3791,6 +3879,7 @@ private fun BitChordApp(
                             TAB_HOME -> HomeScreen(
                                 state = visibleHomeState,
                                 listState = homeListState,
+                                greetingSeed = homeGreetingSeed,
                                 // Your playlists' Show all: every one, on the Library's own
                                 // playlists page (the same grid, New playlist included).
                                 onShelfShowAll = {
@@ -7407,3 +7496,60 @@ private suspend fun LazyListState.scrollToTopEased() {
 
 /** Safely converts a nullable Float to non-null, defaulting to 0f for null. */
 private fun Float?.orZero(): Float = this ?: 0f
+
+/** Set by the page while the full player covers it, so Winter's sky clock can stop. */
+private val LocalWinterSkyCovered = androidx.compose.runtime.staticCompositionLocalOf { androidx.compose.runtime.mutableStateOf(false) }
+
+/**
+ * The minute of the day (local time), moving on at each minute's turn and recomposing nothing in
+ * between: Winter's sun and its "night sky after sunset" read it. Cheaper than any animation.
+ */
+@Composable
+private fun rememberMinuteOfDay(): Int {
+    fun now(): Int = java.time.LocalTime.now().let { it.hour * 60 + it.minute }
+    val minute = remember { androidx.compose.runtime.mutableIntStateOf(now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            val toNext = 60_000L - (System.currentTimeMillis() % 60_000L)
+            kotlinx.coroutines.delay(toNext + 50L)
+            minute.intValue = now()
+        }
+    }
+    return minute.intValue
+}
+
+/**
+ * The active theme's effects for this moment (see [com.music.bitchord.ui.performance.WinterEffectsPolicy]):
+ * none unless the theme has any, otherwise the listener's Winter switches over the device tier's
+ * defaults, paused by Low Power, Data Saver, the system battery saver, "remove animations" and the
+ * activity not being in the foreground.
+ */
+@Composable
+private fun rememberThemeEffects(tokens: com.music.bitchord.ui.theme.ThemeTokens): com.music.bitchord.ui.theme.ThemeEffects {
+    if (!tokens.animated) return com.music.bitchord.ui.theme.ThemeEffects.None
+    val context = LocalContext.current
+    val prefs by AppSettings.winterEffects.collectAsStateWithLifecycle()
+    val modes by com.music.bitchord.data.modes.ModeController.active.collectAsStateWithLifecycle()
+    val device by com.music.bitchord.data.modes.ModeController.device.collectAsStateWithLifecycle()
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    val state by lifecycle.currentStateFlow.collectAsStateWithLifecycle()
+    val resumed = state.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)
+    // Read again each time the app comes back, which is when the listener could have changed it.
+    val animationsOff = remember(resumed) {
+        android.provider.Settings.Global.getFloat(
+            context.contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f,
+        ) == 0f
+    }
+    val tier = remember { com.music.bitchord.ui.performance.DeviceTier.of(context) }
+    return com.music.bitchord.ui.performance.WinterEffectsPolicy.resolve(
+        com.music.bitchord.ui.performance.WinterEffectsPolicy.chosen(prefs, tier),
+        com.music.bitchord.ui.performance.EffectsMoment(
+            modeActive = modes.dataSaver != null || modes.lowPower != null,
+            savingPower = modes.lowPower != null || device.systemPowerSave,
+            animationsOff = animationsOff,
+            hidden = !resumed,
+        ),
+    )
+}

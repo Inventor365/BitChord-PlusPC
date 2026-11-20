@@ -1565,4 +1565,18 @@
     <string name="edit_metadata">Edit metadata</string>
     <string name="metadata_updated">Metadata updated</string>
     <string name="metadata_update_failed">Failed to update metadata</string>
+
+    <string name="theme_winter">Winter</string>
+    <string name="theme_winter_line">雪與極光</string>
+    <string name="theme_winter_day">Winter(白天)</string>
+    <string name="winter_effects">冬季效果</string>
+    <string name="winter_effect_aurora">極光動畫</string>
+    <string name="winter_effect_snow">降雪</string>
+    <string name="winter_effect_stars">星星與流星</string>
+    <string name="winter_effect_glass">液態玻璃模糊</string>
+    <string name="winter_effect_frost">霜凍邊緣</string>
+    <string name="winter_effects_low_tier">在此手機上預設關閉，以保持流暢</string>
+    <string name="winter_effects_footer">在低耗電模式、數據節省模式或省電模式下、動畫關閉時，以及看不到 Sonara 時，每個效果都會自動暫停。關閉後會顯示靜態版本。</string>
+    <string name="winter_night_after_sunset">日落後切換為夜空</string>
+    <string name="winter_night_after_sunset_subtitle">在淺色模式下，18:00 後切換為極夜，6:00 後恢復白天</string>
 </resources>

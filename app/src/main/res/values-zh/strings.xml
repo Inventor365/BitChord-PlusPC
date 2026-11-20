@@ -1614,4 +1614,17 @@
     <string name="theme_icon_subtitle">在主屏幕使用主题专属图标</string>
     <string name="theme_mode_title">浅色与深色</string>
     <string name="theme_mode_dark_only">Vice 和 Doom 仅有深色，此设置适用于 Sonara。</string>
+    <string name="theme_winter">Winter</string>
+    <string name="theme_winter_line">雪与极光</string>
+    <string name="theme_winter_day">Winter(白天)</string>
+    <string name="winter_effects">冬季效果</string>
+    <string name="winter_effect_aurora">极光动画</string>
+    <string name="winter_effect_snow">降雪</string>
+    <string name="winter_effect_stars">星星与流星</string>
+    <string name="winter_effect_glass">液态玻璃模糊</string>
+    <string name="winter_effect_frost">霜冻边缘</string>
+    <string name="winter_effects_low_tier">在此手机上默认关闭，以保持流畅</string>
+    <string name="winter_effects_footer">在低电量模式、流量节省模式或省电模式下、动画关闭时，以及看不到 Sonara 时，每个效果都会自动暂停。关闭后会显示静态版本。</string>
+    <string name="winter_night_after_sunset">日落后切换为夜空</string>
+    <string name="winter_night_after_sunset_subtitle">在浅色模式下，18:00 后切换为极夜，6:00 后恢复白天</string>
 </resources>

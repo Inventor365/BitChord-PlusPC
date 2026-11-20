@@ -287,4 +287,65 @@
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
     <string name="library_search_hint">ライブラリを検索</string>
     <string name="library_no_matches">ライブラリに「%1$s」と一致するものはありません</string>
+    <string name="search_empty_title">何を聴きますか？</string>
+    <string name="browse_categories">カテゴリを見る</string>
+    <string name="import_apple_music">Apple Music を読み込む</string>
+    <string name="import_amazon_music">Amazon Music を読み込む</string>
+    <string name="import_amazon_music_subtitle">貼り付けた曲リストから</string>
+    <string name="video_off_short">オフ</string>
+    <string name="video_quality_off">ビデオオフ</string>
+    <string name="video_quality_off_detail">静止バナー・通信量と電池を節約</string>
+    <string name="video_forced_off">%1$s がバナー表示にしています。オフになると元の設定に戻ります。</string>
+    <string name="video_forced_cap">%1$s が動画を %2$s 以下にしています。</string>
+    <string name="greeting_named">%1$s, %2$s</string>
+    <string-array name="greetings_morning">
+        <item>おはよう</item>
+        <item>さあ、起きて</item>
+        <item>まずはコーヒー</item>
+        <item>今日もいこう</item>
+        <item>新しい一日</item>
+    </string-array>
+    <string-array name="greetings_afternoon">
+        <item>こんにちは</item>
+        <item>ランチ後のまったり</item>
+        <item>もう折り返し</item>
+        <item>まだまだ元気</item>
+        <item>やあ</item>
+    </string-array>
+    <string-array name="greetings_evening">
+        <item>こんばんは</item>
+        <item>ゴールデンアワー</item>
+        <item>くつろいで</item>
+        <item>ひと息タイム</item>
+        <item>灯りを落として</item>
+    </string-array>
+    <string-array name="greetings_night">
+        <item>夜ふかし中</item>
+        <item>フクロウの時間</item>
+        <item>まだ起きてる</item>
+        <item>真夜中のがんばり</item>
+        <item>眠りはあとで</item>
+    </string-array>
+    <string-array name="home_quotes">
+        <item>スキップは計画的に。</item>
+        <item>今日の予報：名曲の確率100%。</item>
+        <item>ヘッドホンをつけたら、世界はオフ。</item>
+        <item>このプレイリストの制作中、スキップされた曲はいません。</item>
+        <item>1曲でいい日もあれば、40曲いる日もある。</item>
+        <item>あなたのセンス、最高です。確認済み。</item>
+        <item>音量アップ、悩みはダウン。</item>
+        <item>これはブームじゃない。プレイリストだ。</item>
+        <item>シャッフルボタンに見られているつもりで踊ろう。</item>
+        <item>まず水分補給。それから再生。</item>
+        <item>ひどいプレイリストに使う時間はない。</item>
+        <item>あと1曲。…やっぱりもう1曲。</item>
+        <item>音楽はセラピーより安くて、ビートつき。</item>
+        <item>どこかで、あなたの一番になる曲が待っている。</item>
+        <item>息を吸って。再生して。息を吐いて。</item>
+        <item>AUXケーブルはあなたを信じている。</item>
+        <item>植物は音楽でよく育つ。人間も。</item>
+        <item>お隣さんから電話。この曲のタイトルを知りたいって。</item>
+        <item>最高の一日には、サウンドトラックがある。</item>
+        <item>誰も聴いていないつもりで歌おう。たぶん誰か聴いてるけど。</item>
+    </string-array>
 </resources>

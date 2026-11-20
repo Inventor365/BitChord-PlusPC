@@ -287,4 +287,65 @@
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
     <string name="library_search_hint">Tìm trong thư viện</string>
     <string name="library_no_matches">Không có gì trong thư viện khớp với “%1$s”</string>
+    <string name="search_empty_title">Bạn muốn nghe gì?</string>
+    <string name="browse_categories">Duyệt danh mục</string>
+    <string name="import_apple_music">Nhập Apple Music</string>
+    <string name="import_amazon_music">Nhập Amazon Music</string>
+    <string name="import_amazon_music_subtitle">Từ danh sách bài hát đã dán</string>
+    <string name="video_off_short">Tắt</string>
+    <string name="video_quality_off">Tắt video</string>
+    <string name="video_quality_off_detail">Banner tĩnh · tiết kiệm dữ liệu và pin</string>
+    <string name="video_forced_off">%1$s đang hiển thị banner. Lựa chọn của bạn sẽ trở lại khi tắt.</string>
+    <string name="video_forced_cap">%1$s giới hạn video ở %2$s trở xuống.</string>
+    <string name="greeting_named">%1$s, %2$s</string>
+    <string-array name="greetings_morning">
+        <item>Chào buổi sáng</item>
+        <item>Dậy thôi nào</item>
+        <item>Cà phê trước đã</item>
+        <item>Bắt đầu thôi</item>
+        <item>Khởi đầu mới</item>
+    </string-array>
+    <string-array name="greetings_afternoon">
+        <item>Chào buổi chiều</item>
+        <item>Sau bữa trưa</item>
+        <item>Đã qua nửa ngày</item>
+        <item>Vẫn còn sung sức</item>
+        <item>Xin chào</item>
+    </string-array>
+    <string-array name="greetings_evening">
+        <item>Chào buổi tối</item>
+        <item>Giờ vàng</item>
+        <item>Thư giãn thôi</item>
+        <item>Đến giờ nghỉ ngơi</item>
+        <item>Đèn mờ</item>
+    </string-array>
+    <string-array name="greetings_night">
+        <item>Thức khuya</item>
+        <item>Giờ của cú đêm</item>
+        <item>Vẫn còn thức</item>
+        <item>Cày đêm</item>
+        <item>Ngủ để sau</item>
+    </string-array>
+    <string-array name="home_quotes">
+        <item>Bỏ qua có trách nhiệm.</item>
+        <item>Dự báo hôm nay: 100% khả năng có bài hay.</item>
+        <item>Đeo tai nghe. Tắt thế giới.</item>
+        <item>Không bài nào bị bỏ qua khi làm danh sách phát này.</item>
+        <item>Có ngày cần một bài. Có ngày cần bốn mươi.</item>
+        <item>Gu của bạn tuyệt lắm. Bọn mình kiểm tra rồi.</item>
+        <item>Tăng âm lượng, giảm muộn phiền.</item>
+        <item>Đây không phải một giai đoạn. Đây là danh sách phát.</item>
+        <item>Nhảy như thể nút trộn bài đang nhìn bạn.</item>
+        <item>Uống nước đi. Rồi bấm phát.</item>
+        <item>Đời quá ngắn cho những danh sách phát dở.</item>
+        <item>Thêm một bài nữa. Thôi, thêm bài nữa.</item>
+        <item>Âm nhạc: rẻ hơn trị liệu, lại có nhịp.</item>
+        <item>Đâu đó, một bài hát đang chờ thành bài ruột của bạn.</item>
+        <item>Hít vào. Bấm phát. Thở ra.</item>
+        <item>Dây AUX tin ở bạn.</item>
+        <item>Cây cối lớn tốt hơn khi nghe nhạc. Con người cũng vậy.</item>
+        <item>Hàng xóm gọi điện. Họ muốn biết tên bài này.</item>
+        <item>Ngày tuyệt vời nào cũng có nhạc nền.</item>
+        <item>Hát như không ai nghe. Có khi vẫn có người nghe.</item>
+    </string-array>
 </resources>

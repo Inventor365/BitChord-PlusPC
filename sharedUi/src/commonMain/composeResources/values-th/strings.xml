@@ -287,4 +287,65 @@
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
     <string name="library_search_hint">ค้นหาในคลังเพลง</string>
     <string name="library_no_matches">ไม่มีรายการในคลังเพลงที่ตรงกับ “%1$s”</string>
+    <string name="search_empty_title">อยากฟังอะไร</string>
+    <string name="browse_categories">เรียกดูหมวดหมู่</string>
+    <string name="import_apple_music">นำเข้า Apple Music</string>
+    <string name="import_amazon_music">นำเข้า Amazon Music</string>
+    <string name="import_amazon_music_subtitle">จากรายการเพลงที่วาง</string>
+    <string name="video_off_short">ปิด</string>
+    <string name="video_quality_off">ปิดวิดีโอ</string>
+    <string name="video_quality_off_detail">แบนเนอร์นิ่ง · ประหยัดเน็ตและแบตเตอรี่</string>
+    <string name="video_forced_off">%1$s กำลังแสดงแบนเนอร์ ตัวเลือกของคุณจะกลับมาเมื่อปิด</string>
+    <string name="video_forced_cap">%1$s จำกัดวิดีโอไว้ที่ %2$s หรือต่ำกว่า</string>
+    <string name="greeting_named">%1$s, %2$s</string>
+    <string-array name="greetings_morning">
+        <item>อรุณสวัสดิ์</item>
+        <item>ตื่นได้แล้ว</item>
+        <item>กาแฟก่อน</item>
+        <item>ลุยกันเลย</item>
+        <item>เริ่มต้นใหม่</item>
+    </string-array>
+    <string-array name="greetings_afternoon">
+        <item>สวัสดีตอนบ่าย</item>
+        <item>อิ่มแล้วง่วง</item>
+        <item>ผ่านไปครึ่งวันแล้ว</item>
+        <item>ยังไหวอยู่</item>
+        <item>หวัดดี</item>
+    </string-array>
+    <string-array name="greetings_evening">
+        <item>สวัสดีตอนเย็น</item>
+        <item>โกลเด้นอาวร์</item>
+        <item>พักผ่อนเถอะ</item>
+        <item>เวลาผ่อนคลาย</item>
+        <item>ไฟสลัว</item>
+    </string-array>
+    <string-array name="greetings_night">
+        <item>ยังไม่นอน</item>
+        <item>เวลาของนกฮูก</item>
+        <item>ยังตื่นอยู่</item>
+        <item>โต้รุ่ง</item>
+        <item>นอนทีหลังก็ได้</item>
+    </string-array>
+    <string-array name="home_quotes">
+        <item>กดข้ามอย่างมีสติ</item>
+        <item>พยากรณ์วันนี้: โอกาสเจอเพลงโดน 100%</item>
+        <item>ใส่หูฟัง ปิดโลก</item>
+        <item>ไม่มีเพลงไหนถูกข้ามระหว่างทำเพลย์ลิสต์นี้</item>
+        <item>บางวันต้องการแค่เพลงเดียว บางวันต้องการสี่สิบ</item>
+        <item>รสนิยมคุณยอดเยี่ยม เราเช็กแล้ว</item>
+        <item>เร่งเสียง ลดความกังวล</item>
+        <item>นี่ไม่ใช่ช่วงหนึ่งของชีวิต นี่คือเพลย์ลิสต์</item>
+        <item>เต้นเหมือนปุ่มสุ่มกำลังมองอยู่</item>
+        <item>ดื่มน้ำก่อน แล้วค่อยกดเล่น</item>
+        <item>ชีวิตสั้นเกินไปสำหรับเพลย์ลิสต์ห่วยๆ</item>
+        <item>อีกเพลงเดียว โอเค อีกเพลง</item>
+        <item>ดนตรี: ถูกกว่าการบำบัด แถมมีจังหวะ</item>
+        <item>ที่ไหนสักแห่ง มีเพลงรอเป็นเพลงโปรดของคุณ</item>
+        <item>หายใจเข้า กดเล่น หายใจออก</item>
+        <item>สาย AUX เชื่อในตัวคุณ</item>
+        <item>ต้นไม้โตดีขึ้นเมื่อได้ฟังเพลง คนก็เช่นกัน</item>
+        <item>เพื่อนบ้านโทรมา อยากรู้ชื่อเพลงนี้</item>
+        <item>ทุกวันดีๆ มีเพลงประกอบของมัน</item>
+        <item>ร้องเหมือนไม่มีใครฟัง แต่น่าจะมีคนฟังอยู่</item>
+    </string-array>
 </resources>

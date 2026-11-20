@@ -109,6 +109,7 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.foundation.border
 import com.music.bitchord.ui.theme.themedShape
+import com.music.bitchord.ui.theme.themeEdge
 import com.music.bitchord.ui.theme.drawThemeTexture
 
 /**
@@ -890,12 +891,14 @@ fun SignInBanner(
                 scaleY = scale
             }
             .clip(themedShape(22.dp))
+            .themeEdge(themedShape(22.dp))
             .clickable(interactionSource = interaction, indication = null, onClick = onSignIn),
     ) {
         // The Sonara Pass's own materials — ink, an ember of the mark's red in the corner
         // and a grid of dots — so the invitation reads as the app's, not as a poster.
         // In the theme's own: Vice's violet with a pink ember, Doom's steel with an emerald one.
         val signInTheme = com.music.bitchord.ui.theme.LocalThemeTokens.current
+        val signInEffects = com.music.bitchord.ui.theme.LocalThemeEffects.current
         androidx.compose.foundation.Canvas(Modifier.matchParentSize()) {
             drawRect(
                 androidx.compose.ui.graphics.Brush.linearGradient(signInTheme.passGradient),
@@ -909,7 +912,7 @@ fun SignInBanner(
                 radius = size.width * 0.8f,
                 center = androidx.compose.ui.geometry.Offset(size.width * 0.95f, 0f),
             )
-            drawThemeTexture(signInTheme)
+            drawThemeTexture(signInTheme, signInEffects)
         }
         Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 18.dp)) {
             Text(

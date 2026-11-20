@@ -287,4 +287,65 @@
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
     <string name="library_search_hint">Поиск в медиатеке</string>
     <string name="library_no_matches">В медиатеке нет ничего по запросу «%1$s»</string>
+    <string name="search_empty_title">Что хотите послушать?</string>
+    <string name="browse_categories">Категории</string>
+    <string name="import_apple_music">Импорт Apple Music</string>
+    <string name="import_amazon_music">Импорт Amazon Music</string>
+    <string name="import_amazon_music_subtitle">Из вставленного списка песен</string>
+    <string name="video_off_short">Выкл.</string>
+    <string name="video_quality_off">Видео выкл.</string>
+    <string name="video_quality_off_detail">Статичный баннер · экономит трафик и заряд</string>
+    <string name="video_forced_off">%1$s показывает баннер. Ваш выбор вернётся, когда режим выключится.</string>
+    <string name="video_forced_cap">%1$s ограничивает видео до %2$s.</string>
+    <string name="greeting_named">%1$s, %2$s</string>
+    <string-array name="greetings_morning">
+        <item>Доброе утро</item>
+        <item>Подъём, солнышко</item>
+        <item>Сначала кофе</item>
+        <item>Вперёд</item>
+        <item>Новый старт</item>
+    </string-array>
+    <string-array name="greetings_afternoon">
+        <item>Добрый день</item>
+        <item>После обеда</item>
+        <item>Половина позади</item>
+        <item>Всё ещё в строю</item>
+        <item>Привет</item>
+    </string-array>
+    <string-array name="greetings_evening">
+        <item>Добрый вечер</item>
+        <item>Золотой час</item>
+        <item>Расслабься</item>
+        <item>Время выдохнуть</item>
+        <item>Приглушённый свет</item>
+    </string-array>
+    <string-array name="greetings_night">
+        <item>Не спится</item>
+        <item>Время сов</item>
+        <item>Всё ещё не спишь</item>
+        <item>Ночная смена</item>
+        <item>Сон подождёт</item>
+    </string-array>
+    <string-array name="home_quotes">
+        <item>Пропускай треки с умом.</item>
+        <item>Прогноз на сегодня: 100% вероятность хитов.</item>
+        <item>Наушники надеты. Мир выключен.</item>
+        <item>При создании этого плейлиста ни один трек не пострадал.</item>
+        <item>Бывают дни на одну песню. Бывают на сорок.</item>
+        <item>У тебя отличный вкус. Мы проверили.</item>
+        <item>Громкость вверх, тревоги вниз.</item>
+        <item>Это не этап. Это плейлист.</item>
+        <item>Танцуй так, будто кнопка перемешивания смотрит.</item>
+        <item>Попей воды. Потом жми «Играть».</item>
+        <item>Жизнь слишком коротка для плохих плейлистов.</item>
+        <item>Ещё одну песню. Ладно, ещё одну.</item>
+        <item>Музыка: дешевле терапии, и с битом.</item>
+        <item>Где-то песня ждёт, чтобы стать твоей любимой.</item>
+        <item>Вдох. Включи музыку. Выдох.</item>
+        <item>Кабель AUX в тебя верит.</item>
+        <item>Растения лучше растут под музыку. Люди тоже.</item>
+        <item>Звонили соседи. Хотят узнать название песни.</item>
+        <item>У каждого отличного дня есть саундтрек.</item>
+        <item>Пой так, будто никто не слышит. Хотя кто-то, наверное, слышит.</item>
+    </string-array>
 </resources>

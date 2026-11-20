@@ -287,4 +287,65 @@
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
     <string name="library_search_hint">搜尋你的音樂庫</string>
     <string name="library_no_matches">音樂庫中沒有符合「%1$s」的內容</string>
+    <string name="search_empty_title">想聽點什麼？</string>
+    <string name="browse_categories">瀏覽分類</string>
+    <string name="import_apple_music">匯入 Apple Music</string>
+    <string name="import_amazon_music">匯入 Amazon Music</string>
+    <string name="import_amazon_music_subtitle">從貼上的歌曲清單</string>
+    <string name="video_off_short">關</string>
+    <string name="video_quality_off">關閉影片</string>
+    <string name="video_quality_off_detail">靜態橫幅 · 節省數據和電量</string>
+    <string name="video_forced_off">%1$s 正在顯示橫幅。關閉後會恢復你的選擇。</string>
+    <string name="video_forced_cap">%1$s 將影片限制在 %2$s 以下。</string>
+    <string name="greeting_named">%1$s, %2$s</string>
+    <string-array name="greetings_morning">
+        <item>早安</item>
+        <item>起床囉</item>
+        <item>先來杯咖啡</item>
+        <item>出發吧</item>
+        <item>新的開始</item>
+    </string-array>
+    <string-array name="greetings_afternoon">
+        <item>午安</item>
+        <item>飯後時光</item>
+        <item>一天過半</item>
+        <item>依然精神</item>
+        <item>嗨</item>
+    </string-array>
+    <string-array name="greetings_evening">
+        <item>晚上好</item>
+        <item>黃金時刻</item>
+        <item>放鬆一下</item>
+        <item>該歇歇了</item>
+        <item>燈光調暗</item>
+    </string-array>
+    <string-array name="greetings_night">
+        <item>熬夜中</item>
+        <item>夜貓子時間</item>
+        <item>還沒睡</item>
+        <item>挑燈夜戰</item>
+        <item>睡覺可以等等</item>
+    </string-array>
+    <string-array name="home_quotes">
+        <item>切歌請適度。</item>
+        <item>今日預報：百分百好歌機率。</item>
+        <item>戴上耳機，世界靜音。</item>
+        <item>製作這張歌單時，沒有一首歌被跳過。</item>
+        <item>有些日子一首歌就夠，有些日子要四十首。</item>
+        <item>你的品味很棒，我們確認過了。</item>
+        <item>音量調大，煩惱調小。</item>
+        <item>這不是一陣子，這是歌單。</item>
+        <item>跳舞吧，就當隨機播放在看著你。</item>
+        <item>先喝口水，再按播放。</item>
+        <item>人生苦短，別聽爛歌單。</item>
+        <item>再聽一首。好吧，再一首。</item>
+        <item>音樂：比心理諮商便宜，還有節拍。</item>
+        <item>某個地方，有首歌正等著成為你的最愛。</item>
+        <item>吸氣，按播放，呼氣。</item>
+        <item>AUX 線相信你。</item>
+        <item>植物聽音樂長得更好，人也一樣。</item>
+        <item>鄰居打來電話，想知道這首歌叫什麼。</item>
+        <item>每個美好的日子都有它的配樂。</item>
+        <item>像沒人在聽一樣唱吧，雖然可能有人在聽。</item>
+    </string-array>
 </resources>

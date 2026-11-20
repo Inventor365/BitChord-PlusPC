@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Winter icon (day): the Sonara mark in glacier blues on snow. Original artwork; geometry unchanged. Foreground layer. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M40.46,39.34A22,22 0 0 0 67.54,39.34" android:strokeWidth="8.5" android:strokeLineCap="round" android:fillColor="#00000000">
+        <aapt:attr name="android:strokeColor">
+            <gradient android:type="linear" android:startX="40.46" android:startY="50" android:endX="67.54" android:endY="50">
+                <item android:offset="0" android:color="#FF9BD3F5" />
+                <item android:offset="1" android:color="#FF6FB8EE" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M31.84,50.37A36,36 0 0 0 76.16,50.37" android:strokeWidth="8.5" android:strokeLineCap="round" android:fillColor="#00000000">
+        <aapt:attr name="android:strokeColor">
+            <gradient android:type="linear" android:startX="31.84" android:startY="50" android:endX="76.16" android:endY="50">
+                <item android:offset="0" android:color="#FF5CA4E3" />
+                <item android:offset="1" android:color="#FF3C8BD9" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M23.22,61.40A50,50 0 0 0 84.78,61.40" android:strokeWidth="8.5" android:strokeLineCap="round" android:fillColor="#00000000">
+        <aapt:attr name="android:strokeColor">
+            <gradient android:type="linear" android:startX="23.22" android:startY="50" android:endX="84.78" android:endY="50">
+                <item android:offset="0" android:color="#FF2D6FB8" />
+                <item android:offset="1" android:color="#FF1C4A86" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

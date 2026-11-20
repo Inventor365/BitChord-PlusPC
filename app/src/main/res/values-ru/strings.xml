@@ -1669,4 +1669,17 @@
     <string name="theme_icon_subtitle">Использовать значок темы на главном экране</string>
     <string name="theme_mode_title">Светлая и тёмная</string>
     <string name="theme_mode_dark_only">Vice и Doom только тёмные. Настройка действует для Sonara.</string>
+    <string name="theme_winter">Winter</string>
+    <string name="theme_winter_line">Снег и сияние</string>
+    <string name="theme_winter_day">Winter (день)</string>
+    <string name="winter_effects">Зимние эффекты</string>
+    <string name="winter_effect_aurora">Анимация сияния</string>
+    <string name="winter_effect_snow">Снегопад</string>
+    <string name="winter_effect_stars">Звёзды и падающие звёзды</string>
+    <string name="winter_effect_glass">Размытие «жидкое стекло»</string>
+    <string name="winter_effect_frost">Иней по краям</string>
+    <string name="winter_effects_low_tier">На этом телефоне сначала выключено, чтобы всё было плавно</string>
+    <string name="winter_effects_footer">Каждый эффект сам приостанавливается в режиме энергосбережения, экономии трафика или заряда, при выключенных анимациях и когда Sonara не на экране. Выключенный эффект заменяется статичным.</string>
+    <string name="winter_night_after_sunset">Ночное небо после заката</string>
+    <string name="winter_night_after_sunset_subtitle">В светлом режиме — полярная ночь после 18:00 и обратно после 6:00</string>
 </resources>

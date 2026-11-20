@@ -288,4 +288,65 @@
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
     <string name="library_search_hint">보관함 검색</string>
     <string name="library_no_matches">보관함에 “%1$s”와(과) 일치하는 항목이 없습니다</string>
+    <string name="search_empty_title">무엇을 듣고 싶나요?</string>
+    <string name="browse_categories">카테고리 둘러보기</string>
+    <string name="import_apple_music">Apple Music 가져오기</string>
+    <string name="import_amazon_music">Amazon Music 가져오기</string>
+    <string name="import_amazon_music_subtitle">붙여넣은 곡 목록에서</string>
+    <string name="video_off_short">끔</string>
+    <string name="video_quality_off">동영상 끔</string>
+    <string name="video_quality_off_detail">정지 배너 · 데이터와 배터리 절약</string>
+    <string name="video_forced_off">%1$s 때문에 배너로 표시됩니다. 꺼지면 선택이 돌아옵니다.</string>
+    <string name="video_forced_cap">%1$s 때문에 동영상이 %2$s 이하로 제한됩니다.</string>
+    <string name="greeting_named">%1$s, %2$s</string>
+    <string-array name="greetings_morning">
+        <item>좋은 아침</item>
+        <item>일어나요, 햇살</item>
+        <item>커피부터</item>
+        <item>자, 시작해요</item>
+        <item>새로운 시작</item>
+    </string-array>
+    <string-array name="greetings_afternoon">
+        <item>좋은 오후</item>
+        <item>점심 먹고 나른</item>
+        <item>벌써 반나절</item>
+        <item>아직 쌩쌩</item>
+        <item>안녕</item>
+    </string-array>
+    <string-array name="greetings_evening">
+        <item>좋은 저녁</item>
+        <item>골든아워</item>
+        <item>편하게 쉬어요</item>
+        <item>하루 마무리</item>
+        <item>은은한 조명</item>
+    </string-array>
+    <string-array name="greetings_night">
+        <item>아직 안 자요</item>
+        <item>올빼미 시간</item>
+        <item>여전히 깨어 있음</item>
+        <item>한밤의 열정</item>
+        <item>잠은 나중에</item>
+    </string-array>
+    <string-array name="home_quotes">
+        <item>스킵은 책임감 있게.</item>
+        <item>오늘의 날씨: 명곡 확률 100%.</item>
+        <item>헤드폰 온. 세상은 오프.</item>
+        <item>이 플레이리스트를 만드는 동안 스킵된 곡은 없습니다.</item>
+        <item>어떤 날은 한 곡, 어떤 날은 마흔 곡.</item>
+        <item>취향이 훌륭하시네요. 확인했어요.</item>
+        <item>볼륨은 올리고, 걱정은 내리고.</item>
+        <item>한때가 아니에요. 플레이리스트예요.</item>
+        <item>셔플 버튼이 보고 있는 것처럼 춤춰요.</item>
+        <item>물 한 잔 마시고, 재생 누르기.</item>
+        <item>나쁜 플레이리스트에 쓰기엔 인생이 짧아요.</item>
+        <item>딱 한 곡만 더. 아니, 하나 더.</item>
+        <item>음악: 상담보다 싸고, 비트까지 있죠.</item>
+        <item>어딘가에서 당신의 최애곡이 될 노래가 기다리고 있어요.</item>
+        <item>숨 들이쉬고, 재생, 숨 내쉬고.</item>
+        <item>AUX 케이블은 당신을 믿어요.</item>
+        <item>식물은 음악을 들으면 더 잘 자라요. 사람도요.</item>
+        <item>이웃이 전화했어요. 이 노래 제목이 궁금하대요.</item>
+        <item>멋진 하루엔 늘 사운드트랙이 있어요.</item>
+        <item>아무도 안 듣는 것처럼 노래해요. 아마 누군가는 듣겠지만요.</item>
+    </string-array>
 </resources>

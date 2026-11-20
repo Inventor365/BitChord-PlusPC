@@ -287,4 +287,65 @@
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
     <string name="library_search_hint">חיפוש בספרייה</string>
     <string name="library_no_matches">שום דבר בספרייה שלך לא תואם ל־“%1$s”</string>
+    <string name="search_empty_title">מה בא לך לשמוע?</string>
+    <string name="browse_categories">עיון בקטגוריות</string>
+    <string name="import_apple_music">ייבוא מ-Apple Music</string>
+    <string name="import_amazon_music">ייבוא מ-Amazon Music</string>
+    <string name="import_amazon_music_subtitle">מרשימת שירים מודבקת</string>
+    <string name="video_off_short">כבוי</string>
+    <string name="video_quality_off">וידאו כבוי</string>
+    <string name="video_quality_off_detail">באנר סטטי · חוסך נתונים וסוללה</string>
+    <string name="video_forced_off">%1$s מציג את הבאנר. הבחירה שלך תחזור כשהוא ייכבה.</string>
+    <string name="video_forced_cap">%1$s מגביל את הווידאו ל-%2$s.</string>
+    <string name="greeting_named">%1$s, %2$s</string>
+    <string-array name="greetings_morning">
+        <item>בוקר טוב</item>
+        <item>קום ותזרח</item>
+        <item>קודם קפה</item>
+        <item>יאללה, קמים</item>
+        <item>התחלה חדשה</item>
+    </string-array>
+    <string-array name="greetings_afternoon">
+        <item>צהריים טובים</item>
+        <item>אווירת אחרי ארוחה</item>
+        <item>כבר באמצע</item>
+        <item>עדיין בכושר</item>
+        <item>היי</item>
+    </string-array>
+    <string-array name="greetings_evening">
+        <item>ערב טוב</item>
+        <item>שעת הזהב</item>
+        <item>להירגע</item>
+        <item>זמן להתנתק</item>
+        <item>אור עמום</item>
+    </string-array>
+    <string-array name="greetings_night">
+        <item>ער עד מאוחר</item>
+        <item>שעות של ינשופים</item>
+        <item>עדיין ער</item>
+        <item>עובד עד אור הבוקר</item>
+        <item>השינה יכולה לחכות</item>
+    </string-array>
+    <string-array name="home_quotes">
+        <item>לדלג באחריות.</item>
+        <item>תחזית להיום: 100% סיכוי ללהיטים.</item>
+        <item>אוזניות על הראש. העולם בהשתקה.</item>
+        <item>אף שיר לא נפגע ביצירת הפלייליסט הזה.</item>
+        <item>יש ימים של שיר אחד. ויש של ארבעים.</item>
+        <item>יש לך טעם מעולה. בדקנו.</item>
+        <item>ווליום למעלה, דאגות למטה.</item>
+        <item>זה לא שלב. זה פלייליסט.</item>
+        <item>תרקדו כאילו כפתור הערבוב מסתכל.</item>
+        <item>לשתות מים. ואז ללחוץ פליי.</item>
+        <item>החיים קצרים מדי לפלייליסטים גרועים.</item>
+        <item>עוד שיר אחד. טוב, עוד אחד.</item>
+        <item>מוזיקה: זולה מטיפול, ועם ביט.</item>
+        <item>איפשהו, שיר מחכה להפוך לאהוב עליך.</item>
+        <item>לשאוף. ללחוץ פליי. לנשוף.</item>
+        <item>כבל ה-AUX מאמין בך.</item>
+        <item>צמחים גדלים טוב יותר עם מוזיקה. גם אנשים.</item>
+        <item>השכנים התקשרו. הם רוצים את שם השיר.</item>
+        <item>לכל יום נהדר יש פסקול.</item>
+        <item>תשירו כאילו אף אחד לא מקשיב. כנראה שמישהו כן.</item>
+    </string-array>
 </resources>

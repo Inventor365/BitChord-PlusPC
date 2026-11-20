@@ -287,4 +287,65 @@
     <string name="automix_overview_unavailable">No Automix transition coming up</string>
     <string name="library_search_hint">Cerca nella tua libreria</string>
     <string name="library_no_matches">Niente nella tua libreria corrisponde a “%1$s”</string>
+    <string name="search_empty_title">Cosa vuoi ascoltare?</string>
+    <string name="browse_categories">Sfoglia le categorie</string>
+    <string name="import_apple_music">Importa Apple Music</string>
+    <string name="import_amazon_music">Importa Amazon Music</string>
+    <string name="import_amazon_music_subtitle">Da un elenco di brani incollato</string>
+    <string name="video_off_short">No</string>
+    <string name="video_quality_off">Video disattivato</string>
+    <string name="video_quality_off_detail">Banner fisso · risparmia dati e batteria</string>
+    <string name="video_forced_off">%1$s mostra il banner. La tua scelta torna quando si disattiva.</string>
+    <string name="video_forced_cap">%1$s limita il video a %2$s.</string>
+    <string name="greeting_named">%1$s, %2$s</string>
+    <string-array name="greetings_morning">
+        <item>Buongiorno</item>
+        <item>Sveglia, raggio di sole</item>
+        <item>Prima il caffè</item>
+        <item>Si parte</item>
+        <item>Nuovo inizio</item>
+    </string-array>
+    <string-array name="greetings_afternoon">
+        <item>Buon pomeriggio</item>
+        <item>Modalità dopo pranzo</item>
+        <item>A metà strada</item>
+        <item>Ancora in forma</item>
+        <item>Ciao</item>
+    </string-array>
+    <string-array name="greetings_evening">
+        <item>Buonasera</item>
+        <item>Ora d’oro</item>
+        <item>Relax</item>
+        <item>Si stacca</item>
+        <item>Luci soffuse</item>
+    </string-array>
+    <string-array name="greetings_night">
+        <item>Ancora sveglio</item>
+        <item>Ora dei gufi</item>
+        <item>Sempre in piedi</item>
+        <item>Notte fonda</item>
+        <item>Il sonno può aspettare</item>
+    </string-array>
+    <string-array name="home_quotes">
+        <item>Salta i brani con responsabilità.</item>
+        <item>Previsioni di oggi: 100% di probabilità di hit.</item>
+        <item>Cuffie su. Mondo spento.</item>
+        <item>Nessuno skip è stato maltrattato per questa playlist.</item>
+        <item>Certi giorni basta una canzone. Altri ne servono quaranta.</item>
+        <item>Hai un gusto eccellente. Abbiamo controllato.</item>
+        <item>Volume su, pensieri giù.</item>
+        <item>Non è una fase. È una playlist.</item>
+        <item>Balla come se la riproduzione casuale ti guardasse.</item>
+        <item>Bevi un bicchiere d’acqua. Poi premi play.</item>
+        <item>La vita è troppo breve per le playlist brutte.</item>
+        <item>Ancora una canzone. Va bene, un’altra.</item>
+        <item>La musica: costa meno della terapia e ha il ritmo.</item>
+        <item>Da qualche parte una canzone aspetta di diventare la tua preferita.</item>
+        <item>Inspira. Premi play. Espira.</item>
+        <item>Il cavo AUX crede in te.</item>
+        <item>Le piante crescono meglio con la musica. Anche le persone.</item>
+        <item>Hanno chiamato i vicini. Vogliono sapere il titolo di questa canzone.</item>
+        <item>Ogni grande giornata ha la sua colonna sonora.</item>
+        <item>Canta come se nessuno ascoltasse. Probabilmente qualcuno sì.</item>
+    </string-array>
 </resources>
