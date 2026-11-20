@@ -1635,6 +1635,20 @@
     <string name="lyrics_tab">Sözler</string>
     <string name="auto_unreachable_title">Yüklenemedi</string>
     <string name="auto_unreachable_subtitle">Çevrimdışı olabilirsin. İndirilenler yine çalar.</string>
+    <string name="import_adding">Ekleniyor %1$d / %2$d</string>
+    <string name="import_summary">%2$d şarkıdan %1$d tanesi içe aktarıldı</string>
+    <string name="import_summary_unmatched">%1$d tanesi eşleşmedi</string>
+    <string name="import_summary_unread">Çalma listesinden %1$d şarkı daha okunamadı</string>
+    <string name="import_summary_rejected">YouTube Music %1$d şarkıyı eklemedi</string>
+    <string name="import_summary_not_sent">%1$d şarkı eklenmedi: bağlantı koptu</string>
+    <string name="import_retry_unmatched">Eşleşmeyen %1$d şarkıyı yeniden dene</string>
+    <string name="import_open_playlist">Çalma listesini aç</string>
+    <string name="import_keeps_going">Bunu kapatabilirsin, içe aktarma devam eder.</string>
+    <string name="import_reading">Çalma listesi okunuyor…</string>
+    <string name="import_reading_of">Çalma listesi okunuyor (%1$d / %2$d)…</string>
+    <string name="import_reading_count">Çalma listesi okunuyor (%1$d)…</string>
+    <string name="import_summary_repeats">%1$d şarkı iki kez yer alıyordu, bir kez eklendi</string>
+    <string name="import_summary_region_hidden">%1$d şarkı ülkende kullanılamıyor, bu yüzden servis adlarını vermiyor</string>
     <string name="winter_night_after_sunset">Gün batımından sonra gece gökyüzü</string>
     <string name="winter_night_after_sunset_subtitle">Açık modda 18.00\'den sonra kutup gecesi, 06.00\'da yeniden gündüz</string>
 </resources>

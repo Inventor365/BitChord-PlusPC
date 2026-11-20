@@ -1531,6 +1531,20 @@
     <string name="lyrics_tab">Lyrics</string>
     <string name="auto_unreachable_title">Couldn’t load this</string>
     <string name="auto_unreachable_subtitle">You may be offline. Downloads still play.</string>
+    <string name="import_adding">Adding %1$d / %2$d</string>
+    <string name="import_summary">Imported %1$d of %2$d</string>
+    <string name="import_summary_unmatched">%1$d couldn’t be matched</string>
+    <string name="import_summary_unread">%1$d more couldn’t be read from the playlist</string>
+    <string name="import_summary_rejected">%1$d YouTube Music wouldn’t add</string>
+    <string name="import_summary_not_sent">%1$d weren’t added: the connection dropped</string>
+    <string name="import_retry_unmatched">Retry %1$d unmatched</string>
+    <string name="import_open_playlist">Open playlist</string>
+    <string name="import_keeps_going">You can close this — the import keeps going.</string>
+    <string name="import_reading">Reading playlist…</string>
+    <string name="import_reading_of">Reading playlist (%1$d / %2$d)…</string>
+    <string name="import_reading_count">Reading playlist (%1$d)…</string>
+    <string name="import_summary_repeats">%1$d were the same song twice, so they went in once</string>
+    <string name="import_summary_region_hidden">%1$d aren’t available in your country, so the service doesn’t say what they are</string>
     <string name="winter_night_after_sunset">Night sky after sunset</string>
     <string name="winter_night_after_sunset_subtitle">In light mode, switch to the polar night after 6 pm and back after 6 am</string>
 </resources>

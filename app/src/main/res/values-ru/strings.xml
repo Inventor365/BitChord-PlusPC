@@ -1684,6 +1684,20 @@
     <string name="lyrics_tab">Текст</string>
     <string name="auto_unreachable_title">Не удалось загрузить</string>
     <string name="auto_unreachable_subtitle">Возможно, нет сети. Загрузки по-прежнему играют.</string>
+    <string name="import_adding">Добавление %1$d / %2$d</string>
+    <string name="import_summary">Импортировано %1$d из %2$d</string>
+    <string name="import_summary_unmatched">%1$d не найдено</string>
+    <string name="import_summary_unread">Ещё %1$d не удалось прочитать из плейлиста</string>
+    <string name="import_summary_rejected">YouTube Music не добавил %1$d</string>
+    <string name="import_summary_not_sent">%1$d не добавлено: соединение прервалось</string>
+    <string name="import_retry_unmatched">Повторить %1$d ненайденных</string>
+    <string name="import_open_playlist">Открыть плейлист</string>
+    <string name="import_keeps_going">Можно закрыть — импорт продолжится.</string>
+    <string name="import_reading">Чтение плейлиста…</string>
+    <string name="import_reading_of">Чтение плейлиста (%1$d / %2$d)…</string>
+    <string name="import_reading_count">Чтение плейлиста (%1$d)…</string>
+    <string name="import_summary_repeats">%1$d — одна и та же песня дважды, добавлена один раз</string>
+    <string name="import_summary_region_hidden">%1$d недоступны в вашей стране, поэтому сервис не называет их</string>
     <string name="winter_night_after_sunset">Ночное небо после заката</string>
     <string name="winter_night_after_sunset_subtitle">В светлом режиме — полярная ночь после 18:00 и обратно после 6:00</string>
 </resources>

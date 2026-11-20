@@ -5835,6 +5835,19 @@ private fun BitChordApp(
             )
         }
 
+        // An import runs on with its dialog closed: when it lands, the playlist goes into the
+        // library and a notice says so, wherever the listener is by then.
+        LaunchedEffect(Unit) {
+            com.music.bitchord.data.spotify.PlaylistImport.finished.collect { done ->
+                if (!done.savedLocally) viewModel.noteCreatedPlaylist(done.browseId.removePrefix("VL"), done.title, done.songs)
+                showQueueNotice(
+                    context.getString(
+                        if (done.savedLocally && signedIn) R.string.spotify_import_local_fallback else R.string.spotify_import_done,
+                        done.title,
+                    ),
+                )
+            }
+        }
         if (showSpotifyImportDialog) {
             BackHandler {
                 showSpotifyImportDialog = false
@@ -5844,24 +5857,10 @@ private fun BitChordApp(
                 hazeState = hazeState,
                 signedIn = signedIn,
                 source = importSource,
-                onImported = { title, privacy, songs ->
-                    viewModel.createPlaylistWithVideoIds(
-                        title,
-                        privacy,
-                        songs.map { it.videoId },
-                        songs,
-                    ) { browseId, pTitle, savedLocally ->
-                        showQueueNotice(
-                            context.getString(
-                                if (savedLocally && signedIn) R.string.spotify_import_local_fallback
-                                else R.string.spotify_import_done,
-                                pTitle,
-                            ),
-                        )
-                        browseId?.let { id ->
-                            viewModel.openDetail(id, pTitle, "${songs.size} songs", songs.firstOrNull()?.thumbnailUrl)
-                        }
-                    }
+                onOpenPlaylist = { browseId, title ->
+                    showSpotifyImportDialog = false
+                    importSource = ImportSource.SPOTIFY
+                    viewModel.openDetail(browseId, title)
                 },
                 onDismiss = {
                     showSpotifyImportDialog = false

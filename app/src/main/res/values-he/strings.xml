@@ -1657,6 +1657,20 @@
     <string name="lyrics_tab">מילים</string>
     <string name="auto_unreachable_title">לא ניתן לטעון</string>
     <string name="auto_unreachable_subtitle">ייתכן שאין חיבור. הורדות עדיין מתנגנות.</string>
+    <string name="import_adding">מוסיף %1$d / %2$d</string>
+    <string name="import_summary">יובאו %1$d מתוך %2$d</string>
+    <string name="import_summary_unmatched">%1$d לא נמצאו</string>
+    <string name="import_summary_unread">לא ניתן היה לקרוא עוד %1$d מהפלייליסט</string>
+    <string name="import_summary_rejected">YouTube Music לא הוסיף %1$d</string>
+    <string name="import_summary_not_sent">%1$d לא נוספו: החיבור נותק</string>
+    <string name="import_retry_unmatched">נסה שוב %1$d שלא נמצאו</string>
+    <string name="import_open_playlist">פתח פלייליסט</string>
+    <string name="import_keeps_going">אפשר לסגור — הייבוא ממשיך.</string>
+    <string name="import_reading">קורא את הפלייליסט…</string>
+    <string name="import_reading_of">קורא את הפלייליסט (%1$d / %2$d)…</string>
+    <string name="import_reading_count">קורא את הפלייליסט (%1$d)…</string>
+    <string name="import_summary_repeats">%1$d היו אותו שיר פעמיים ונוספו פעם אחת</string>
+    <string name="import_summary_region_hidden">%1$d לא זמינים במדינה שלך, ולכן השירות לא מציין מה הם</string>
     <string name="winter_night_after_sunset">שמי לילה אחרי השקיעה</string>
     <string name="winter_night_after_sunset_subtitle">במצב בהיר, לילה קוטבי אחרי 18:00 וחזרה אחרי 6:00</string>
 </resources>

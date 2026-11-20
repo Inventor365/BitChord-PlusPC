@@ -1591,6 +1591,20 @@
     <string name="lyrics_tab">Testo</string>
     <string name="auto_unreachable_title">Impossibile caricare</string>
     <string name="auto_unreachable_subtitle">Forse sei offline. I download si possono ancora ascoltare.</string>
+    <string name="import_adding">Aggiunta %1$d / %2$d</string>
+    <string name="import_summary">Importati %1$d su %2$d</string>
+    <string name="import_summary_unmatched">%1$d senza corrispondenza</string>
+    <string name="import_summary_unread">Non è stato possibile leggere altri %1$d dalla playlist</string>
+    <string name="import_summary_rejected">YouTube Music non ne ha aggiunti %1$d</string>
+    <string name="import_summary_not_sent">%1$d non aggiunti: connessione persa</string>
+    <string name="import_retry_unmatched">Riprova %1$d senza corrispondenza</string>
+    <string name="import_open_playlist">Apri playlist</string>
+    <string name="import_keeps_going">Puoi chiudere: l’importazione continua.</string>
+    <string name="import_reading">Lettura della playlist…</string>
+    <string name="import_reading_of">Lettura della playlist (%1$d / %2$d)…</string>
+    <string name="import_reading_count">Lettura della playlist (%1$d)…</string>
+    <string name="import_summary_repeats">%1$d erano lo stesso brano due volte e sono stati aggiunti una volta</string>
+    <string name="import_summary_region_hidden">%1$d non sono disponibili nel tuo paese, quindi il servizio non dice quali sono</string>
     <string name="winter_night_after_sunset">Cielo notturno dopo il tramonto</string>
     <string name="winter_night_after_sunset_subtitle">In modalità chiara, notte polare dopo le 18 e di nuovo giorno dopo le 6</string>
 </resources>

@@ -1652,6 +1652,20 @@
     <string name="lyrics_tab">Songtext</string>
     <string name="auto_unreachable_title">Konnte nicht geladen werden</string>
     <string name="auto_unreachable_subtitle">Vielleicht bist du offline. Downloads laufen weiter.</string>
+    <string name="import_adding">Hinzufügen %1$d / %2$d</string>
+    <string name="import_summary">%1$d von %2$d importiert</string>
+    <string name="import_summary_unmatched">%1$d nicht gefunden</string>
+    <string name="import_summary_unread">%1$d weitere konnten nicht aus der Playlist gelesen werden</string>
+    <string name="import_summary_rejected">%1$d wollte YouTube Music nicht hinzufügen</string>
+    <string name="import_summary_not_sent">%1$d wurden nicht hinzugefügt: Verbindung unterbrochen</string>
+    <string name="import_retry_unmatched">%1$d nicht gefundene erneut versuchen</string>
+    <string name="import_open_playlist">Playlist öffnen</string>
+    <string name="import_keeps_going">Du kannst das schließen – der Import läuft weiter.</string>
+    <string name="import_reading">Playlist wird gelesen…</string>
+    <string name="import_reading_of">Playlist wird gelesen (%1$d / %2$d)…</string>
+    <string name="import_reading_count">Playlist wird gelesen (%1$d)…</string>
+    <string name="import_summary_repeats">%1$d waren derselbe Song doppelt und wurden einmal hinzugefügt</string>
+    <string name="import_summary_region_hidden">%1$d sind in deinem Land nicht verfügbar, daher nennt der Dienst sie nicht</string>
     <string name="winter_night_after_sunset">Nachthimmel nach Sonnenuntergang</string>
     <string name="winter_night_after_sunset_subtitle">Im hellen Modus ab 18 Uhr Polarnacht, ab 6 Uhr wieder Tag</string>
 </resources>

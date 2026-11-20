@@ -1393,31 +1393,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     videoIds = batches.firstOrNull().orEmpty(),
                 ).fold(
                     onSuccess = { playlistId ->
-                        batches.drop(1).forEach { chunk ->
-                            YtMusicRepository.addToPlaylist(playlistId, chunk)
-                        }
-                        setPlaylistOwned("VL$playlistId", true)
-                        libraryStale = true
-                        val created = UserPlaylist(
-                            playlistId = playlistId,
-                            title = name,
-                            subtitle = "${batches.sumOf { it.size }} songs",
-                            thumbnailUrl = null,
-                        )
-                        _playlists.value = listOf(created) +
-                            _playlists.value.filterNot { it.playlistId == created.playlistId }
-                        editPlaylistShelf { items ->
-                            listOf(
-                                ShelfItem(
-                                    title = created.title,
-                                    subtitle = created.subtitle,
-                                    thumbnailUrl = created.thumbnailUrl,
-                                    videoId = null,
-                                    browseId = created.browseId,
-                                ),
-                            ) + items.filterNot { it.browseId == created.browseId }
-                        }
-                        onResult?.invoke(created.browseId, created.title, false)
+                        // The rest through the settling wait: a playlist YouTube has just made
+                        // refuses edits for a while, and a batch sent then used to be lost unseen.
+                        val rest = com.music.bitchord.data.spotify.addAllReliably(
+                            ids = batches.drop(1).flatten(),
+                            statusOf = com.music.bitchord.data.innertube.Innertube::httpStatusOf,
+                        ) { batch -> YtMusicRepository.addToPlaylist(playlistId, batch).getOrThrow() }
+                        noteCreatedPlaylist(playlistId, name, batches.firstOrNull().orEmpty().size + rest.added.size)
+                        onResult?.invoke("VL$playlistId", name, false)
                     },
                     onFailure = {
                         val local = com.music.bitchord.data.spotify.LocalPlaylistStore.savePlaylist(name, songs)
@@ -1428,6 +1411,33 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 val local = com.music.bitchord.data.spotify.LocalPlaylistStore.savePlaylist(name, songs)
                 onResult?.invoke(local.browseId, local.title, true)
             }
+        }
+    }
+
+    /**
+     * Puts a playlist just made on YouTube Music (by hand or by an import) at the top of the
+     * library, before the next library fetch would.
+     */
+    fun noteCreatedPlaylist(playlistId: String, title: String, songs: Int) {
+        setPlaylistOwned("VL$playlistId", true)
+        libraryStale = true
+        val created = UserPlaylist(
+            playlistId = playlistId,
+            title = title,
+            subtitle = "$songs songs",
+            thumbnailUrl = null,
+        )
+        _playlists.value = listOf(created) + _playlists.value.filterNot { it.playlistId == created.playlistId }
+        editPlaylistShelf { items ->
+            listOf(
+                ShelfItem(
+                    title = created.title,
+                    subtitle = created.subtitle,
+                    thumbnailUrl = created.thumbnailUrl,
+                    videoId = null,
+                    browseId = created.browseId,
+                ),
+            ) + items.filterNot { it.browseId == created.browseId }
         }
     }
 

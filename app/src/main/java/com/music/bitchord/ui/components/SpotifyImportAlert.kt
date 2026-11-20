@@ -24,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,15 +38,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.music.bitchord.R
 import com.music.bitchord.data.model.PlaylistPrivacy
-import com.music.bitchord.data.model.Song
-import com.music.bitchord.data.spotify.SpotifyImportTrack
+import com.music.bitchord.data.spotify.FetchedPlaylist
+import com.music.bitchord.data.spotify.PlaylistImport
 import com.music.bitchord.data.spotify.SpotifyImporter
 import com.music.bitchord.data.spotify.AppleMusicImporter
 import com.music.bitchord.data.spotify.AmazonMusicImporter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 private val IMPORT_LANGUAGES = listOf(
     "Tamil",
@@ -75,8 +73,8 @@ private val IMPORT_LANGUAGES = listOf(
 fun SpotifyImportAlert(
     hazeState: HazeState,
     signedIn: Boolean,
-    /** Called once the songs are matched; [privacy] is meaningful only when signed in. */
-    onImported: (title: String, privacy: PlaylistPrivacy, songs: List<Song>) -> Unit,
+    /** Opens the playlist an import made. */
+    onOpenPlaylist: (browseId: String, title: String) -> Unit,
     onDismiss: () -> Unit,
     /**
      * Which tile opened the dialog: it sets the title, the hint and, for Amazon Music, a pasted
@@ -90,74 +88,75 @@ fun SpotifyImportAlert(
     val defaultAmazonName = stringResource(R.string.amazon_music_import_default_name)
     var playlistName by remember { mutableStateOf("") }
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    // The import runs in PlaylistImport, outside this dialog: closing it, leaving the screen or
+    // the app doesn't stop it, and opening the dialog again shows where it has got to.
+    val job by PlaylistImport.state.collectAsStateWithLifecycle()
     var link by remember { mutableStateOf("") }
     var privacy by remember { mutableStateOf(PlaylistPrivacy.PRIVATE) }
     var selectedLanguage by remember { mutableStateOf("No Preference") }
     var customLanguageInput by remember { mutableStateOf("") }
-    var working by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf<String?>(null) }
-    var failed by remember { mutableStateOf(false) }
-    var unmatched by remember { mutableStateOf<List<SpotifyImportTrack>?>(null) }
+    // A link or list the dialog itself turned down, before any import started.
+    var inputError by remember { mutableStateOf<String?>(null) }
+    val working = job.working
+    val failed = inputError != null || job.phase == PlaylistImport.Phase.FAILED
+    val finished = job.phase == PlaylistImport.Phase.DONE
+    val status: String? = inputError ?: when (job.phase) {
+        PlaylistImport.Phase.IDLE, PlaylistImport.Phase.DONE -> null
+        PlaylistImport.Phase.FETCHING -> when {
+            job.fetched == 0 -> stringResource(R.string.import_reading)
+            job.fetchTotal != null -> stringResource(R.string.import_reading_of, job.fetched, job.fetchTotal!!)
+            else -> stringResource(R.string.import_reading_count, job.fetched)
+        }
+        PlaylistImport.Phase.MATCHING -> stringResource(R.string.spotify_import_matching, job.matchDone, job.fetched)
+        PlaylistImport.Phase.ADDING -> stringResource(R.string.import_adding, job.added, job.toAdd)
+        PlaylistImport.Phase.FAILED -> stringResource(R.string.spotify_import_failed, job.error.orEmpty())
+    }
+    val dismiss = {
+        // A finished or failed import is cleared on the way out; a running one carries on.
+        PlaylistImport.reset()
+        onDismiss()
+    }
 
     fun start() {
+        inputError = null
+        PlaylistImport.reset()
+        val language = if (selectedLanguage == "Manual / Other") customLanguageInput.trim().ifBlank { null } else selectedLanguage
         if (amazon) {
-            startAmazon(
-                text = link,
-                name = playlistName.trim().ifEmpty { defaultAmazonName },
-                context = context,
-                onStatus = { message, isFailure -> status = message; failed = isFailure },
-                onWorking = { working = it },
-                language = if (selectedLanguage == "Manual / Other") customLanguageInput.trim().ifBlank { null } else selectedLanguage,
-                launch = { block -> scope.launch { block() } },
-                onDone = { name, songs, missed ->
-                    onImported(name, privacy, songs)
-                    if (missed.isEmpty()) onDismiss() else unmatched = missed
-                },
+            val tracks = AmazonMusicImporter.parseTracklist(link)
+            if (tracks.isEmpty()) {
+                inputError = context.getString(
+                    if (AmazonMusicImporter.isAmazonMusicLink(link)) R.string.amazon_music_import_link_only else R.string.amazon_music_import_nothing,
+                )
+                return
+            }
+            val name = playlistName.trim().ifEmpty { defaultAmazonName }
+            PlaylistImport.start(
+                fetch = { FetchedPlaylist(name, tracks, declared = tracks.size) },
+                language = language,
+                privacy = privacy,
+                signedIn = signedIn,
             )
             return
         }
         val appleUrl = AppleMusicImporter.extractPlaylistUrl(link)
         val id = if (appleUrl == null) SpotifyImporter.extractPlaylistId(link) else null
         if (appleUrl == null && id == null) {
-            status = context.getString(
+            inputError = context.getString(
                 if (appleMusic) R.string.apple_music_import_invalid else R.string.spotify_import_invalid,
             )
-            failed = true
             return
         }
-        val effectiveLanguage = if (selectedLanguage == "Manual / Other") {
-            customLanguageInput.trim().ifBlank { null }
-        } else {
-            selectedLanguage
-        }
-        working = true
-        failed = false
-        status = context.getString(R.string.spotify_import_fetching)
-        scope.launch {
-            try {
-                val (name, tracks) = if (appleUrl != null) {
-                    AppleMusicImporter.fetchPlaylist(appleUrl).let { it.title to it.tracks }
-                } else {
-                    SpotifyImporter.fetchPlaylistTracks(id!!)
-                }
-                val (songs, missed) = SpotifyImporter.resolveToSongs(tracks, effectiveLanguage) { done, total ->
-                    status = context.getString(R.string.spotify_import_matching, done, total)
-                }
-                if (songs.isEmpty()) error(context.getString(R.string.spotify_import_none))
-                onImported(name, privacy, songs)
-                if (missed.isEmpty()) onDismiss() else unmatched = missed
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                status = context.getString(R.string.spotify_import_failed, e.message.orEmpty())
-                failed = true
-            }
-            working = false
-        }
+        PlaylistImport.start(
+            fetch = { progress ->
+                if (appleUrl != null) AppleMusicImporter.fetchAll(appleUrl, progress) else SpotifyImporter.fetchPlaylist(id!!, progress)
+            },
+            language = language,
+            privacy = privacy,
+            signedIn = signedIn,
+        )
     }
 
-    AlertScaffold(hazeState = hazeState, onDismiss = { if (!working) onDismiss() }) {
+    AlertScaffold(hazeState = hazeState, onDismiss = dismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -178,16 +177,10 @@ fun SpotifyImportAlert(
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
             )
-            val missed = unmatched
-            if (missed != null) {
-                Text(
-                    text = stringResource(R.string.spotify_import_unmatched, missed.size),
-                    modifier = Modifier.padding(top = 4.dp, bottom = 10.dp),
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 17.sp),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                )
-                Column(
+            if (finished) {
+                ImportSummary(job)
+                val missed = job.unmatched
+                if (missed.isNotEmpty()) Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 200.dp)
@@ -224,6 +217,15 @@ fun SpotifyImportAlert(
                     },
                     textAlign = TextAlign.Center,
                 )
+                if (working) {
+                    Text(
+                        text = stringResource(R.string.import_keeps_going),
+                        modifier = Modifier.padding(bottom = 10.dp),
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
                 if (amazon) {
                     PillTextField(
                         value = playlistName,
@@ -238,8 +240,8 @@ fun SpotifyImportAlert(
                         onValueChange = {
                             link = it
                             if (failed) {
-                                status = null
-                                failed = false
+                                inputError = null
+                                PlaylistImport.reset()
                             }
                         },
                         placeholder = stringResource(R.string.amazon_music_import_list_hint),
@@ -251,8 +253,8 @@ fun SpotifyImportAlert(
                         onValueChange = {
                             link = it
                             if (failed) {
-                                status = null
-                                failed = false
+                                inputError = null
+                                PlaylistImport.reset()
                             }
                         },
                         placeholder = stringResource(if (appleMusic) R.string.apple_music_import_hint else R.string.spotify_import_hint),
@@ -348,21 +350,47 @@ fun SpotifyImportAlert(
             }
         }
         AlertRule()
-        if (unmatched != null) {
+        if (finished) {
+            if (job.unmatched.isNotEmpty()) {
+                AlertAction(
+                    label = if (job.retrying) stringResource(R.string.spotify_import_matching, job.matchDone, job.unmatched.size)
+                    else stringResource(R.string.import_retry_unmatched, job.unmatched.size),
+                    emphasised = false,
+                    onClick = PlaylistImport::retryUnmatched,
+                    enabled = !job.retrying,
+                )
+                AlertRule()
+            }
+            job.browseId?.let { browseId ->
+                AlertAction(
+                    label = stringResource(R.string.import_open_playlist),
+                    emphasised = false,
+                    onClick = {
+                        val title = job.title
+                        dismiss()
+                        onOpenPlaylist(browseId, title)
+                    },
+                    enabled = !job.retrying,
+                )
+                AlertRule()
+            }
+            AlertAction(label = stringResource(R.string.done), emphasised = true, onClick = dismiss, enabled = !job.retrying)
+        } else if (working) {
+            // Closing doesn't stop it: the import goes on, and says so when it's done.
             AlertAction(label = stringResource(R.string.done), emphasised = true, onClick = onDismiss)
         } else {
             AlertAction(
-                label = stringResource(R.string.spotify_import_button),
+                // After a failure, the same button tries again, and says so.
+                label = stringResource(if (job.phase == PlaylistImport.Phase.FAILED) R.string.retry else R.string.spotify_import_button),
                 emphasised = true,
                 onClick = ::start,
-                enabled = link.isNotBlank() && !working,
+                enabled = link.isNotBlank(),
             )
             AlertRule()
             AlertAction(
                 label = stringResource(R.string.cancel),
                 emphasised = false,
-                onClick = onDismiss,
-                enabled = !working,
+                onClick = dismiss,
             )
         }
     }
@@ -372,44 +400,42 @@ fun SpotifyImportAlert(
 enum class ImportSource { SPOTIFY, APPLE_MUSIC, AMAZON_MUSIC }
 
 /**
- * The Amazon Music path: Amazon publishes nothing a link could be read with (see
- * [AmazonMusicImporter]), so the songs come from pasted text, then go through the same
- * matching as every other import. Each way it can fail gets its own sentence.
+ * How an import came out, in one or two lines: "Imported 781 of 812 — 31 couldn't be matched",
+ * then whatever else fell short — songs the service didn't give up, songs YouTube Music
+ * wouldn't take, songs never sent — and where the playlist went if not YouTube Music.
  */
-private fun startAmazon(
-    text: String,
-    name: String,
-    context: android.content.Context,
-    onStatus: (String, Boolean) -> Unit,
-    onWorking: (Boolean) -> Unit,
-    language: String?,
-    launch: (suspend () -> Unit) -> Unit,
-    onDone: (String, List<Song>, List<SpotifyImportTrack>) -> Unit,
-) {
-    val tracks = AmazonMusicImporter.parseTracklist(text)
-    if (tracks.isEmpty()) {
-        val linkOnly = AmazonMusicImporter.isAmazonMusicLink(text)
-        onStatus(
-            context.getString(if (linkOnly) R.string.amazon_music_import_link_only else R.string.amazon_music_import_nothing),
-            true,
-        )
-        return
+@Composable
+private fun ImportSummary(job: PlaylistImport.State) {
+    val total = job.fetched + job.fetchMissing
+    val head = buildString {
+        append(stringResource(R.string.import_summary, job.added, total))
+        if (job.unmatched.isNotEmpty()) append(" — ").append(stringResource(R.string.import_summary_unmatched, job.unmatched.size))
     }
-    onWorking(true)
-    onStatus(context.getString(R.string.spotify_import_matching, 0, tracks.size), false)
-    launch {
-        try {
-            val (songs, missed) = SpotifyImporter.resolveToSongs(tracks, language) { done, total ->
-                onStatus(context.getString(R.string.spotify_import_matching, done, total), false)
-            }
-            if (songs.isEmpty()) error(context.getString(R.string.spotify_import_none))
-            onDone(name, songs, missed)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            onStatus(context.getString(R.string.spotify_import_failed, e.message.orEmpty()), true)
-        }
-        onWorking(false)
+    val notes = buildList {
+        if (job.regionHidden > 0) add(stringResource(R.string.import_summary_region_hidden, job.regionHidden))
+        val unread = job.fetchMissing - job.regionHidden
+        if (unread > 0) add(stringResource(R.string.import_summary_unread, unread))
+        if (job.rejected > 0) add(stringResource(R.string.import_summary_rejected, job.rejected))
+        if (job.notSent > 0) add(stringResource(R.string.import_summary_not_sent, job.notSent))
+        if (job.repeats > 0) add(stringResource(R.string.import_summary_repeats, job.repeats))
+        // Signed out, saving here was the plan, not a fallback: the dialog said so up front.
+        if (job.savedLocally && job.wantedRemote) add(stringResource(R.string.spotify_import_local_fallback, job.title))
+    }
+    Text(
+        text = head,
+        modifier = Modifier.padding(top = 4.dp, bottom = if (notes.isEmpty()) 10.dp else 4.dp),
+        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 17.sp, fontWeight = FontWeight.W600),
+        color = MaterialTheme.colorScheme.onSurface,
+        textAlign = TextAlign.Center,
+    )
+    if (notes.isNotEmpty()) {
+        Text(
+            text = notes.joinToString("\n"),
+            modifier = Modifier.padding(bottom = 10.dp),
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

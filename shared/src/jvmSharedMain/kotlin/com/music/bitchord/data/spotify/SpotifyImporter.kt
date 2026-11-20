@@ -27,7 +27,28 @@ import java.util.concurrent.atomic.AtomicInteger
 data class SpotifyImportTrack(
     val title: String,
     val artist: String,
+    /**
+     * The service's own id for the track, kept only while the title is unknown: Spotify blanks
+     * the name of a track not licensed in the listener's country, and the id is how it's looked up.
+     */
+    val spotifyId: String? = null,
 )
+
+/**
+ * A playlist's songs as read from its service: [tracks] in order, the [declared] total when the
+ * service says, and [stoppedBy] when the reading was cut short (the songs before it stand).
+ */
+data class FetchedPlaylist(
+    val title: String,
+    val tracks: List<SpotifyImportTrack>,
+    val declared: Int?,
+    val stoppedBy: Throwable? = null,
+    /** Rows the service gave no title for here (not available in the listener's country). */
+    val regionHidden: Int = 0,
+) {
+    /** Songs the service has that weren't read, for any reason (including [regionHidden]). */
+    val missing: Int get() = declared?.let { (it - tracks.size).coerceAtLeast(0) } ?: 0
+}
 
 /** The result of fetching and resolving a Spotify playlist's tracks. */
 data class SpotifyImportResult(
@@ -74,10 +95,29 @@ object SpotifyImporter {
         return segments[playlistIdx + 1].takeIf { PLAYLIST_ID.matches(it) }
     }
 
-    /**
-     * Fetches public Spotify playlist details from Spotify's embed endpoint.
-     */
+    /** The playlist's title and songs; see [fetchPlaylist] for how much was read. */
     suspend fun fetchPlaylistTracks(playlistId: String): Pair<String, List<SpotifyImportTrack>> =
+        fetchPlaylist(playlistId).let { it.title to it.tracks }
+
+    /** Which source the rest of the playlist was read from, for the log. */
+    private enum class Path { WEB_PLAYER_QUERY, WEB_API }
+
+    /**
+     * A public Spotify playlist, every song of it.
+     *
+     * The embed page carries the title, the first [EMBED_TRACK_LIMIT] songs and an anonymous
+     * token. With that token the rest is paged — the web player's own query first (what
+     * open.spotify.com uses, and what answers an anonymous token), Spotify's Web API
+     * (`offset`/`limit`/`next`) if that refuses — each page retried with backoff on brief 429s
+     * and 5xx. The Web API answers an anonymous token with a 429 and a Retry-After of hours,
+     * which used to be waited out a page at a time: an import that sat on "Reading" for minutes. A playlist that still can't be read to the end comes back with what was
+     * read and [FetchedPlaylist.stoppedBy], so the import can say how much is missing instead
+     * of quietly stopping at 100.
+     */
+    suspend fun fetchPlaylist(
+        playlistId: String,
+        onProgress: (read: Int, total: Int?) -> Unit = { _, _ -> },
+    ): FetchedPlaylist =
         withContext(Dispatchers.IO) {
             val url = "https://open.spotify.com/embed/playlist/$playlistId"
             val request = Request.Builder()
@@ -85,13 +125,9 @@ object SpotifyImporter {
                 .header("User-Agent", USER_AGENT)
                 .build()
 
-            val html = Http.client.newCall(request).execute().use { response ->
-                val body = response.body?.string().orEmpty()
-                if (!response.isSuccessful || body.isBlank()) {
-                    error("Failed to load Spotify playlist (HTTP ${response.code})")
-                }
-                body
-            }
+            val html = runCatching { withImportBackoff { fetchBody(request) } }.getOrElse { e ->
+                error("Failed to load Spotify playlist (${e.message})")
+            }.ifBlank { error("Failed to load Spotify playlist") }
 
             // Extract <script id="__NEXT_DATA__" type="application/json">...</script>
             val scriptRegex = Regex("""<script id="__NEXT_DATA__" type="application/json">(.*?)</script>""", RegexOption.DOT_MATCHES_ALL)
@@ -130,6 +166,10 @@ object SpotifyImporter {
                     ?: ""
                 if (title.isNotBlank()) {
                     tracks.add(SpotifyImportTrack(title = title.trim(), artist = subtitle.trim()))
+                } else {
+                    // Not licensed here: no title, but the id to look it up by.
+                    obj["uri"]?.jsonPrimitive?.content?.removePrefix("spotify:track:")?.takeIf { PLAYLIST_ID.matches(it) }
+                        ?.let { tracks.add(SpotifyImportTrack(title = "", artist = subtitle.trim(), spotifyId = it)) }
                 }
             }
 
@@ -137,22 +177,45 @@ object SpotifyImporter {
                 error("No tracks found in public Spotify playlist.")
             }
 
-            // The embed page stops at its first 100 tracks. The web player's
-            // own query, with the anonymous token the embed hands out, pages
-            // through the rest; if it refuses, the 100 already read stand.
-            if (tracks.size >= EMBED_TRACK_LIMIT) {
-                val token = props?.get("state")?.jsonObject
-                    ?.get("settings")?.jsonObject
-                    ?.get("session")?.jsonObject
-                    ?.get("accessToken")?.jsonPrimitive?.content
-                if (token != null) {
-                    runCatching { fetchRemainingTracks(playlistId, token, tracks.size) }
-                        .getOrNull()
-                        ?.let { tracks.addAll(it) }
+            // The embed page stops at its first 100 rows; a full page means there may be more.
+            if (trackListJson.size < EMBED_TRACK_LIMIT) {
+                ImportLog.i("spotify: whole playlist in the embed page: ${tracks.size} rows")
+                val hidden = dropRegionHidden(tracks)
+                return@withContext FetchedPlaylist(playlistTitle, tracks, declared = trackListJson.size, regionHidden = hidden)
+            }
+            val token = props?.get("state")?.jsonObject
+                ?.get("settings")?.jsonObject
+                ?.get("session")?.jsonObject
+                ?.get("accessToken")?.jsonPrimitive?.content
+                ?: return@withContext FetchedPlaylist(
+                    playlistTitle, tracks, declared = null,
+                    stoppedBy = IllegalStateException("Spotify gave no token to read past the first $EMBED_TRACK_LIMIT songs"),
+                )
+            val start = trackListJson.size
+            val first = tracks.size
+            onProgress(first, null)
+            var path = Path.WEB_PLAYER_QUERY
+            var rest = pageAll(start, onPage = { read, total -> onProgress(first + read, total) }) { offset ->
+                pathfinderPage(playlistId, token, offset)
+            }
+            if (rest.stoppedBy != null && rest.tracks.isEmpty()) {
+                // The web player's query refused outright (a changed query hash, say): the Web API.
+                ImportLog.i("spotify: web player query refused (${rest.stoppedBy?.message}); trying the Web API")
+                path = Path.WEB_API
+                rest = pageAll(start, onPage = { read, total -> onProgress(first + read, total) }) { offset ->
+                    webApiPage(playlistId, token, offset)
                 }
             }
-
-            Pair(playlistTitle, tracks)
+            ImportLog.i("spotify: read past the embed via $path: ${rest.tracks.size} rows, total=${rest.total}, stopped=${rest.stoppedBy?.message}")
+            tracks.addAll(rest.tracks)
+            val hidden = dropRegionHidden(tracks)
+            FetchedPlaylist(
+                playlistTitle,
+                tracks,
+                declared = rest.total ?: (tracks.size + hidden).takeIf { rest.stoppedBy == null },
+                stoppedBy = rest.stoppedBy,
+                regionHidden = hidden,
+            )
         }
 
     /**
@@ -180,56 +243,61 @@ object SpotifyImporter {
     /** Tracks the embed page lists before it cuts off. */
     private const val EMBED_TRACK_LIMIT = 100
     private const val SEARCH_RETRY_DELAY_MS = 900L
+    private const val SEARCH_ATTEMPTS = 3
+
+    /** Searches in flight at once while matching: quick, without tripping YouTube's rate limit. */
+    const val MATCH_PARALLELISM = 5
     private const val PAGE_SIZE = 100
     private const val PATHFINDER_URL = "https://api-partner.spotify.com/pathfinder/v1/query"
     private const val FETCH_PLAYLIST_HASH = "19ff1327c29e99c208c86d7a9d8f1929cfdf3d3202a0ff4253c821f1901aa94d"
 
-    /** Tracks from [start] to the end of the playlist, a page at a time. */
-    private fun fetchRemainingTracks(
-        playlistId: String,
-        token: String,
-        start: Int,
-    ): List<SpotifyImportTrack> {
-        val out = mutableListOf<SpotifyImportTrack>()
-        var offset = start
-        while (true) {
-            val variables = """{"uri":"spotify:playlist:$playlistId","offset":$offset,"limit":$PAGE_SIZE,"enableWatchFeedEntrypoint":false}"""
-            val extensions = """{"persistedQuery":{"version":1,"sha256Hash":"$FETCH_PLAYLIST_HASH"}}"""
-            val url = PATHFINDER_URL.toHttpUrl().newBuilder()
-                .addQueryParameter("operationName", "fetchPlaylist")
-                .addQueryParameter("variables", variables)
-                .addQueryParameter("extensions", extensions)
-                .build()
-            val request = Request.Builder()
-                .url(url)
+    /**
+     * Drops the rows Spotify left untitled — tracks not licensed in the listener's country,
+     * which it names nowhere for an anonymous visitor (the playlist query, the track's own page
+     * and its oEmbed all give a blank title, checked from India) — and returns how many there were.
+     */
+    private fun dropRegionHidden(tracks: MutableList<SpotifyImportTrack>): Int {
+        val before = tracks.size
+        tracks.removeAll { it.title.isBlank() }
+        return (before - tracks.size).also { if (it > 0) ImportLog.i("spotify: $it tracks have no title here (not available in this country)") }
+    }
+
+    private fun webApiPage(playlistId: String, token: String, offset: Int): Pair<ImportPage, Int> {
+        val url = "https://api.spotify.com/v1/playlists/$playlistId/tracks".toHttpUrl().newBuilder()
+            .addQueryParameter("offset", offset.toString())
+            .addQueryParameter("limit", PAGE_SIZE.toString())
+            .addQueryParameter("fields", "items(track(name,artists(name))),total,next")
+            .build()
+        val body = fetchBody(
+            Request.Builder().url(url)
+                .header("User-Agent", USER_AGENT)
+                .header("Authorization", "Bearer $token")
+                .header("Accept", "application/json")
+                .build(),
+        )
+        val page = ImportPages.spotifyWebApi(body) ?: error("unreadable Spotify page")
+        // Rows moved past, skipped ones included: the page's own count, not the songs kept.
+        val rows = if (page.next == null) page.tracks.size else PAGE_SIZE
+        return page to rows
+    }
+
+    private fun pathfinderPage(playlistId: String, token: String, offset: Int): Pair<ImportPage, Int> {
+        val variables = """{"uri":"spotify:playlist:$playlistId","offset":$offset,"limit":$PAGE_SIZE,"enableWatchFeedEntrypoint":false}"""
+        val extensions = """{"persistedQuery":{"version":1,"sha256Hash":"$FETCH_PLAYLIST_HASH"}}"""
+        val url = PATHFINDER_URL.toHttpUrl().newBuilder()
+            .addQueryParameter("operationName", "fetchPlaylist")
+            .addQueryParameter("variables", variables)
+            .addQueryParameter("extensions", extensions)
+            .build()
+        val body = fetchBody(
+            Request.Builder().url(url)
                 .header("User-Agent", USER_AGENT)
                 .header("Authorization", "Bearer $token")
                 .header("App-platform", "WebPlayer")
                 .header("Accept", "application/json")
-                .build()
-            val body = Http.client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) error("HTTP ${response.code}")
-                response.body?.string().orEmpty()
-            }
-            val content = json.parseToJsonElement(body).jsonObject["data"]?.jsonObject
-                ?.get("playlistV2")?.jsonObject?.get("content")?.jsonObject
-                ?: break
-            val items = content["items"]?.jsonArray ?: break
-            for (item in items) {
-                val data = item.jsonObject["itemV2"]?.jsonObject?.get("data")?.jsonObject ?: continue
-                val title = data["name"]?.jsonPrimitive?.content?.trim().orEmpty()
-                if (title.isEmpty()) continue
-                val artist = data["artists"]?.jsonObject?.get("items")?.jsonArray
-                    ?.mapNotNull { it.jsonObject["profile"]?.jsonObject?.get("name")?.jsonPrimitive?.content }
-                    ?.joinToString(", ")
-                    .orEmpty()
-                out.add(SpotifyImportTrack(title = title, artist = artist))
-            }
-            val total = content["totalCount"]?.jsonPrimitive?.content?.toIntOrNull() ?: break
-            offset += items.size
-            if (items.isEmpty() || offset >= total) break
-        }
-        return out
+                .build(),
+        )
+        return ImportPages.spotifyPathfinder(body) ?: error("unreadable Spotify page")
     }
 
     /**
@@ -247,7 +315,7 @@ object SpotifyImporter {
         // Searches that failed outright (network, rate limit) rather than finding nothing:
         // when every one did, the import failed — it did not find "none of those songs".
         val failedSearches = AtomicInteger(0)
-        val semaphore = Semaphore(4) // Bounded concurrency for search queries
+        val semaphore = Semaphore(MATCH_PARALLELISM)
 
         val cleanLang = language?.trim()?.takeIf {
             !it.equals("No Preference", ignoreCase = true) &&
@@ -269,14 +337,17 @@ object SpotifyImporter {
                         "${track.title} ${track.artist}".trim()
                     }
 
-                    // One more try after a pause: a 429 or a dropped connection mid-import is
-                    // usually gone a second later, and costing a song for it is not worth it.
-                    val searchResult = YtMusicRepository.search(query, SearchFilter.SONGS)
-                        .recoverCatching {
-                            kotlinx.coroutines.delay(SEARCH_RETRY_DELAY_MS)
-                            YtMusicRepository.search(query, SearchFilter.SONGS).getOrThrow()
+                    // A 429 or a dropped connection mid-import is usually gone a moment later, and
+                    // costing a song for it is not worth it: a few tries, each pause longer.
+                    val searchResult = runCatching {
+                        withImportBackoff(attempts = SEARCH_ATTEMPTS, baseDelayMs = SEARCH_RETRY_DELAY_MS) {
+                            YtMusicRepository.search(query, SearchFilter.SONGS).getOrElse { e ->
+                                // Every failure here passes: a search that errors is worth a retry.
+                                throw if (e is java.io.IOException) e else java.io.IOException(e.message, e)
+                            }
                         }
-                        .onFailure { failedSearches.incrementAndGet() }
+                    }
+                        .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it; failedSearches.incrementAndGet() }
                         .getOrNull()
                     val candidates = searchResult?.filterIsInstance<SearchResult.Track>()?.map { it.song }.orEmpty()
 

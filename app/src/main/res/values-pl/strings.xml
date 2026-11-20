@@ -1692,6 +1692,20 @@
     <string name="lyrics_tab">Tekst</string>
     <string name="auto_unreachable_title">Nie udało się wczytać</string>
     <string name="auto_unreachable_subtitle">Możesz być offline. Pobrane utwory nadal grają.</string>
+    <string name="import_adding">Dodawanie %1$d / %2$d</string>
+    <string name="import_summary">Zaimportowano %1$d z %2$d</string>
+    <string name="import_summary_unmatched">%1$d bez dopasowania</string>
+    <string name="import_summary_unread">Nie udało się odczytać kolejnych %1$d z playlisty</string>
+    <string name="import_summary_rejected">YouTube Music nie dodał %1$d</string>
+    <string name="import_summary_not_sent">%1$d nie dodano: zerwane połączenie</string>
+    <string name="import_retry_unmatched">Ponów %1$d bez dopasowania</string>
+    <string name="import_open_playlist">Otwórz playlistę</string>
+    <string name="import_keeps_going">Możesz to zamknąć — import trwa dalej.</string>
+    <string name="import_reading">Odczytywanie playlisty…</string>
+    <string name="import_reading_of">Odczytywanie playlisty (%1$d / %2$d)…</string>
+    <string name="import_reading_count">Odczytywanie playlisty (%1$d)…</string>
+    <string name="import_summary_repeats">%1$d to ten sam utwór dwa razy, więc dodano go raz</string>
+    <string name="import_summary_region_hidden">%1$d nie jest dostępnych w twoim kraju, więc serwis nie podaje ich tytułów</string>
     <string name="winter_night_after_sunset">Nocne niebo po zachodzie słońca</string>
     <string name="winter_night_after_sunset_subtitle">W trybie jasnym noc polarna po 18:00 i powrót po 6:00</string>
 </resources>

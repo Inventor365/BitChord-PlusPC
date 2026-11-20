@@ -1629,6 +1629,20 @@
     <string name="lyrics_tab">Lirik</string>
     <string name="auto_unreachable_title">Tidak dapat dimuat</string>
     <string name="auto_unreachable_subtitle">Mungkin kamu sedang offline. Unduhan tetap bisa diputar.</string>
+    <string name="import_adding">Menambahkan %1$d / %2$d</string>
+    <string name="import_summary">Diimpor %1$d dari %2$d</string>
+    <string name="import_summary_unmatched">%1$d tidak ditemukan</string>
+    <string name="import_summary_unread">%1$d lagi tidak dapat dibaca dari playlist</string>
+    <string name="import_summary_rejected">YouTube Music tidak mau menambahkan %1$d</string>
+    <string name="import_summary_not_sent">%1$d tidak ditambahkan: koneksi terputus</string>
+    <string name="import_retry_unmatched">Coba lagi %1$d yang tidak ditemukan</string>
+    <string name="import_open_playlist">Buka playlist</string>
+    <string name="import_keeps_going">Kamu bisa menutup ini — impor tetap berjalan.</string>
+    <string name="import_reading">Membaca playlist…</string>
+    <string name="import_reading_of">Membaca playlist (%1$d / %2$d)…</string>
+    <string name="import_reading_count">Membaca playlist (%1$d)…</string>
+    <string name="import_summary_repeats">%1$d adalah lagu yang sama dua kali, jadi ditambahkan sekali</string>
+    <string name="import_summary_region_hidden">%1$d tidak tersedia di negaramu, jadi layanan tidak menyebut judulnya</string>
     <string name="winter_night_after_sunset">Langit malam setelah matahari terbenam</string>
     <string name="winter_night_after_sunset_subtitle">Dalam mode terang, malam kutub setelah pukul 18.00 dan kembali setelah 06.00</string>
 </resources>

@@ -1630,6 +1630,20 @@
     <string name="lyrics_tab">歌詞</string>
     <string name="auto_unreachable_title">読み込めませんでした</string>
     <string name="auto_unreachable_subtitle">オフラインかもしれません。ダウンロード済みの曲は再生できます。</string>
+    <string name="import_adding">追加中 %1$d / %2$d</string>
+    <string name="import_summary">%2$d 曲中 %1$d 曲をインポート</string>
+    <string name="import_summary_unmatched">%1$d 曲は見つかりませんでした</string>
+    <string name="import_summary_unread">プレイリストからさらに %1$d 曲を読み取れませんでした</string>
+    <string name="import_summary_rejected">YouTube Music が %1$d 曲を追加しませんでした</string>
+    <string name="import_summary_not_sent">%1$d 曲は追加されませんでした：接続が切れました</string>
+    <string name="import_retry_unmatched">見つからなかった %1$d 曲を再試行</string>
+    <string name="import_open_playlist">プレイリストを開く</string>
+    <string name="import_keeps_going">閉じてもインポートは続きます。</string>
+    <string name="import_reading">プレイリストを読み込み中…</string>
+    <string name="import_reading_of">プレイリストを読み込み中(%1$d / %2$d)…</string>
+    <string name="import_reading_count">プレイリストを読み込み中(%1$d)…</string>
+    <string name="import_summary_repeats">%1$d 曲は同じ曲の重複だったため、1 回だけ追加しました</string>
+    <string name="import_summary_region_hidden">%1$d 曲はお住まいの国で利用できないため、サービスが曲名を示しません</string>
     <string name="winter_night_after_sunset">日没後は夜空に</string>
     <string name="winter_night_after_sunset_subtitle">ライトモードでは 18 時以降は極夜、6 時に昼へ戻ります</string>
 </resources>

@@ -1,0 +1,10 @@
+{
+  "items": [
+    {"track": {"name": "Ain't No Sunshine", "artists": [{"name": "Bill Withers"}]}},
+    {"track": null},
+    {"track": {"name": "Let's Stay Together", "artists": [{"name": "Al Green"}]}},
+    {"track": {"name": "Ooh Child", "artists": [{"name": "The Five Stairsteps"}, {"name": "Guest"}]}}
+  ],
+  "next": "https://api.spotify.com/v1/playlists/3FFhn9hiPR3UQ203COtJ5l/tracks?offset=200&limit=100",
+  "total": 812
+}

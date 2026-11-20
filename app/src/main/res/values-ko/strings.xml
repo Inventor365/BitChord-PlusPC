@@ -1503,6 +1503,20 @@
     <string name="lyrics_tab">가사</string>
     <string name="auto_unreachable_title">불러올 수 없어요</string>
     <string name="auto_unreachable_subtitle">오프라인일 수 있어요. 다운로드한 곡은 재생돼요.</string>
+    <string name="import_adding">추가 중 %1$d / %2$d</string>
+    <string name="import_summary">%2$d곡 중 %1$d곡 가져옴</string>
+    <string name="import_summary_unmatched">%1$d곡은 찾지 못했어요</string>
+    <string name="import_summary_unread">플레이리스트에서 %1$d곡을 더 읽지 못했어요</string>
+    <string name="import_summary_rejected">YouTube Music에서 %1$d곡을 추가하지 않았어요</string>
+    <string name="import_summary_not_sent">%1$d곡이 추가되지 않았어요: 연결이 끊겼어요</string>
+    <string name="import_retry_unmatched">찾지 못한 %1$d곡 다시 시도</string>
+    <string name="import_open_playlist">플레이리스트 열기</string>
+    <string name="import_keeps_going">닫아도 가져오기는 계속돼요.</string>
+    <string name="import_reading">플레이리스트 읽는 중…</string>
+    <string name="import_reading_of">플레이리스트 읽는 중 (%1$d / %2$d)…</string>
+    <string name="import_reading_count">플레이리스트 읽는 중 (%1$d)…</string>
+    <string name="import_summary_repeats">%1$d곡은 같은 곡이 두 번 있어 한 번만 추가했어요</string>
+    <string name="import_summary_region_hidden">%1$d곡은 내 국가에서 이용할 수 없어 서비스가 곡 이름을 알려주지 않아요</string>
     <string name="winter_night_after_sunset">해가 지면 밤하늘로</string>
     <string name="winter_night_after_sunset_subtitle">라이트 모드에서 오후 6시 이후 극야로, 오전 6시에 다시 낮으로</string>
 </resources>

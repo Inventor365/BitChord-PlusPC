@@ -1646,6 +1646,20 @@
     <string name="lyrics_tab">歌詞</string>
     <string name="auto_unreachable_title">無法載入</string>
     <string name="auto_unreachable_subtitle">你可能處於離線狀態，已下載的歌曲仍可播放。</string>
+    <string name="import_adding">正在新增 %1$d / %2$d</string>
+    <string name="import_summary">已匯入 %1$d / %2$d 首</string>
+    <string name="import_summary_unmatched">%1$d 首找不到</string>
+    <string name="import_summary_unread">播放清單中另有 %1$d 首無法讀取</string>
+    <string name="import_summary_rejected">YouTube Music 未新增 %1$d 首</string>
+    <string name="import_summary_not_sent">%1$d 首未新增：連線中斷</string>
+    <string name="import_retry_unmatched">重試 %1$d 首找不到的歌曲</string>
+    <string name="import_open_playlist">開啟播放清單</string>
+    <string name="import_keeps_going">可以關閉，匯入會繼續進行。</string>
+    <string name="import_reading">正在讀取播放清單…</string>
+    <string name="import_reading_of">正在讀取播放清單(%1$d / %2$d)…</string>
+    <string name="import_reading_count">正在讀取播放清單(%1$d)…</string>
+    <string name="import_summary_repeats">%1$d 首是重複的同一首歌，只加入一次</string>
+    <string name="import_summary_region_hidden">%1$d 首在你的國家/地區無法使用，因此服務未提供歌名</string>
     <string name="winter_night_after_sunset">日落後切換為夜空</string>
     <string name="winter_night_after_sunset_subtitle">在淺色模式下，18:00 後切換為極夜，6:00 後恢復白天</string>
 </resources>

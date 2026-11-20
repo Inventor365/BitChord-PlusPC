@@ -1652,6 +1652,20 @@
     <string name="lyrics_tab">लिरिक्स</string>
     <string name="auto_unreachable_title">लोड नहीं हो सका</string>
     <string name="auto_unreachable_subtitle">शायद आप ऑफ़लाइन हैं। डाउनलोड अब भी चलेंगे।</string>
+    <string name="import_adding">जोड़ रहे हैं %1$d / %2$d</string>
+    <string name="import_summary">%2$d में से %1$d इम्पोर्ट हुए</string>
+    <string name="import_summary_unmatched">%1$d मैच नहीं हुए</string>
+    <string name="import_summary_unread">प्लेलिस्ट से %1$d और पढ़े नहीं जा सके</string>
+    <string name="import_summary_rejected">YouTube Music ने %1$d नहीं जोड़े</string>
+    <string name="import_summary_not_sent">%1$d नहीं जोड़े गए: कनेक्शन टूट गया</string>
+    <string name="import_retry_unmatched">%1$d बिना मैच वाले फिर आज़माएँ</string>
+    <string name="import_open_playlist">प्लेलिस्ट खोलें</string>
+    <string name="import_keeps_going">इसे बंद कर सकते हैं — इम्पोर्ट चलता रहेगा।</string>
+    <string name="import_reading">प्लेलिस्ट पढ़ रहे हैं…</string>
+    <string name="import_reading_of">प्लेलिस्ट पढ़ रहे हैं (%1$d / %2$d)…</string>
+    <string name="import_reading_count">प्लेलिस्ट पढ़ रहे हैं (%1$d)…</string>
+    <string name="import_summary_repeats">%1$d एक ही गाना दो बार थे, इसलिए एक बार जोड़े गए</string>
+    <string name="import_summary_region_hidden">%1$d आपके देश में उपलब्ध नहीं हैं, इसलिए सर्विस उनके नाम नहीं बताती</string>
     <string name="winter_night_after_sunset">सूर्यास्त के बाद रात का आसमान</string>
     <string name="winter_night_after_sunset_subtitle">लाइट मोड में शाम 6 बजे के बाद ध्रुवीय रात, सुबह 6 बजे फिर दिन</string>
 </resources>

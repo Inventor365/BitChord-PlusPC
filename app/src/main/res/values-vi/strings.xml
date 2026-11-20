@@ -1571,6 +1571,20 @@
     <string name="lyrics_tab">Lời bài hát</string>
     <string name="auto_unreachable_title">Không tải được</string>
     <string name="auto_unreachable_subtitle">Có thể bạn đang ngoại tuyến. Bài đã tải vẫn phát được.</string>
+    <string name="import_adding">Đang thêm %1$d / %2$d</string>
+    <string name="import_summary">Đã nhập %1$d / %2$d</string>
+    <string name="import_summary_unmatched">%1$d bài không tìm thấy</string>
+    <string name="import_summary_unread">Không đọc được thêm %1$d bài từ danh sách phát</string>
+    <string name="import_summary_rejected">YouTube Music không thêm %1$d bài</string>
+    <string name="import_summary_not_sent">%1$d bài chưa được thêm: mất kết nối</string>
+    <string name="import_retry_unmatched">Thử lại %1$d bài không tìm thấy</string>
+    <string name="import_open_playlist">Mở danh sách phát</string>
+    <string name="import_keeps_going">Bạn có thể đóng — quá trình nhập vẫn tiếp tục.</string>
+    <string name="import_reading">Đang đọc danh sách phát…</string>
+    <string name="import_reading_of">Đang đọc danh sách phát (%1$d / %2$d)…</string>
+    <string name="import_reading_count">Đang đọc danh sách phát (%1$d)…</string>
+    <string name="import_summary_repeats">%1$d bài bị trùng nên chỉ thêm một lần</string>
+    <string name="import_summary_region_hidden">%1$d bài không có ở quốc gia của bạn nên dịch vụ không cho biết tên</string>
     <string name="winter_night_after_sunset">Bầu trời đêm sau hoàng hôn</string>
     <string name="winter_night_after_sunset_subtitle">Ở chế độ sáng, chuyển sang đêm vùng cực sau 18:00 và trở lại sau 6:00</string>
 </resources>

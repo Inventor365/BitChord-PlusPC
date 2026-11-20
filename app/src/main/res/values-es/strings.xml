@@ -1624,6 +1624,20 @@
     <string name="lyrics_tab">Letra</string>
     <string name="auto_unreachable_title">No se pudo cargar</string>
     <string name="auto_unreachable_subtitle">Puede que no tengas conexión. Las descargas siguen sonando.</string>
+    <string name="import_adding">Añadiendo %1$d / %2$d</string>
+    <string name="import_summary">Importadas %1$d de %2$d</string>
+    <string name="import_summary_unmatched">%1$d sin coincidencia</string>
+    <string name="import_summary_unread">No se pudieron leer %1$d más de la playlist</string>
+    <string name="import_summary_rejected">YouTube Music no quiso añadir %1$d</string>
+    <string name="import_summary_not_sent">%1$d no se añadieron: se perdió la conexión</string>
+    <string name="import_retry_unmatched">Reintentar %1$d sin coincidencia</string>
+    <string name="import_open_playlist">Abrir playlist</string>
+    <string name="import_keeps_going">Puedes cerrar esto: la importación sigue.</string>
+    <string name="import_reading">Leyendo la playlist…</string>
+    <string name="import_reading_of">Leyendo la playlist (%1$d / %2$d)…</string>
+    <string name="import_reading_count">Leyendo la playlist (%1$d)…</string>
+    <string name="import_summary_repeats">%1$d eran la misma canción repetida y se añadieron una vez</string>
+    <string name="import_summary_region_hidden">%1$d no están disponibles en tu país, así que el servicio no dice cuáles son</string>
     <string name="winter_night_after_sunset">Cielo nocturno tras el atardecer</string>
     <string name="winter_night_after_sunset_subtitle">En modo claro, noche polar a partir de las 18:00 y de vuelta a las 6:00</string>
 </resources>

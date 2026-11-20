@@ -4,6 +4,44 @@ All notable changes to **Sonara** (`https://github.com/Inventor365/Sonara`), for
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Winter theme**, an arctic scene behind the top of every page, made to look like a film still rather than a drawing. Headings use Quicksand (OFL). Each mode has its own launcher icon in the Sonara mark's shape, and "Match app icon" follows light and dark.
+  - *Polar night* (dark mode): a long-exposure sky (Milky Way, thousands of faint stars), glacier peaks backlit by the aurora, mist on the ice field and two emperor penguins far out on it. A live aurora (an AGSL shader on Android 13+, crossfading frames below) shows green-to-violet curtains with drifting rays. Bright stars twinkle, and a shooting star crosses every 8–20 s. Fine soft snow falls in front.
+  - *Arctic day* (light mode): a bright sky with cirrus, sunlit glaciers with blue shadows, a faint daytime aurora, and a small sun that crosses from left (sunrise) to right (sunset) with the time of day, warming the horizon morning and evening.
+  - The backplates are rendered by `scripts/winter/render_backplates.py` (CC0, see `assets/licenses/WINTER-ARTWORK.txt`). The aurora glows through the nav bar and mini player from the one shared layer, not shaded twice. By day the bars are frosted ice glass.
+- **Winter effects** settings (shown while Winter is the theme): Aurora animation, Snowfall, Stars and shooting stars, Liquid-glass blur and Frost edges, each taking effect live. Turning one off removes it. Low Power Mode, Data Saver, battery saver, system animations off, and Sonara being out of sight hold everything still instead of removing it. Low-RAM, under-4 GB or Android 9 phones start with the heavy effects off.
+- **Night sky after sunset** (Winter, off by default): in light mode, switches to the polar night from 18:00 to 06:00.
+- **Home quotes and greetings**: a one-liner under the greeting (funny, dry or kind) and several greetings for each time of day, changing every time the app is opened. In all 18 languages.
+- **Android Auto**: Albums and Artists folders (under More), a "couldn't load" row instead of an empty list when offline, and a translated Lyrics tab.
+- **Lyrics on the lock screen** (Settings → Lyrics, off by default): the line being sung in place of the title in the notification.
+
+### Changed
+- **Page titles match each theme**: the greeting, its quote and the Library, Settings, Explore and Search headings take the theme's own colours and glow instead of plain black or white over the artwork. Winter day is white on a deeper sky blue, Winter night icy white with an aurora-teal glow, Vice warm white with a neon-pink glow, and Doom emerald-white with a green glow. Sonara is unchanged.
+- **Winter's aurora costs a fraction of what it did**: it is now shaded once at quarter resolution into a cached texture that the sky and both bars reuse. It used to be redrawn at full screen size every frame, once more for each bar. Idle Home with every effect on went from 95% to 31% janky frames on a Poco F3.
+- **The app icon changes the moment a theme is picked**, for all four themes. It used to wait until the app left the screen, because swapping the launcher entry closed the running app. Every home-screen icon now opens a small entry screen that hands over to the app under its own name, so the swap no longer closes it. On a Xiaomi 11i (Android 16, Launcher3), the swap took 2 ms and the home screen updated within about 0.8 s.
+- **Vice and Doom revamped.** Their launcher icons are recoloured versions of the Sonara mark, with no extra shapes. Doom is now forged gunmetal with an emerald glow: a dial with engraved ticks and brass studs behind the header, a velvet green player and rounded corners everywhere. Its medieval font is replaced by Oswald (OFL). Cinzel is removed.
+- The thin coloured outline around the nav bar and the mini player in Vice and Doom is gone.
+- The Home greeting and quote get a soft halo in the page's colour, so they stay readable over a theme's artwork.
+
+### Fixed
+- **Android Auto showed lyrics instead of the song**: the car's now-playing card (and every Bluetooth head unit, speaker and pair of earbuds) now always gets the real title and artist. A lyric only replaces the title on this phone's own notification, only if you turn it on, and never while a car is connected or sound is going to Bluetooth, a car or a dock.
+- **Imports sat on "Reading playlist…"**: Spotify's Web API answers the anonymous token with a 429 and a Retry-After of about 7 hours, which was waited out page by page. The web player's own query is now tried first, a Retry-After over 10 s fails over at once, every request has a 20 s deadline, and reading the playlist has a 4-minute one. Reading shows live counts ("Reading playlist (300 / 882)…"), and a failure shows a Retry button.
+- **Apple Music imports stopped at 300 songs**: the page's `trackCount` counts the songs on the page, not in the playlist. Paging now follows the page's own next link, and the web player's token is found whichever way its header is written.
+- **Import summaries account for every song**: they now say how many Spotify doesn't name in your country (it gives no title for region-restricted tracks), and how many were the same song twice. Signed out, the summary no longer says "Couldn't create it on YouTube Music".
+- **Long ("scrolling") screenshots repeated the top of Home**, in every theme: pull-to-refresh took the screenshot's scroll requests for a pull and reported them as scrolled. It now stands aside while a screenshot is taken.
+- **Large playlist imports stopped at about 92 songs.**
+  - Spotify playlists are read past their first 100 songs through Spotify's paged API, falling back to the web player's own query.
+  - Apple Music playlists, which used to stop at the 100 the page holds, are read through Apple's catalog API, including shared `pl.u-` playlists and any storefront.
+  - Every page is retried with growing pauses on rate limits and server errors.
+  - Songs are added in batches that wait out a new playlist's settling period (a batch sent then used to be lost unseen). Batches YouTube refuses are split until the songs it won't take are found.
+  - Matching runs five at a time with visible progress, and the whole import keeps going if you close the dialog or leave the app.
+  - It ends with a summary ("Imported 781 of 812 — 31 couldn't be matched"), the unmatched songs, *Retry unmatched* and *Open playlist*. Amazon Music imports get the same matching, adding and summary.
+  - Playlists made by hand from a list of songs also wait out the settling period.
+
+---
+
 ## [2.0.0] — 2026-11-17 (`versionCode = 48`) — Sonara
 
 ### Changed

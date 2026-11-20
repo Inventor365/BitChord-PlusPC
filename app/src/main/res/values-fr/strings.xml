@@ -1653,6 +1653,20 @@
     <string name="lyrics_tab">Paroles</string>
     <string name="auto_unreachable_title">Chargement impossible</string>
     <string name="auto_unreachable_subtitle">Tu es peut-être hors ligne. Les téléchargements restent lisibles.</string>
+    <string name="import_adding">Ajout %1$d / %2$d</string>
+    <string name="import_summary">%1$d sur %2$d importés</string>
+    <string name="import_summary_unmatched">%1$d introuvables</string>
+    <string name="import_summary_unread">%1$d autres n’ont pas pu être lus dans la playlist</string>
+    <string name="import_summary_rejected">YouTube Music a refusé d’en ajouter %1$d</string>
+    <string name="import_summary_not_sent">%1$d n’ont pas été ajoutés : connexion perdue</string>
+    <string name="import_retry_unmatched">Réessayer les %1$d introuvables</string>
+    <string name="import_open_playlist">Ouvrir la playlist</string>
+    <string name="import_keeps_going">Tu peux fermer : l’import continue.</string>
+    <string name="import_reading">Lecture de la playlist…</string>
+    <string name="import_reading_of">Lecture de la playlist (%1$d / %2$d)…</string>
+    <string name="import_reading_count">Lecture de la playlist (%1$d)…</string>
+    <string name="import_summary_repeats">%1$d étaient le même morceau en double, ajoutés une seule fois</string>
+    <string name="import_summary_region_hidden">%1$d ne sont pas disponibles dans ton pays, le service ne les nomme donc pas</string>
     <string name="winter_night_after_sunset">Ciel nocturne après le coucher du soleil</string>
     <string name="winter_night_after_sunset_subtitle">En mode clair, nuit polaire après 18 h et retour après 6 h</string>
 </resources>

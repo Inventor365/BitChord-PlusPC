@@ -1,0 +1,1 @@
+const e={a:1};function t(){return"not.a.token"}const n="eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IldlYlBsYXlLaWQifQ.eyJpc3MiOiJBTVBXZWJQbGF5IiwiaWF0IjoxNzAwMDAwMDAwfQ.c2lnbmF0dXJlLXBsYWNlaG9sZGVyLWZvci10ZXN0cw";export{n as token};

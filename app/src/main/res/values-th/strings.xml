@@ -1636,6 +1636,20 @@
     <string name="lyrics_tab">เนื้อเพลง</string>
     <string name="auto_unreachable_title">โหลดไม่ได้</string>
     <string name="auto_unreachable_subtitle">คุณอาจออฟไลน์อยู่ เพลงที่ดาวน์โหลดยังเล่นได้</string>
+    <string name="import_adding">กำลังเพิ่ม %1$d / %2$d</string>
+    <string name="import_summary">นำเข้า %1$d จาก %2$d</string>
+    <string name="import_summary_unmatched">%1$d เพลงหาไม่เจอ</string>
+    <string name="import_summary_unread">อ่านอีก %1$d เพลงจากเพลย์ลิสต์ไม่ได้</string>
+    <string name="import_summary_rejected">YouTube Music ไม่เพิ่ม %1$d เพลง</string>
+    <string name="import_summary_not_sent">%1$d เพลงไม่ได้เพิ่ม: การเชื่อมต่อขาด</string>
+    <string name="import_retry_unmatched">ลองอีกครั้ง %1$d เพลงที่หาไม่เจอ</string>
+    <string name="import_open_playlist">เปิดเพลย์ลิสต์</string>
+    <string name="import_keeps_going">ปิดได้เลย การนำเข้ายังทำต่อ</string>
+    <string name="import_reading">กำลังอ่านเพลย์ลิสต์…</string>
+    <string name="import_reading_of">กำลังอ่านเพลย์ลิสต์ (%1$d / %2$d)…</string>
+    <string name="import_reading_count">กำลังอ่านเพลย์ลิสต์ (%1$d)…</string>
+    <string name="import_summary_repeats">%1$d เพลงซ้ำกัน จึงเพิ่มครั้งเดียว</string>
+    <string name="import_summary_region_hidden">%1$d เพลงไม่มีให้บริการในประเทศของคุณ บริการจึงไม่บอกชื่อเพลง</string>
     <string name="winter_night_after_sunset">ท้องฟ้ายามค่ำหลังพระอาทิตย์ตก</string>
     <string name="winter_night_after_sunset_subtitle">ในโหมดสว่าง เปลี่ยนเป็นคืนขั้วโลกหลัง 18:00 และกลับหลัง 6:00</string>
 </resources>
