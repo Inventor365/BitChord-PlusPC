@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Lan
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.runtime.Composable
@@ -31,6 +32,9 @@ import com.music.bitchord.ui.replay.ReplayStoryPage
 // The phone's halves of the shared Library page: its list of folders, what
 // sits on its "On device" shelf, and the way in to Replay at its head.
 
+/** Library's Listen Together tile: not a folder, opened by MainActivity's Library click handler. */
+const val LISTEN_TOGETHER_BROWSE_ID = "app:listen_together"
+
 /**
  * The phone's folders, drawn as a list under the Replay cards: Downloads and
  * Local Music, the song cache when Settings has it shown, and the two remote
@@ -53,6 +57,21 @@ fun libraryLinks(): List<LibraryLink> {
         ),
         icon = icon,
     )
+    // Listen Together, from Library as well as Settings: a party is something you do with your
+    // music, not a setting. Its subtitle says so when you are already in one.
+    val party by com.music.bitchord.data.listentogether.ListenTogether.state.collectAsStateWithLifecycle()
+    val partyLink = LibraryLink(
+        item = ShelfItem(
+            title = stringResource(R.string.listen_together),
+            subtitle = party.code?.takeIf { party.inParty }
+                ?.let { stringResource(R.string.listen_together_in_party, it) }
+                ?: stringResource(R.string.listen_together_subtitle),
+            thumbnailUrl = null,
+            videoId = null,
+            browseId = LISTEN_TOGETHER_BROWSE_ID,
+        ),
+        icon = Icons.Rounded.Groups,
+    )
     return listOfNotNull(
         link(
             stringResource(R.string.downloads),
@@ -64,6 +83,7 @@ fun libraryLinks(): List<LibraryLink> {
             stringResource(R.string.audio_files_on_device),
             "local:all",
         ),
+        partyLink,
         // Opt-in from Settings → Storage: what the song cache is holding from
         // YouTube and JioSaavn. See [com.music.bitchord.playback.AudioCache.cachedSongs].
         link(

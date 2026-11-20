@@ -2605,6 +2605,11 @@ private fun BitChordApp(
                 navigator.push(AppRoute.Spotify)
                 return@let
             }
+            // Library's Listen Together tile: the same page the Settings row opens.
+            if (id == com.music.bitchord.ui.screens.LISTEN_TOGETHER_BROWSE_ID) {
+                navigator.push(AppRoute.ListenTogether)
+                return@let
+            }
             if ((id == "local:all" || id == "local:downloads") && !LocalMediaRepository.hasStoragePermission(context)) {
                 mediaPermissionLauncher.launch(mediaPermission)
             }

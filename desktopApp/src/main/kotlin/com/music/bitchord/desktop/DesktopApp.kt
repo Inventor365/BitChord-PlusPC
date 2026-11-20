@@ -146,6 +146,7 @@ import androidx.compose.material.icons.rounded.FastRewind
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.FullscreenExit
 import androidx.compose.material.icons.rounded.GraphicEq
@@ -2398,6 +2399,17 @@ fun BitChordDesktopApp() {
                 ),
                 icon = Icons.Rounded.Folder,
             ),
+            // Listen Together from Library, as on the phone, not only from Settings and the player.
+            LibraryLink(
+                item = ShelfItem(
+                    title = DesktopStrings["listen_together", "Listen together"],
+                    subtitle = DesktopStrings["listen_together_subtitle", "Share a code and play the same music, in time"],
+                    thumbnailUrl = null,
+                    videoId = null,
+                    browseId = LISTEN_TOGETHER_LINK_ID,
+                ),
+                icon = Icons.Rounded.Groups,
+            ),
             // As on the phone, only while signed in to Spotify in Account & integrations.
             LibraryLink(
                 item = ShelfItem(
@@ -2455,6 +2467,7 @@ fun BitChordDesktopApp() {
         when {
             browseId == LOCAL_DOWNLOADS_ID -> selectDestination(DesktopDestination.DOWNLOADS)
             browseId == LOCAL_MUSIC_ID -> selectDestination(DesktopDestination.LOCAL_MUSIC)
+            browseId == LISTEN_TOGETHER_LINK_ID -> overlays.listenTogether = true
             browseId == SPOTIFY_LIBRARY_ID -> openSpotifyLibrary()
             // Spotify's tracks fill in below, as they are read and matched.
             browseId.startsWith(SPOTIFY_PAGE_PREFIX) -> showCollection(
@@ -8407,3 +8420,6 @@ private fun formatSleepTimer(ms: Long): String = formatTime(ms)
 
 /** How long a lyrics lookup waits for the engine's real track length before using the catalogue's. */
 private const val LYRICS_LENGTH_WAIT_MS = 2_500L
+
+/** Library's Listen Together tile: opens the party dialog rather than a page. */
+private const val LISTEN_TOGETHER_LINK_ID = "app:listen_together"
